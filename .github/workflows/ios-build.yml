@@ -1,4 +1,4 @@
-name: iOS Build
+name: iOS IPA Build
 
 on:
   push:
@@ -11,16 +11,34 @@ jobs:
     runs-on: macos-latest
 
     steps:
+      # 1. 检出代码
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. 设置 Flutter（版本改成你本地的）
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.8'  # 这里改成你的 Flutter 版本
+          flutter-version: '3.32.8'
 
+      # 3. 拉取依赖
       - name: Install dependencies
         run: flutter pub get
 
+      # 4. 构建 iOS（不签名）
       - name: Build iOS
         run: flutter build ios --release --no-codesign
+
+      # 5. 打包成 IPA（放进 Payload 再压缩）
+      - name: Create IPA package
+        run: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/*.app Payload/
+          zip -r app-release.ipa Payload
+
+      # 6. 上传 IPA 作为构建产物
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-ipa
+          path: app-release.ipa
