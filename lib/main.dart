@@ -1,36 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/l10n/app_localizations.dart';
+import 'package:money_nest_app/pages/main_page.dart';
+
+final db = AppDatabase();
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp(db: db));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AppDatabase db;
+  const MyApp({super.key, required this.db});
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'Money Nest',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
+        fontFamilyFallback: [
+          'PingFang SC', // 中文
+          'Hiragino Sans', // 日文
+          'San Francisco', // 英文
+          'Helvetica Neue',
+          'Arial',
+        ],
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en'), // 英文
+        Locale('zh'), // 中文
+        Locale('ja'), // 日文
+      ],
+      home: TradeRecordListPage(db: db),
     );
   }
 }
@@ -84,6 +96,10 @@ class _MyHomePageState extends State<MyHomePage> {
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
+        actions: [
+          IconButton(icon: Icon(Icons.notifications_none), onPressed: () {}),
+          IconButton(icon: Icon(Icons.settings), onPressed: () {}),
+        ],
       ),
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
