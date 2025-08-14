@@ -1,4 +1,6 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/material.dart';
+import 'package:money_nest_app/l10n/app_localizations.dart';
 
 enum Currency {
   jpy, // 日元
@@ -8,16 +10,16 @@ enum Currency {
 }
 
 extension CurrencyExtension on Currency {
-  String get displayName {
+  String displayName(BuildContext context) {
     switch (this) {
       case Currency.jpy:
-        return 'JPY';
+        return AppLocalizations.of(context)!.currencyJpyLabel;
       case Currency.usd:
-        return 'USD';
+        return AppLocalizations.of(context)!.currencyUsdLabel;
       case Currency.cny:
-        return 'CNY';
+        return AppLocalizations.of(context)!.currencyCnyLabel;
       case Currency.hkd:
-        return 'HKD';
+        return AppLocalizations.of(context)!.currencyHkdLabel;
     }
   }
 }

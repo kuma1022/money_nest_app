@@ -95,7 +95,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                               ),
                               hintText: AppLocalizations.of(
                                 context,
-                              )!.mainPageSearch,
+                              )!.mainPageSearchHint,
                               border: InputBorder.none,
                               hintStyle: const TextStyle(
                                 color: Colors.grey,
@@ -160,7 +160,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                                   context,
                                 )!.mainPageSearchCancel,
                                 style: const TextStyle(
-                                  color: Colors.black87,
+                                  color: Color(0xFF34B363),
                                   fontSize: 14,
                                 ),
                               ),

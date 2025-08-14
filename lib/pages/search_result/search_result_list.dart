@@ -100,7 +100,7 @@ class SearchResultList extends StatelessWidget {
                 subtitle: Text(
                   '${DateFormat.yMMMd().format(r.tradeDate.toLocal())}   '
                   '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${r.quantity == null ? "-" : NumberFormat.decimalPattern().format(r.quantity)}   '
-                  '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${r.price == null ? "-" : NumberFormat.simpleCurrency(name: r.currency.displayName).format(r.price)}',
+                  '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${r.price == null ? "-" : NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
                 ),
                 //onTap: () => _navigateToDetail(r),
               ),

@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/trade_action.dart';
 import 'package:money_nest_app/models/trade_category.dart';
@@ -100,7 +101,7 @@ class _TradeRecordEditPageState extends State<TradeRecordEditPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('编辑交易记录'),
+        title: Text(AppLocalizations.of(context)!.tradeEditPageTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -116,7 +117,9 @@ class _TradeRecordEditPageState extends State<TradeRecordEditPage> {
             children: [
               Row(
                 children: [
-                  const Text('交易时间:'),
+                  Text(
+                    AppLocalizations.of(context)!.tradeEditPageTradeDateLabel,
+                  ),
                   const SizedBox(width: 8),
                   TextButton(
                     onPressed: _pickDate,
@@ -126,23 +129,34 @@ class _TradeRecordEditPageState extends State<TradeRecordEditPage> {
               ),
               DropdownButtonFormField<TradeAction>(
                 value: _action,
-                decoration: const InputDecoration(labelText: '动作'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.tradeEditPageActionLabel,
+                ),
                 items: TradeAction.values
                     .map(
                       (a) => DropdownMenuItem(
                         value: a,
-                        child: Text(a.displayName),
+                        child: Text(a.displayName(context)),
                       ),
                     )
                     .toList(),
                 onChanged: (v) => setState(() => _action = v),
-                validator: (v) => v == null ? '请选择动作' : null,
-                selectedItemBuilder: (context) =>
-                    TradeAction.values.map((a) => Text(a.displayName)).toList(),
+                validator: (v) => v == null
+                    ? AppLocalizations.of(context)!.tradeEditPageActionError
+                    : null,
+                selectedItemBuilder: (context) => TradeAction.values
+                    .map((a) => Text(a.displayName(context)))
+                    .toList(),
               ),
               DropdownButtonFormField<TradeCategory>(
                 value: _category,
-                decoration: const InputDecoration(labelText: '类型'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.tradeEditPageCategoryLabel,
+                ),
                 items: TradeCategory.values
                     .map(
                       (c) => DropdownMenuItem(
@@ -152,14 +166,20 @@ class _TradeRecordEditPageState extends State<TradeRecordEditPage> {
                     )
                     .toList(),
                 onChanged: (v) => setState(() => _category = v),
-                validator: (v) => v == null ? '请选择类型' : null,
+                validator: (v) => v == null
+                    ? AppLocalizations.of(context)!.tradeEditPageCategoryError
+                    : null,
                 selectedItemBuilder: (context) => TradeCategory.values
                     .map((c) => Text(c.displayName))
                     .toList(),
               ),
               DropdownButtonFormField<TradeType>(
                 value: _tradeType,
-                decoration: const InputDecoration(labelText: '交易类别'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.tradeEditPageTypeLabel,
+                ),
                 items: TradeType.values
                     .map(
                       (c) => DropdownMenuItem(
@@ -169,24 +189,40 @@ class _TradeRecordEditPageState extends State<TradeRecordEditPage> {
                     )
                     .toList(),
                 onChanged: (v) => setState(() => _tradeType = v),
-                validator: (v) => v == null ? '请选择交易类别' : null,
+                validator: (v) => v == null
+                    ? AppLocalizations.of(context)!.tradeEditPageTypeError
+                    : null,
                 selectedItemBuilder: (context) =>
                     TradeType.values.map((c) => Text(c.displayName)).toList(),
               ),
               TextFormField(
                 initialValue: _name,
-                decoration: const InputDecoration(labelText: '名称'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.tradeEditPageNameLabel,
+                ),
                 onSaved: (v) => _name = v ?? '',
-                validator: (v) => v == null || v.isEmpty ? '请输入名称' : null,
+                validator: (v) => v == null || v.isEmpty
+                    ? AppLocalizations.of(context)!.tradeEditPageNameError
+                    : null,
               ),
               TextFormField(
                 initialValue: _code,
-                decoration: const InputDecoration(labelText: '代码'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.tradeEditPageCodeLabel,
+                ),
                 onSaved: (v) => _code = v,
               ),
               TextFormField(
                 initialValue: _quantity?.toString(),
-                decoration: const InputDecoration(labelText: '数量'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.tradeEditPageQuantityLabel,
+                ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 onSaved: (v) => _quantity = v != null && v.isNotEmpty
                     ? double.tryParse(v)
@@ -194,23 +230,34 @@ class _TradeRecordEditPageState extends State<TradeRecordEditPage> {
               ),
               DropdownButtonFormField<Currency>(
                 value: _currency,
-                decoration: const InputDecoration(labelText: '货币'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.tradeEditPageCurrencyLabel,
+                ),
                 items: Currency.values
                     .map(
                       (c) => DropdownMenuItem(
                         value: c,
-                        child: Text(c.displayName),
+                        child: Text(c.displayName(context)),
                       ),
                     )
                     .toList(),
                 onChanged: (v) => setState(() => _currency = v),
-                validator: (v) => v == null ? '请选择货币' : null,
-                selectedItemBuilder: (context) =>
-                    Currency.values.map((c) => Text(c.displayName)).toList(),
+                validator: (v) => v == null
+                    ? AppLocalizations.of(context)!.tradeEditPageCurrencyError
+                    : null,
+                selectedItemBuilder: (context) => Currency.values
+                    .map((c) => Text(c.displayName(context)))
+                    .toList(),
               ),
               TextFormField(
                 initialValue: _price?.toString(),
-                decoration: const InputDecoration(labelText: '单价'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.tradeEditPagePriceLabel,
+                ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 onSaved: (v) => _price = v != null && v.isNotEmpty
                     ? double.tryParse(v)
@@ -218,7 +265,11 @@ class _TradeRecordEditPageState extends State<TradeRecordEditPage> {
               ),
               TextFormField(
                 initialValue: _rate?.toString(),
-                decoration: const InputDecoration(labelText: '汇率'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.tradeEditPageRateLabel,
+                ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 onSaved: (v) => _rate = v != null && v.isNotEmpty
                     ? double.tryParse(v)
@@ -226,11 +277,20 @@ class _TradeRecordEditPageState extends State<TradeRecordEditPage> {
               ),
               TextFormField(
                 initialValue: _remark,
-                decoration: const InputDecoration(labelText: '备注'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.tradeEditPageRemarkLabel,
+                ),
                 onSaved: (v) => _remark = v,
               ),
               const SizedBox(height: 20),
-              ElevatedButton(onPressed: _save, child: const Text('保存')),
+              ElevatedButton(
+                onPressed: _save,
+                child: Text(
+                  AppLocalizations.of(context)!.tradeEditPageSaveLabel,
+                ),
+              ),
             ],
           ),
         ),

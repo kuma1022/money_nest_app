@@ -1,16 +1,18 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/material.dart';
+import 'package:money_nest_app/l10n/app_localizations.dart';
 
 // 1. 定义你的枚举
 enum TradeAction { buy, sell }
 
 // 2. (可选但强烈推荐) 为枚举创建扩展，方便获取显示名称
 extension TradeActionExtension on TradeAction {
-  String get displayName {
+  String displayName(BuildContext context) {
     switch (this) {
       case TradeAction.buy:
-        return '买入';
+        return AppLocalizations.of(context)!.tradeActionBuyLabel;
       case TradeAction.sell:
-        return '卖出';
+        return AppLocalizations.of(context)!.tradeActionSellLabel;
     }
   }
 }

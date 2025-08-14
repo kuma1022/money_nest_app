@@ -94,6 +94,26 @@ class AppDatabase extends _$AppDatabase {
         ))
         .get();
   }
+
+  Future<List<TradeRecord>> getAllAvailableBuyRecords() async {
+    // 查询所有未完全卖出的买入记录
+    return (select(tradeRecords)..where(
+          (tbl) =>
+              //tbl.action.equals(TradeAction.buy.displayName) &
+              tbl.quantity.isNotNull(),
+        ))
+        .get();
+  }
+
+  Future<List<TradeRecord>> getAvailableBuyRecordsByCode(String code) async {
+    // 查询指定代码下所有未完全卖出的买入记录
+    return (select(tradeRecords)..where(
+          (tbl) =>
+              //tbl.action.equals(TradeAction.buy.displayName) &
+              tbl.code.equals(code) & tbl.quantity.isNotNull(),
+        ))
+        .get();
+  }
 }
 
 LazyDatabase _openConnection() {

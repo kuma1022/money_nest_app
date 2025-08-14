@@ -187,11 +187,11 @@ abstract class AppLocalizations {
   /// **'更多'**
   String get mainPageMoreTitle;
 
-  /// No description provided for @mainPageSearch.
+  /// No description provided for @mainPageSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'搜索'**
-  String get mainPageSearch;
+  /// **'输入名称或代码搜索'**
+  String get mainPageSearchHint;
 
   /// No description provided for @mainPageSearchCancel.
   ///
@@ -208,7 +208,7 @@ abstract class AppLocalizations {
   /// No description provided for @tradeAddPageTradeDateLabel.
   ///
   /// In en, this message translates to:
-  /// **'交易时间'**
+  /// **'日期'**
   String get tradeAddPageTradeDateLabel;
 
   /// No description provided for @tradeAddPageTradeDatePlaceholder.
@@ -232,25 +232,25 @@ abstract class AppLocalizations {
   /// No description provided for @tradeAddPageCategoryLabel.
   ///
   /// In en, this message translates to:
-  /// **'类型'**
+  /// **'市场'**
   String get tradeAddPageCategoryLabel;
 
   /// No description provided for @tradeAddPageCategoryError.
   ///
   /// In en, this message translates to:
-  /// **'请选择类型'**
+  /// **'请选择市场'**
   String get tradeAddPageCategoryError;
 
   /// No description provided for @tradeAddPageTypeLabel.
   ///
   /// In en, this message translates to:
-  /// **'交易类别'**
+  /// **'类别'**
   String get tradeAddPageTypeLabel;
 
   /// No description provided for @tradeAddPageTypeError.
   ///
   /// In en, this message translates to:
-  /// **'请选择交易类别'**
+  /// **'请选择类别'**
   String get tradeAddPageTypeError;
 
   /// No description provided for @tradeAddPageNameLabel.
@@ -286,13 +286,13 @@ abstract class AppLocalizations {
   /// No description provided for @tradeAddPageCurrencyLabel.
   ///
   /// In en, this message translates to:
-  /// **'货币'**
+  /// **'币种'**
   String get tradeAddPageCurrencyLabel;
 
   /// No description provided for @tradeAddPageCurrencyError.
   ///
   /// In en, this message translates to:
-  /// **'请选择货币'**
+  /// **'请选择币种'**
   String get tradeAddPageCurrencyError;
 
   /// No description provided for @tradeAddPagePriceLabel.
@@ -352,7 +352,7 @@ abstract class AppLocalizations {
   /// No description provided for @tradeDetailPageTradeDateLabel.
   ///
   /// In en, this message translates to:
-  /// **'交易时间'**
+  /// **'日期'**
   String get tradeDetailPageTradeDateLabel;
 
   /// No description provided for @tradeDetailPageActionLabel.
@@ -364,13 +364,13 @@ abstract class AppLocalizations {
   /// No description provided for @tradeDetailPageCategoryLabel.
   ///
   /// In en, this message translates to:
-  /// **'类型'**
+  /// **'市场'**
   String get tradeDetailPageCategoryLabel;
 
   /// No description provided for @tradeDetailPageTradeTypeLabel.
   ///
   /// In en, this message translates to:
-  /// **'交易类别'**
+  /// **'类别'**
   String get tradeDetailPageTradeTypeLabel;
 
   /// No description provided for @tradeDetailPageNameLabel.
@@ -394,7 +394,7 @@ abstract class AppLocalizations {
   /// No description provided for @tradeDetailPageCurrencyLabel.
   ///
   /// In en, this message translates to:
-  /// **'货币'**
+  /// **'币种'**
   String get tradeDetailPageCurrencyLabel;
 
   /// No description provided for @tradeDetailPagePriceLabel.
@@ -414,6 +414,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'备注'**
   String get tradeDetailPageRemarkLabel;
+
+  /// No description provided for @tradeEditPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'编辑交易记录'**
+  String get tradeEditPageTitle;
+
+  /// No description provided for @tradeEditPageTradeDateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'日期'**
+  String get tradeEditPageTradeDateLabel;
+
+  /// No description provided for @tradeEditPageActionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'操作'**
+  String get tradeEditPageActionLabel;
+
+  /// No description provided for @tradeEditPageActionError.
+  ///
+  /// In en, this message translates to:
+  /// **'请选择动作'**
+  String get tradeEditPageActionError;
+
+  /// No description provided for @tradeEditPageCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'市场'**
+  String get tradeEditPageCategoryLabel;
+
+  /// No description provided for @tradeEditPageCategoryError.
+  ///
+  /// In en, this message translates to:
+  /// **'请选择市场'**
+  String get tradeEditPageCategoryError;
+
+  /// No description provided for @tradeEditPageTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'类别'**
+  String get tradeEditPageTypeLabel;
+
+  /// No description provided for @tradeEditPageTypeError.
+  ///
+  /// In en, this message translates to:
+  /// **'请选择类别'**
+  String get tradeEditPageTypeError;
+
+  /// No description provided for @tradeEditPageNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'名称'**
+  String get tradeEditPageNameLabel;
+
+  /// No description provided for @tradeEditPageNameError.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入名称'**
+  String get tradeEditPageNameError;
+
+  /// No description provided for @tradeEditPageCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'代码'**
+  String get tradeEditPageCodeLabel;
+
+  /// No description provided for @tradeEditPageQuantityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'数量'**
+  String get tradeEditPageQuantityLabel;
+
+  /// No description provided for @tradeEditPageCurrencyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'币种'**
+  String get tradeEditPageCurrencyLabel;
+
+  /// No description provided for @tradeEditPageCurrencyError.
+  ///
+  /// In en, this message translates to:
+  /// **'请选择币种'**
+  String get tradeEditPageCurrencyError;
+
+  /// No description provided for @tradeEditPagePriceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'单价'**
+  String get tradeEditPagePriceLabel;
+
+  /// No description provided for @tradeEditPageRateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'汇率'**
+  String get tradeEditPageRateLabel;
+
+  /// No description provided for @tradeEditPageRemarkLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'备注'**
+  String get tradeEditPageRemarkLabel;
+
+  /// No description provided for @tradeEditPageSaveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'保存'**
+  String get tradeEditPageSaveLabel;
+
+  /// No description provided for @buyPositionSelectionPageSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'输入名称或代码搜索'**
+  String get buyPositionSelectionPageSearchHint;
+
+  /// No description provided for @buyPositionSelectionPageConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'确认选择'**
+  String get buyPositionSelectionPageConfirm;
+
+  /// No description provided for @buyPositionSelectionPageBackToSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'返回搜索'**
+  String get buyPositionSelectionPageBackToSearch;
+
+  /// No description provided for @tradeAddPageSellDateError.
+  ///
+  /// In en, this message translates to:
+  /// **'卖出日期不能早于买入日期'**
+  String get tradeAddPageSellDateError;
+
+  /// No description provided for @tradeAddPageBuyPositionSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'选择要卖出的持仓'**
+  String get tradeAddPageBuyPositionSelection;
+
+  /// No description provided for @tradeAddPageSelectedPositions.
+  ///
+  /// In en, this message translates to:
+  /// **'已选择持仓'**
+  String get tradeAddPageSelectedPositions;
+
+  /// No description provided for @currencyJpyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'JPY'**
+  String get currencyJpyLabel;
+
+  /// No description provided for @currencyUsdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'USD'**
+  String get currencyUsdLabel;
+
+  /// No description provided for @currencyCnyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'CNY'**
+  String get currencyCnyLabel;
+
+  /// No description provided for @currencyHkdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'HKD'**
+  String get currencyHkdLabel;
+
+  /// No description provided for @tradeActionBuyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'买入'**
+  String get tradeActionBuyLabel;
+
+  /// No description provided for @tradeActionSellLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'卖出'**
+  String get tradeActionSellLabel;
+
+  /// No description provided for @tradeAddPageEditSelectedPositions.
+  ///
+  /// In en, this message translates to:
+  /// **'修改'**
+  String get tradeAddPageEditSelectedPositions;
+
+  /// No description provided for @tradeAddPageConfirmLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'确定'**
+  String get tradeAddPageConfirmLabel;
+
+  /// No description provided for @tradeAddPageCancelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'取消'**
+  String get tradeAddPageCancelLabel;
+
+  /// No description provided for @tradeAddPageTypePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'请选择类别'**
+  String get tradeAddPageTypePlaceholder;
+
+  /// No description provided for @tradeAddPageCategoryPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'请选择市场'**
+  String get tradeAddPageCategoryPlaceholder;
+
+  /// No description provided for @tradeAddPageNamePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入名称'**
+  String get tradeAddPageNamePlaceholder;
+
+  /// No description provided for @tradeAddPageCodePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入代码'**
+  String get tradeAddPageCodePlaceholder;
+
+  /// No description provided for @tradeAddPageQuantityPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入数量'**
+  String get tradeAddPageQuantityPlaceholder;
+
+  /// No description provided for @tradeAddPageCurrencyPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'请选择币种'**
+  String get tradeAddPageCurrencyPlaceholder;
+
+  /// No description provided for @tradeAddPagePricePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入单价'**
+  String get tradeAddPagePricePlaceholder;
+
+  /// No description provided for @tradeAddPageRatePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入汇率'**
+  String get tradeAddPageRatePlaceholder;
+
+  /// No description provided for @tradeAddPageRemarkPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'（任意）输入备注'**
+  String get tradeAddPageRemarkPlaceholder;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -1,4 +1,5 @@
 // trade_tab_page.dart
+import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
@@ -7,7 +8,7 @@ import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/trade_action.dart';
 import 'package:money_nest_app/models/trade_category.dart';
-import 'package:money_nest_app/pages/trade_detail/trade_add_page.dart';
+import 'package:money_nest_app/pages/trade_detail/trade_add/trade_add_page.dart';
 import 'package:money_nest_app/pages/trade_detail/trade_detail_page.dart';
 
 class TradeTabPage extends StatefulWidget {
@@ -88,90 +89,180 @@ class _TradeTabPageState extends State<TradeTabPage> {
               child: Text(AppLocalizations.of(context)!.noTradeRecords),
             );
           }
+
+          // 1. 交易时间降序
+          records.sort((a, b) {
+            final aDate = DateTime(
+              a.tradeDate.year,
+              a.tradeDate.month,
+              a.tradeDate.day,
+            );
+            final bDate = DateTime(
+              b.tradeDate.year,
+              b.tradeDate.month,
+              b.tradeDate.day,
+            );
+            final dateComparison = bDate.compareTo(aDate);
+            if (dateComparison != 0) return dateComparison;
+
+            // 动作（买入排前，卖出排后）
+            final actionComparison = a.action.index.compareTo(b.action.index);
+            if (actionComparison != 0) return actionComparison;
+
+            // 代码升序
+            return (a.code ?? '').compareTo(b.code ?? '');
+          });
+
+          // 2. 按日期（不含时分秒）分组
+          final Map<String, List<TradeRecord>> grouped =
+              SplayTreeMap<String, List<TradeRecord>>(
+                (a, b) => b.compareTo(a), // 保证日期降序
+              );
+          for (final r in records) {
+            final dateKey = DateFormat(
+              'yyyy-MM-dd',
+            ).format(r.tradeDate.toLocal());
+            grouped.putIfAbsent(dateKey, () => []).add(r);
+          }
+
+          // 3. 构建分组后的列表
+          final List<_GroupItem> items = [];
+          grouped.forEach((date, list) {
+            items.add(_GroupItem.header(date));
+            for (final r in list) {
+              items.add(_GroupItem.record(r));
+            }
+          });
+
           return ListView.separated(
-            itemCount: records.length,
+            itemCount: items.length,
             separatorBuilder: (context, i) => const Divider(
               color: Color(0xFFE0E0E0),
               thickness: 1,
               height: 1,
             ),
             itemBuilder: (context, i) {
-              final r = records[i];
-              return Dismissible(
-                key: ValueKey(r.id),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  color: Colors.red,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: const Icon(Icons.delete, color: Colors.white),
-                ),
-                confirmDismiss: (direction) async {
-                  // 可选：弹窗确认
-                  return await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.confirmDeleteDialogTitle,
-                          ),
-                          content: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.confirmDeleteDialogContent,
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.confirmDeleteDialogCancel,
-                              ),
+              final item = items[i];
+              if (item.isHeader) {
+                return Container(
+                  color: const Color(0xFFF2F2F2), // 背景色与title一致
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4,
+                    horizontal: 16,
+                  ),
+                  child: Text(
+                    // 按当前手机时区格式，带星期
+                    '${DateFormat.yMMMd().format(DateTime.parse(item.date!).toLocal())} '
+                    '(${DateFormat.E().format(DateTime.parse(item.date!).toLocal())})',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.normal,
+                      fontSize: 13,
+                      color: Colors.black,
+                    ),
+                  ),
+                );
+              } else {
+                final r = item.record!;
+                return Dismissible(
+                  key: ValueKey(r.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    color: Colors.red,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  confirmDismiss: (direction) async {
+                    return await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.confirmDeleteDialogTitle,
                             ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.confirmDeleteDialogDelete,
-                                style: TextStyle(color: Colors.red),
-                              ),
+                            content: Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.confirmDeleteDialogContent,
                             ),
-                          ],
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.confirmDeleteDialogCancel,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(true),
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.confirmDeleteDialogDelete,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ) ??
+                        false;
+                  },
+                  onDismissed: (direction) {
+                    _deleteRecord(r.id);
+                  },
+                  child: ListTile(
+                    dense: true,
+                    leading: Icon(
+                      r.action == TradeAction.buy
+                          ? Icons.add_circle_outline
+                          : Icons.remove_circle_outline,
+                      color: r.action == TradeAction.buy
+                          ? Colors.green
+                          : Colors.red,
+                      size: 28,
+                    ),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${r.action.displayName(context)}  ${r.name}(${r.category.displayName})',
+                            style: const TextStyle(fontSize: 16),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ) ??
-                      false;
-                },
-                onDismissed: (direction) {
-                  _deleteRecord(r.id);
-                },
-                child: ListTile(
-                  leading: Icon(
-                    r.action == TradeAction.buy
-                        ? Icons.add_circle_outline
-                        : Icons.remove_circle_outline,
-                    color: r.action == TradeAction.buy
-                        ? Colors.green
-                        : Colors.red,
-                    size: 28,
+                        Text(
+                          // 数量和价格，靠右显示
+                          '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${r.quantity == null ? "-" : NumberFormat.decimalPattern().format(r.quantity)}   '
+                          '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${r.price == null ? "-" : NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black54,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ],
+                    ),
+                    onTap: () => _navigateToDetail(r),
                   ),
-                  title: Text(
-                    '${r.action.displayName}  ${r.name}(${r.category.displayName})',
-                  ),
-                  subtitle: Text(
-                    '${DateFormat.yMMMd().format(r.tradeDate.toLocal())}   '
-                    '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${r.quantity == null ? "-" : NumberFormat.decimalPattern().format(r.quantity)}   '
-                    '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${r.price == null ? "-" : NumberFormat.simpleCurrency(name: r.currency.displayName).format(r.price)}',
-                  ),
-                  onTap: () => _navigateToDetail(r),
-                ),
-              );
+                );
+              }
             },
           );
         },
       ),
     );
   }
+}
+
+// 辅助类用于分组
+class _GroupItem {
+  final String? date;
+  final TradeRecord? record;
+  final bool isHeader;
+  _GroupItem.header(this.date) : record = null, isHeader = true;
+  _GroupItem.record(this.record) : date = null, isHeader = false;
 }

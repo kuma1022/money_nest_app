@@ -68,7 +68,7 @@ class TradeRecordDetailPage extends StatelessWidget {
             ),
             _buildRow(
               AppLocalizations.of(context)!.tradeDetailPageActionLabel,
-              record.action.displayName,
+              record.action.displayName(context),
             ),
             _buildRow(
               AppLocalizations.of(context)!.tradeDetailPageCategoryLabel,
@@ -92,7 +92,7 @@ class TradeRecordDetailPage extends StatelessWidget {
             ),
             _buildRow(
               AppLocalizations.of(context)!.tradeDetailPageCurrencyLabel,
-              record.currency.displayName,
+              record.currency.displayName(context),
             ),
             _buildRow(
               AppLocalizations.of(context)!.tradeDetailPagePriceLabel,
