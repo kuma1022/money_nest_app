@@ -222,6 +222,33 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tradeEditPageSaveLabel => '保存';
 
   @override
+  String get tradeEditPageEditToolTip => '编辑';
+
+  @override
+  String get tradeEditPageCancelToolTip => '取消';
+
+  @override
+  String get tradeEditPageUpdateButton => '保存';
+
+  @override
+  String get tradeEditPageQuantityError => '请输入数量';
+
+  @override
+  String get tradeEditPageCurrencyPlaceholder => '请选择币种';
+
+  @override
+  String get tradeDetailPagePriceError => '请输入单价';
+
+  @override
+  String get tradeDetailPageRateError => '请输入汇率';
+
+  @override
+  String get tradeDetailPageRemarkPlaceholder => '（任意）输入备注';
+
+  @override
+  String get tradeDetailPageUpdateSuccess => '更新成功';
+
+  @override
   String get buyPositionSelectionPageSearchHint => '输入名称或代码搜索';
 
   @override

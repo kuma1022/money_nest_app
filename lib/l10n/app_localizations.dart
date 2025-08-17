@@ -523,6 +523,60 @@ abstract class AppLocalizations {
   /// **'保存'**
   String get tradeEditPageSaveLabel;
 
+  /// No description provided for @tradeEditPageEditToolTip.
+  ///
+  /// In en, this message translates to:
+  /// **'编辑'**
+  String get tradeEditPageEditToolTip;
+
+  /// No description provided for @tradeEditPageCancelToolTip.
+  ///
+  /// In en, this message translates to:
+  /// **'取消'**
+  String get tradeEditPageCancelToolTip;
+
+  /// No description provided for @tradeEditPageUpdateButton.
+  ///
+  /// In en, this message translates to:
+  /// **'保存'**
+  String get tradeEditPageUpdateButton;
+
+  /// No description provided for @tradeEditPageQuantityError.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入数量'**
+  String get tradeEditPageQuantityError;
+
+  /// No description provided for @tradeEditPageCurrencyPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'请选择币种'**
+  String get tradeEditPageCurrencyPlaceholder;
+
+  /// No description provided for @tradeDetailPagePriceError.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入单价'**
+  String get tradeDetailPagePriceError;
+
+  /// No description provided for @tradeDetailPageRateError.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入汇率'**
+  String get tradeDetailPageRateError;
+
+  /// No description provided for @tradeDetailPageRemarkPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'（任意）输入备注'**
+  String get tradeDetailPageRemarkPlaceholder;
+
+  /// No description provided for @tradeDetailPageUpdateSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'更新成功'**
+  String get tradeDetailPageUpdateSuccess;
+
   /// No description provided for @buyPositionSelectionPageSearchHint.
   ///
   /// In en, this message translates to:
