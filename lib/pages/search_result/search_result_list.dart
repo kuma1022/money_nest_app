@@ -4,7 +4,6 @@ import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/trade_action.dart';
-import 'package:money_nest_app/models/trade_category.dart';
 
 class SearchResultList extends StatelessWidget {
   final AppDatabase db;
@@ -95,7 +94,7 @@ class SearchResultList extends StatelessWidget {
                   size: 28,
                 ),
                 title: Text(
-                  '${r.action.displayName}  ${r.name}(${r.category.displayName})',
+                  '${r.action.displayName}  ${r.name}(${r.category})',
                 ),
                 subtitle: Text(
                   '${DateFormat.yMMMd().format(r.tradeDate.toLocal())}   '

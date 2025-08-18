@@ -1,13 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:money_nest_app/util/provider/buy_records_provider.dart';
+import 'package:money_nest_app/util/provider/category_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/pages/main_page.dart';
+import 'package:provider/provider.dart';
 
 final db = AppDatabase();
 
-void main() {
-  runApp(MyApp(db: db));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final db = AppDatabase();
+  final categoryProvider = CategoryProvider(db);
+  final buyRecordsProvider = BuyRecordsProvider(db);
+  await categoryProvider.loadCategories();
+  await buyRecordsProvider.loadRecords();
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<AppDatabase>.value(value: db),
+        ChangeNotifierProvider<CategoryProvider>.value(value: categoryProvider),
+        ChangeNotifierProvider<BuyRecordsProvider>.value(
+          value: buyRecordsProvider,
+        ),
+      ],
+      child: MyApp(db: db),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

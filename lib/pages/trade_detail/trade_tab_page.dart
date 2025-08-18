@@ -3,13 +3,15 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
+import 'package:money_nest_app/util/provider/buy_records_provider.dart';
+import 'package:money_nest_app/util/provider/category_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/trade_action.dart';
-import 'package:money_nest_app/models/trade_category.dart';
 import 'package:money_nest_app/pages/trade_detail/trade_add/trade_add_page.dart';
 import 'package:money_nest_app/pages/trade_detail/trade_detail_page.dart';
+import 'package:provider/provider.dart';
 
 class TradeTabPage extends StatefulWidget {
   final AppDatabase db;
@@ -24,6 +26,9 @@ class _TradeTabPageState extends State<TradeTabPage> {
     await (widget.db.delete(
       widget.db.tradeRecords,
     )..where((tbl) => tbl.id.equals(id))).go();
+
+    if (!mounted) return; // 添加mounted判断
+    context.read<BuyRecordsProvider>().loadRecords();
   }
 
   Future<void> _navigateToDetail(TradeRecord record) async {
@@ -62,6 +67,8 @@ class _TradeTabPageState extends State<TradeTabPage> {
 
   @override
   Widget build(BuildContext context) {
+    final tradeCategoryList = context.watch<CategoryProvider>().categories;
+
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF34B363),
@@ -229,7 +236,8 @@ class _TradeTabPageState extends State<TradeTabPage> {
                       children: [
                         Expanded(
                           child: Text(
-                            '${r.action.displayName(context)}  ${r.name}(${r.category.displayName})',
+                            '${r.action.displayName(context)}  '
+                            '${r.name}(${tradeCategoryList.firstWhere((category) => category.id == r.category).name})',
                             style: const TextStyle(fontSize: 16),
                             overflow: TextOverflow.ellipsis,
                           ),

@@ -3,12 +3,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:money_nest_app/util/provider/buy_records_provider.dart';
+import 'package:money_nest_app/util/provider/category_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/trade_action.dart';
-import 'package:money_nest_app/models/trade_category.dart';
 import 'package:money_nest_app/models/trade_type.dart';
+import 'package:provider/provider.dart';
 
 class TradeRecordDetailPage extends StatefulWidget {
   final AppDatabase db;
@@ -220,6 +222,8 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final tradeCategoryList = context.watch<CategoryProvider>().categories;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: GestureDetector(
@@ -312,7 +316,18 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                             context,
                           )!.tradeDetailPageCategoryLabel,
                           'text',
-                          value: widget.record.category.displayName,
+                          value: tradeCategoryList
+                              .firstWhere(
+                                (category) =>
+                                    category.id == widget.record.category,
+                                orElse: () => TradeCategory(
+                                  id: 0,
+                                  name: '',
+                                  sortOrder: 0,
+                                  isActive: false,
+                                ),
+                              )
+                              .name,
                           editable: false,
                           icon: Icons.public,
                         ),
@@ -696,16 +711,8 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
 
     await widget.db.update(widget.db.tradeRecords).replace(updated);
 
-    // 返回或提示
-    if (mounted) {
-      /*ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalizations.of(context)!.tradeDetailPageUpdateSuccess,
-          ),
-        ),
-      );*/
-      Navigator.of(context).pop(updated);
-    }
+    if (!mounted) return; // 添加mounted判断
+    context.read<BuyRecordsProvider>().loadRecords();
+    Navigator.pop(context, true);
   }
 }

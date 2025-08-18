@@ -42,15 +42,17 @@ class $TradeRecordsTable extends TradeRecords
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<TradeAction>($TradeRecordsTable.$converteraction);
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
   @override
-  late final GeneratedColumnWithTypeConverter<TradeCategory, String> category =
-      GeneratedColumn<String>(
-        'category',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-      ).withConverter<TradeCategory>($TradeRecordsTable.$convertercategory);
+  late final GeneratedColumn<int> category = GeneratedColumn<int>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
   @override
   late final GeneratedColumnWithTypeConverter<TradeType, String> tradeType =
       GeneratedColumn<String>(
@@ -163,6 +165,14 @@ class $TradeRecordsTable extends TradeRecords
     } else if (isInserting) {
       context.missing(_tradeDateMeta);
     }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
     if (data.containsKey('name')) {
       context.handle(
         _nameMeta,
@@ -224,12 +234,10 @@ class $TradeRecordsTable extends TradeRecords
           data['${effectivePrefix}action'],
         )!,
       ),
-      category: $TradeRecordsTable.$convertercategory.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}category'],
-        )!,
-      ),
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}category'],
+      )!,
       tradeType: $TradeRecordsTable.$convertertradeType.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -276,8 +284,6 @@ class $TradeRecordsTable extends TradeRecords
 
   static TypeConverter<TradeAction, String> $converteraction =
       const TradeActionConverter();
-  static TypeConverter<TradeCategory, String> $convertercategory =
-      const TradeCategoryConverter();
   static TypeConverter<TradeType, String> $convertertradeType =
       const TradeTypeConverter();
   static TypeConverter<Currency, String> $convertercurrency =
@@ -288,7 +294,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
   final int id;
   final DateTime tradeDate;
   final TradeAction action;
-  final TradeCategory category;
+  final int category;
   final TradeType tradeType;
   final String name;
   final String? code;
@@ -321,11 +327,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
         $TradeRecordsTable.$converteraction.toSql(action),
       );
     }
-    {
-      map['category'] = Variable<String>(
-        $TradeRecordsTable.$convertercategory.toSql(category),
-      );
-    }
+    map['category'] = Variable<int>(category);
     {
       map['trade_type'] = Variable<String>(
         $TradeRecordsTable.$convertertradeType.toSql(tradeType),
@@ -387,7 +389,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       id: serializer.fromJson<int>(json['id']),
       tradeDate: serializer.fromJson<DateTime>(json['tradeDate']),
       action: serializer.fromJson<TradeAction>(json['action']),
-      category: serializer.fromJson<TradeCategory>(json['category']),
+      category: serializer.fromJson<int>(json['category']),
       tradeType: serializer.fromJson<TradeType>(json['tradeType']),
       name: serializer.fromJson<String>(json['name']),
       code: serializer.fromJson<String?>(json['code']),
@@ -405,7 +407,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       'id': serializer.toJson<int>(id),
       'tradeDate': serializer.toJson<DateTime>(tradeDate),
       'action': serializer.toJson<TradeAction>(action),
-      'category': serializer.toJson<TradeCategory>(category),
+      'category': serializer.toJson<int>(category),
       'tradeType': serializer.toJson<TradeType>(tradeType),
       'name': serializer.toJson<String>(name),
       'code': serializer.toJson<String?>(code),
@@ -421,7 +423,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     int? id,
     DateTime? tradeDate,
     TradeAction? action,
-    TradeCategory? category,
+    int? category,
     TradeType? tradeType,
     String? name,
     Value<String?> code = const Value.absent(),
@@ -517,7 +519,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
   final Value<int> id;
   final Value<DateTime> tradeDate;
   final Value<TradeAction> action;
-  final Value<TradeCategory> category;
+  final Value<int> category;
   final Value<TradeType> tradeType;
   final Value<String> name;
   final Value<String?> code;
@@ -544,7 +546,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     this.id = const Value.absent(),
     required DateTime tradeDate,
     required TradeAction action,
-    required TradeCategory category,
+    required int category,
     required TradeType tradeType,
     required String name,
     this.code = const Value.absent(),
@@ -563,7 +565,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     Expression<int>? id,
     Expression<DateTime>? tradeDate,
     Expression<String>? action,
-    Expression<String>? category,
+    Expression<int>? category,
     Expression<String>? tradeType,
     Expression<String>? name,
     Expression<String>? code,
@@ -593,7 +595,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     Value<int>? id,
     Value<DateTime>? tradeDate,
     Value<TradeAction>? action,
-    Value<TradeCategory>? category,
+    Value<int>? category,
     Value<TradeType>? tradeType,
     Value<String>? name,
     Value<String?>? code,
@@ -634,9 +636,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
       );
     }
     if (category.present) {
-      map['category'] = Variable<String>(
-        $TradeRecordsTable.$convertercategory.toSql(category.value),
-      );
+      map['category'] = Variable<int>(category.value);
     }
     if (tradeType.present) {
       map['trade_type'] = Variable<String>(
@@ -2049,6 +2049,360 @@ class CashBalanceHistoriesCompanion
   }
 }
 
+class $TradeCategoriesTable extends TradeCategories
+    with TableInfo<$TradeCategoriesTable, TradeCategory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TradeCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 32,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorHexMeta = const VerificationMeta(
+    'colorHex',
+  );
+  @override
+  late final GeneratedColumn<int> colorHex = GeneratedColumn<int>(
+    'color_hex',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    colorHex,
+    sortOrder,
+    isActive,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'trade_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TradeCategory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('color_hex')) {
+      context.handle(
+        _colorHexMeta,
+        colorHex.isAcceptableOrUnknown(data['color_hex']!, _colorHexMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TradeCategory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TradeCategory(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      colorHex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color_hex'],
+      ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+    );
+  }
+
+  @override
+  $TradeCategoriesTable createAlias(String alias) {
+    return $TradeCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class TradeCategory extends DataClass implements Insertable<TradeCategory> {
+  final int id;
+  final String name;
+  final int? colorHex;
+  final int sortOrder;
+  final bool isActive;
+  const TradeCategory({
+    required this.id,
+    required this.name,
+    this.colorHex,
+    required this.sortOrder,
+    required this.isActive,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || colorHex != null) {
+      map['color_hex'] = Variable<int>(colorHex);
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['is_active'] = Variable<bool>(isActive);
+    return map;
+  }
+
+  TradeCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return TradeCategoriesCompanion(
+      id: Value(id),
+      name: Value(name),
+      colorHex: colorHex == null && nullToAbsent
+          ? const Value.absent()
+          : Value(colorHex),
+      sortOrder: Value(sortOrder),
+      isActive: Value(isActive),
+    );
+  }
+
+  factory TradeCategory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TradeCategory(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      colorHex: serializer.fromJson<int?>(json['colorHex']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'colorHex': serializer.toJson<int?>(colorHex),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'isActive': serializer.toJson<bool>(isActive),
+    };
+  }
+
+  TradeCategory copyWith({
+    int? id,
+    String? name,
+    Value<int?> colorHex = const Value.absent(),
+    int? sortOrder,
+    bool? isActive,
+  }) => TradeCategory(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    colorHex: colorHex.present ? colorHex.value : this.colorHex,
+    sortOrder: sortOrder ?? this.sortOrder,
+    isActive: isActive ?? this.isActive,
+  );
+  TradeCategory copyWithCompanion(TradeCategoriesCompanion data) {
+    return TradeCategory(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TradeCategory(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('colorHex: $colorHex, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isActive: $isActive')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, colorHex, sortOrder, isActive);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TradeCategory &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.colorHex == this.colorHex &&
+          other.sortOrder == this.sortOrder &&
+          other.isActive == this.isActive);
+}
+
+class TradeCategoriesCompanion extends UpdateCompanion<TradeCategory> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<int?> colorHex;
+  final Value<int> sortOrder;
+  final Value<bool> isActive;
+  const TradeCategoriesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.colorHex = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isActive = const Value.absent(),
+  });
+  TradeCategoriesCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.colorHex = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isActive = const Value.absent(),
+  }) : name = Value(name);
+  static Insertable<TradeCategory> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<int>? colorHex,
+    Expression<int>? sortOrder,
+    Expression<bool>? isActive,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (colorHex != null) 'color_hex': colorHex,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (isActive != null) 'is_active': isActive,
+    });
+  }
+
+  TradeCategoriesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<int?>? colorHex,
+    Value<int>? sortOrder,
+    Value<bool>? isActive,
+  }) {
+    return TradeCategoriesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      colorHex: colorHex ?? this.colorHex,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isActive: isActive ?? this.isActive,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (colorHex.present) {
+      map['color_hex'] = Variable<int>(colorHex.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TradeCategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('colorHex: $colorHex, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isActive: $isActive')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2059,6 +2413,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CashBalancesTable cashBalances = $CashBalancesTable(this);
   late final $CashBalanceHistoriesTable cashBalanceHistories =
       $CashBalanceHistoriesTable(this);
+  late final $TradeCategoriesTable tradeCategories = $TradeCategoriesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2069,6 +2426,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cashFlows,
     cashBalances,
     cashBalanceHistories,
+    tradeCategories,
   ];
 }
 
@@ -2077,7 +2435,7 @@ typedef $$TradeRecordsTableCreateCompanionBuilder =
       Value<int> id,
       required DateTime tradeDate,
       required TradeAction action,
-      required TradeCategory category,
+      required int category,
       required TradeType tradeType,
       required String name,
       Value<String?> code,
@@ -2092,7 +2450,7 @@ typedef $$TradeRecordsTableUpdateCompanionBuilder =
       Value<int> id,
       Value<DateTime> tradeDate,
       Value<TradeAction> action,
-      Value<TradeCategory> category,
+      Value<int> category,
       Value<TradeType> tradeType,
       Value<String> name,
       Value<String?> code,
@@ -2128,10 +2486,9 @@ class $$TradeRecordsTableFilterComposer
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
-  ColumnWithTypeConverterFilters<TradeCategory, TradeCategory, String>
-  get category => $composableBuilder(
+  ColumnFilters<int> get category => $composableBuilder(
     column: $table.category,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
+    builder: (column) => ColumnFilters(column),
   );
 
   ColumnWithTypeConverterFilters<TradeType, TradeType, String> get tradeType =>
@@ -2201,7 +2558,7 @@ class $$TradeRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get category => $composableBuilder(
+  ColumnOrderings<int> get category => $composableBuilder(
     column: $table.category,
     builder: (column) => ColumnOrderings(column),
   );
@@ -2265,7 +2622,7 @@ class $$TradeRecordsTableAnnotationComposer
   GeneratedColumnWithTypeConverter<TradeAction, String> get action =>
       $composableBuilder(column: $table.action, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<TradeCategory, String> get category =>
+  GeneratedColumn<int> get category =>
       $composableBuilder(column: $table.category, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<TradeType, String> get tradeType =>
@@ -2327,7 +2684,7 @@ class $$TradeRecordsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<DateTime> tradeDate = const Value.absent(),
                 Value<TradeAction> action = const Value.absent(),
-                Value<TradeCategory> category = const Value.absent(),
+                Value<int> category = const Value.absent(),
                 Value<TradeType> tradeType = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> code = const Value.absent(),
@@ -2355,7 +2712,7 @@ class $$TradeRecordsTableTableManager
                 Value<int> id = const Value.absent(),
                 required DateTime tradeDate,
                 required TradeAction action,
-                required TradeCategory category,
+                required int category,
                 required TradeType tradeType,
                 required String name,
                 Value<String?> code = const Value.absent(),
@@ -3192,6 +3549,202 @@ typedef $$CashBalanceHistoriesTableProcessedTableManager =
       CashBalanceHistory,
       PrefetchHooks Function()
     >;
+typedef $$TradeCategoriesTableCreateCompanionBuilder =
+    TradeCategoriesCompanion Function({
+      Value<int> id,
+      required String name,
+      Value<int?> colorHex,
+      Value<int> sortOrder,
+      Value<bool> isActive,
+    });
+typedef $$TradeCategoriesTableUpdateCompanionBuilder =
+    TradeCategoriesCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<int?> colorHex,
+      Value<int> sortOrder,
+      Value<bool> isActive,
+    });
+
+class $$TradeCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $TradeCategoriesTable> {
+  $$TradeCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get colorHex => $composableBuilder(
+    column: $table.colorHex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TradeCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TradeCategoriesTable> {
+  $$TradeCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get colorHex => $composableBuilder(
+    column: $table.colorHex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TradeCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TradeCategoriesTable> {
+  $$TradeCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get colorHex =>
+      $composableBuilder(column: $table.colorHex, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+}
+
+class $$TradeCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TradeCategoriesTable,
+          TradeCategory,
+          $$TradeCategoriesTableFilterComposer,
+          $$TradeCategoriesTableOrderingComposer,
+          $$TradeCategoriesTableAnnotationComposer,
+          $$TradeCategoriesTableCreateCompanionBuilder,
+          $$TradeCategoriesTableUpdateCompanionBuilder,
+          (
+            TradeCategory,
+            BaseReferences<_$AppDatabase, $TradeCategoriesTable, TradeCategory>,
+          ),
+          TradeCategory,
+          PrefetchHooks Function()
+        > {
+  $$TradeCategoriesTableTableManager(
+    _$AppDatabase db,
+    $TradeCategoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TradeCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TradeCategoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TradeCategoriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int?> colorHex = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+              }) => TradeCategoriesCompanion(
+                id: id,
+                name: name,
+                colorHex: colorHex,
+                sortOrder: sortOrder,
+                isActive: isActive,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                Value<int?> colorHex = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+              }) => TradeCategoriesCompanion.insert(
+                id: id,
+                name: name,
+                colorHex: colorHex,
+                sortOrder: sortOrder,
+                isActive: isActive,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TradeCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TradeCategoriesTable,
+      TradeCategory,
+      $$TradeCategoriesTableFilterComposer,
+      $$TradeCategoriesTableOrderingComposer,
+      $$TradeCategoriesTableAnnotationComposer,
+      $$TradeCategoriesTableCreateCompanionBuilder,
+      $$TradeCategoriesTableUpdateCompanionBuilder,
+      (
+        TradeCategory,
+        BaseReferences<_$AppDatabase, $TradeCategoriesTable, TradeCategory>,
+      ),
+      TradeCategory,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3206,4 +3759,6 @@ class $AppDatabaseManager {
       $$CashBalancesTableTableManager(_db, _db.cashBalances);
   $$CashBalanceHistoriesTableTableManager get cashBalanceHistories =>
       $$CashBalanceHistoriesTableTableManager(_db, _db.cashBalanceHistories);
+  $$TradeCategoriesTableTableManager get tradeCategories =>
+      $$TradeCategoriesTableTableManager(_db, _db.tradeCategories);
 }

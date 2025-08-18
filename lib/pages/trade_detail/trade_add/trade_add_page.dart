@@ -3,14 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:money_nest_app/util/provider/buy_records_provider.dart';
+import 'package:money_nest_app/util/provider/category_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/select_buy_record.dart';
 import 'package:money_nest_app/models/trade_action.dart';
-import 'package:money_nest_app/models/trade_category.dart';
 import 'package:money_nest_app/models/trade_type.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/pages/trade_detail/trade_add/buy_position_selector_page.dart';
+import 'package:provider/provider.dart';
 
 class TradeRecordAddPage extends StatefulWidget {
   final AppDatabase db;
@@ -255,7 +257,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
       final newRecord = TradeRecordsCompanion(
         tradeDate: Value(_buyTradeDate!),
         action: Value(TradeAction.buy),
-        category: Value(_buyCategory!),
+        category: Value(_buyCategory!.id),
         tradeType: Value(_buyTradeType!),
         currency: Value(_buyCurrency!),
         name: Value(_buyNameController.text),
@@ -266,42 +268,42 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
         remark: Value(_buyRemarkController.text),
       );
       await widget.db.into(widget.db.tradeRecords).insert(newRecord);
-      if (mounted) Navigator.pop(context, true);
-      return;
+    } else {
+      // 卖出逻辑：每个选中的买入记录都生成一条卖出记录
+      for (final buy in _selectedBuyRecords) {
+        final sellRecord = TradeRecordsCompanion(
+          tradeDate: Value(_sellTradeDate!),
+          action: Value(TradeAction.sell),
+          category: Value(buy.record.category), // 用买入记录的类别
+          tradeType: Value(buy.record.tradeType), // 用买入记录的类型
+          currency: Value(_sellCurrency!), // 卖出币种用表单设定
+          name: Value(buy.record.name), // 用买入记录的名称
+          code: Value(buy.record.code), // 用买入记录的代码
+          quantity: Value(buy.quantity), // 卖出数量
+          price: Value(double.tryParse(_sellPriceController.text)),
+          rate: Value(double.tryParse(_sellRateController.text)),
+          remark: Value(_sellRemarkController.text),
+        );
+        final sellId = await widget.db
+            .into(widget.db.tradeRecords)
+            .insert(sellRecord);
+
+        // 保存买入和卖出的mapping
+        await widget.db
+            .into(widget.db.tradeSellMappings)
+            .insert(
+              TradeSellMappingsCompanion(
+                buyId: Value(buy.record.id),
+                sellId: Value(sellId),
+                quantity: Value(buy.quantity),
+              ),
+            );
+      }
     }
 
-    // 卖出逻辑：每个选中的买入记录都生成一条卖出记录
-    for (final buy in _selectedBuyRecords) {
-      final sellRecord = TradeRecordsCompanion(
-        tradeDate: Value(_sellTradeDate!),
-        action: Value(TradeAction.sell),
-        category: Value(buy.record.category), // 用买入记录的类别
-        tradeType: Value(buy.record.tradeType), // 用买入记录的类型
-        currency: Value(_sellCurrency!), // 卖出币种用表单设定
-        name: Value(buy.record.name), // 用买入记录的名称
-        code: Value(buy.record.code), // 用买入记录的代码
-        quantity: Value(buy.quantity), // 卖出数量
-        price: Value(double.tryParse(_sellPriceController.text)),
-        rate: Value(double.tryParse(_sellRateController.text)),
-        remark: Value(_sellRemarkController.text),
-      );
-      final sellId = await widget.db
-          .into(widget.db.tradeRecords)
-          .insert(sellRecord);
-
-      // 保存买入和卖出的mapping
-      await widget.db
-          .into(widget.db.tradeSellMappings)
-          .insert(
-            TradeSellMappingsCompanion(
-              buyId: Value(buy.record.id),
-              sellId: Value(sellId),
-              quantity: Value(buy.quantity),
-            ),
-          );
-    }
-
-    if (mounted) Navigator.pop(context, true);
+    if (!mounted) return; // 添加mounted判断
+    context.read<BuyRecordsProvider>().loadRecords();
+    Navigator.pop(context, true);
   }
 
   void closeToListPage(BuildContext context) {
@@ -368,6 +370,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
     final remarkController = isBuy
         ? _buyRemarkController
         : _sellRemarkController;
+    final tradeCategoryList = context.watch<CategoryProvider>().categories;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -697,9 +700,9 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                           onTap: () async {
                             final picked = await showPickerSheet<TradeCategory>(
                               context: context,
-                              options: TradeCategory.values,
+                              options: tradeCategoryList,
                               selected: category,
-                              display: (c) => c.displayName,
+                              display: (c) => c.name,
                             );
                             if (picked != null) {
                               setState(() {
@@ -721,7 +724,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                                 Expanded(
                                   child: Text(
                                     category != null
-                                        ? category.displayName
+                                        ? category.name
                                         : AppLocalizations.of(
                                             context,
                                           )!.tradeAddPageCategoryPlaceholder,

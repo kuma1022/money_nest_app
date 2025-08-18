@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
+import 'package:money_nest_app/pages/total_capital/total_capital_tab_page.dart';
 import 'package:money_nest_app/pages/trade_detail/trade_tab_page.dart';
 import 'package:money_nest_app/pages/search_result/search_result_list.dart';
 
@@ -25,7 +26,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
     TradeTabPage(db: widget.db), // 交易明细tab
     Center(child: Text(AppLocalizations.of(context)!.mainPageCashTitle)),
     Center(child: Text(AppLocalizations.of(context)!.mainPageBookTitle)),
-    Center(child: Text(AppLocalizations.of(context)!.mainPageWalletTitle)),
+    TotalCapitalTabPage(db: widget.db), // 总资产tab
     Center(child: Text(AppLocalizations.of(context)!.mainPageMoreTitle)),
   ];
 

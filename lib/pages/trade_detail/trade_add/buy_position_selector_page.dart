@@ -6,7 +6,6 @@ import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/select_buy_record.dart';
-import 'package:money_nest_app/models/trade_category.dart';
 
 class BuyPositionSelector extends StatefulWidget {
   final AppDatabase db;
@@ -248,7 +247,7 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                               },
                             ),
                             title: Text(
-                              '${buy.name}(${buy.category.displayName})  ${buy.code}',
+                              '${buy.name}(${buy.category})  ${buy.code}',
                               style: const TextStyle(fontSize: 16),
                               overflow: TextOverflow.ellipsis,
                             ),
