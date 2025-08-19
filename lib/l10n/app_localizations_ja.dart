@@ -102,16 +102,43 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tradeAddPageQuantityError => '请输入数量';
 
   @override
-  String get tradeAddPageCurrencyLabel => '币种';
+  String get tradeAddPageCurrencyLabel => '交易货币';
 
   @override
   String get tradeAddPageCurrencyError => '请选择币种';
 
   @override
-  String get tradeAddPagePriceLabel => '单价';
+  String get tradeAddPagePriceLabel => '交易单价';
 
   @override
   String get tradeAddPagePriceError => '请输入单价';
+
+  @override
+  String get tradeAddPageTotalLabel => '交易总额';
+
+  @override
+  String get tradeAddPageCurrencyUsedBuyLabel => '结算货币';
+
+  @override
+  String get tradeAddPageCurrencyUsedSellLabel => '到账货币';
+
+  @override
+  String get tradeAddPageMoneyUsedBuyLabel => '结算金额';
+
+  @override
+  String get tradeAddPageMoneyUsedSellLabel => '到账金额';
+
+  @override
+  String get tradeAddPageMoneyUsedBuyPlaceholder => '请输入结算金额';
+
+  @override
+  String get tradeAddPageMoneyUsedSellPlaceholder => '请输入到账金额';
+
+  @override
+  String get tradeAddPageMoneyUsedBuyError => '请输入结算金额';
+
+  @override
+  String get tradeAddPageMoneyUsedSellError => '请输入到账金额';
 
   @override
   String get tradeAddPageRateLabel => '汇率';

@@ -94,7 +94,7 @@ class SearchResultList extends StatelessWidget {
                   size: 28,
                 ),
                 title: Text(
-                  '${r.action.displayName}  ${r.name}(${r.category})',
+                  '${r.action.displayName}  ${r.name}(${r.categoryId})',
                 ),
                 subtitle: Text(
                   '${DateFormat.yMMMd().format(r.tradeDate.toLocal())}   '

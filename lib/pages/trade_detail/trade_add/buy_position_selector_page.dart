@@ -247,7 +247,7 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                               },
                             ),
                             title: Text(
-                              '${buy.name}(${buy.category})  ${buy.code}',
+                              '${buy.name}(${buy.categoryId})  ${buy.code}',
                               style: const TextStyle(fontSize: 16),
                               overflow: TextOverflow.ellipsis,
                             ),

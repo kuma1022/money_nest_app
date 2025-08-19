@@ -219,19 +219,19 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                 label: AppLocalizations.of(context)!.mainPageCashTitle,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.pie_chart_outline, color: Colors.grey[700]),
-                activeIcon: Icon(Icons.pie_chart, color: Color(0xFF34B363)),
-                label: AppLocalizations.of(context)!.mainPageBookTitle,
-              ),
-              BottomNavigationBarItem(
                 icon: Icon(
                   Icons.account_balance_wallet_outlined,
                   color: Colors.grey[700],
                 ),
                 activeIcon: Icon(
-                  Icons.account_balance_wallet,
+                  Icons.account_balance_wallet_outlined,
                   color: Color(0xFF34B363),
                 ),
+                label: AppLocalizations.of(context)!.mainPageBookTitle,
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.pie_chart_outline, color: Colors.grey[700]),
+                activeIcon: Icon(Icons.pie_chart, color: Color(0xFF34B363)),
                 label: AppLocalizations.of(context)!.mainPageWalletTitle,
               ),
               BottomNavigationBarItem(

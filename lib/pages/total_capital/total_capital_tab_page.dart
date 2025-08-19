@@ -23,7 +23,7 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
     final double chartSize = MediaQuery.of(context).size.width / 2;
     double total = buyRecordsList.fold<double>(
       0,
-      (sum, record) => sum + record.quantity! * record.price! * record.rate!,
+      (sum, record) => sum + record.moneyUsed,
     );
 
     return Scaffold(
@@ -84,12 +84,8 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
     for (int i = 0; i < tradeCategoryList.length; i++) {
       final asset = tradeCategoryList[i];
       double sumForCategory = buyRecordsList
-          .where((record) => record.category == asset.id)
-          .fold<double>(
-            0,
-            (sum, record) =>
-                sum + record.quantity! * record.price! * record.rate!,
-          );
+          .where((record) => record.categoryId == asset.id)
+          .fold<double>(0, (sum, record) => sum + record.moneyUsed);
       if (sumForCategory == 0) continue; // 跳过无资产类别
 
       final isTouched = visibleIndex == touchedIndex;

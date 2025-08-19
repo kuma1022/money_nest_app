@@ -117,7 +117,7 @@ class _TradeTabPageState extends State<TradeTabPage> {
             if (actionComparison != 0) return actionComparison;
 
             // 代码升序
-            return (a.code ?? '').compareTo(b.code ?? '');
+            return a.code.compareTo(b.code);
           });
 
           // 2. 按日期（不含时分秒）分组
@@ -237,15 +237,15 @@ class _TradeTabPageState extends State<TradeTabPage> {
                         Expanded(
                           child: Text(
                             '${r.action.displayName(context)}  '
-                            '${r.name}(${tradeCategoryList.firstWhere((category) => category.id == r.category).name})',
+                            '${r.name}(${tradeCategoryList.firstWhere((category) => category.id == r.categoryId).name})',
                             style: const TextStyle(fontSize: 16),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Text(
                           // 数量和价格，靠右显示
-                          '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${r.quantity == null ? "-" : NumberFormat.decimalPattern().format(r.quantity)}   '
-                          '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${r.price == null ? "-" : NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
+                          '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${NumberFormat.decimalPattern().format(r.quantity)}   '
+                          '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
                           style: const TextStyle(
                             fontSize: 13,
                             color: Colors.black54,

@@ -11,19 +11,21 @@ part 'app_database.g.dart';
 // 交易记录表
 class TradeRecords extends Table {
   IntColumn get id => integer().autoIncrement()();
-  DateTimeColumn get tradeDate => dateTime()(); // 交易时间
+  DateTimeColumn get tradeDate => dateTime()(); // 交易日期
   TextColumn get action =>
-      text().map(const TradeActionConverter())(); // 买入 / 卖出
-  IntColumn get category => integer()(); // 交易市场ID
+      text().map(const TradeActionConverter())(); // 交易类型（买入 / 卖出）
+  IntColumn get categoryId => integer()(); // 交易市场ID
   TextColumn get tradeType =>
-      text().map(const TradeTypeConverter())(); // 交易类别（一般 / 特定 / NISA）
+      text().map(const TradeTypeConverter())(); // 类别（一般 / 特定 / NISA 等）
   TextColumn get name => text()(); // 名称
-  TextColumn get code => text().nullable()(); // 代码
-  RealColumn get quantity => real().nullable()(); // 数量
-  TextColumn get currency => text().map(const CurrencyConverter())(); // 交易货币
-  RealColumn get price => real().nullable()(); // 单价（交易货币）
-  RealColumn get rate =>
-      real().nullable()(); // 汇率（交易货币兑设定默认货币，比如交易USD默认JPY的话，汇率就为1USD对多少JPY）
+  TextColumn get code => text()(); // 代码
+  RealColumn get quantity => real()(); // 交易数量
+  TextColumn get currency =>
+      text().map(const CurrencyConverter())(); // 交易货币（USD / JPY / HKD 等）
+  RealColumn get price => real()(); // 交易单价（每股成交价，交易货币计）
+  TextColumn get currencyUsed =>
+      text().map(const CurrencyConverter())(); // 资金货币（买入时=结算货币，卖出时=到账货币）
+  RealColumn get moneyUsed => real()(); // 资金金额（买入时=结算金额，卖出时=到账金额）
   TextColumn get remark => text().nullable()(); // 备注
 }
 
@@ -236,9 +238,9 @@ class AppDatabase extends _$AppDatabase {
     final result = <TradeRecord>[];
     for (final b in buys) {
       final sold = soldMap[b.id] ?? 0;
-      final remain = (b.quantity ?? 0) - sold;
+      final remain = b.quantity - sold;
       if (remain > 0) {
-        result.add(b.copyWith(quantity: Value(remain)));
+        result.add(b.copyWith(quantity: remain));
       }
     }
     return result;
@@ -268,9 +270,9 @@ class AppDatabase extends _$AppDatabase {
     final result = <TradeRecord>[];
     for (final b in buys) {
       final sold = soldMap[b.id] ?? 0;
-      final remain = (b.quantity ?? 0) - sold;
+      final remain = b.quantity - sold;
       if (remain > 0) {
-        result.add(b.copyWith(quantity: Value(remain)));
+        result.add(b.copyWith(quantity: remain));
       }
     }
     return result;

@@ -286,7 +286,7 @@ abstract class AppLocalizations {
   /// No description provided for @tradeAddPageCurrencyLabel.
   ///
   /// In en, this message translates to:
-  /// **'币种'**
+  /// **'交易货币'**
   String get tradeAddPageCurrencyLabel;
 
   /// No description provided for @tradeAddPageCurrencyError.
@@ -298,7 +298,7 @@ abstract class AppLocalizations {
   /// No description provided for @tradeAddPagePriceLabel.
   ///
   /// In en, this message translates to:
-  /// **'单价'**
+  /// **'交易单价'**
   String get tradeAddPagePriceLabel;
 
   /// No description provided for @tradeAddPagePriceError.
@@ -306,6 +306,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'请输入单价'**
   String get tradeAddPagePriceError;
+
+  /// No description provided for @tradeAddPageTotalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'交易总额'**
+  String get tradeAddPageTotalLabel;
+
+  /// No description provided for @tradeAddPageCurrencyUsedBuyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'结算货币'**
+  String get tradeAddPageCurrencyUsedBuyLabel;
+
+  /// No description provided for @tradeAddPageCurrencyUsedSellLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'到账货币'**
+  String get tradeAddPageCurrencyUsedSellLabel;
+
+  /// No description provided for @tradeAddPageMoneyUsedBuyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'结算金额'**
+  String get tradeAddPageMoneyUsedBuyLabel;
+
+  /// No description provided for @tradeAddPageMoneyUsedSellLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'到账金额'**
+  String get tradeAddPageMoneyUsedSellLabel;
+
+  /// No description provided for @tradeAddPageMoneyUsedBuyPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入结算金额'**
+  String get tradeAddPageMoneyUsedBuyPlaceholder;
+
+  /// No description provided for @tradeAddPageMoneyUsedSellPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入到账金额'**
+  String get tradeAddPageMoneyUsedSellPlaceholder;
+
+  /// No description provided for @tradeAddPageMoneyUsedBuyError.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入结算金额'**
+  String get tradeAddPageMoneyUsedBuyError;
+
+  /// No description provided for @tradeAddPageMoneyUsedSellError.
+  ///
+  /// In en, this message translates to:
+  /// **'请输入到账金额'**
+  String get tradeAddPageMoneyUsedSellError;
 
   /// No description provided for @tradeAddPageRateLabel.
   ///

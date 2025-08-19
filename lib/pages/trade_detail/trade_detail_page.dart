@@ -33,12 +33,10 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
   late TextEditingController _quantityController;
   late TextEditingController _currencyController;
   late TextEditingController _priceController;
-  late TextEditingController _rateController;
   late TextEditingController _remarkController;
 
   late FocusNode _quantityFocusNode;
   late FocusNode _priceFocusNode;
-  late FocusNode _rateFocusNode;
 
   void _onQuantityFocusChange(
     TextEditingController controller,
@@ -176,23 +174,12 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
     );
 
     _priceController = TextEditingController(
-      text: widget.record.price != null
-          ? NumberFormat('#,##0.00').format(widget.record.price)
-          : '',
+      text: NumberFormat('#,##0.00').format(widget.record.price),
     );
 
     _priceFocusNode = FocusNode();
     _priceFocusNode.addListener(
       () => _onPriceFocusChange(_priceController, _priceFocusNode),
-    );
-    _rateController = TextEditingController(
-      text: widget.record.rate != null
-          ? NumberFormat('#,##0.00').format(widget.record.rate)
-          : '',
-    );
-    _rateFocusNode = FocusNode();
-    _rateFocusNode.addListener(
-      () => _onPriceFocusChange(_rateController, _rateFocusNode),
     );
     _remarkController = TextEditingController(text: widget.record.remark ?? '');
     currency = widget.record.currency;
@@ -211,11 +198,6 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
       () => _onPriceFocusChange(_priceController, _priceFocusNode),
     );
     _priceFocusNode.dispose();
-    _rateController.dispose();
-    _rateFocusNode.removeListener(
-      () => _onPriceFocusChange(_rateController, _rateFocusNode),
-    );
-    _rateFocusNode.dispose();
     _remarkController.dispose();
     super.dispose();
   }
@@ -319,7 +301,7 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                           value: tradeCategoryList
                               .firstWhere(
                                 (category) =>
-                                    category.id == widget.record.category,
+                                    category.id == widget.record.categoryId,
                                 orElse: () => TradeCategory(
                                   id: 0,
                                   name: '',
@@ -419,33 +401,6 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                             context,
                           )!.tradeDetailPagePriceError,
                           focusNode: _priceFocusNode,
-                        ),
-
-                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                        // 汇率
-                        _buildRow(
-                          AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageRateLabel,
-                          'text',
-                          controller: _rateController,
-                          editable: true,
-                          icon: Icons.swap_horiz,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^\d*\.?\d{0,6}'),
-                            ),
-                          ],
-                          hintText: AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageRateLabel,
-                          validatorMessage: AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageRateError,
-                          focusNode: _rateFocusNode,
                         ),
 
                         const Divider(height: 1, color: Color(0xFFE0E0E0)),
@@ -649,11 +604,9 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
     // 校验数量
     final quantityText = _quantityController.text.replaceAll(',', '');
     final priceText = _priceController.text.replaceAll(',', '');
-    final rateText = _rateController.text.replaceAll(',', '');
 
     final quantity = int.tryParse(quantityText);
     final price = double.tryParse(priceText);
-    final rate = double.tryParse(rateText);
 
     if (quantity == null || quantity <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -675,14 +628,6 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
       );
       return;
     }
-    if (rate == null || rate <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.tradeDetailPageRateError),
-        ),
-      );
-      return;
-    }
     if (currency == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -698,14 +643,13 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
       id: Value(widget.record.id),
       tradeDate: Value(widget.record.tradeDate),
       action: Value(widget.record.action),
-      category: Value(widget.record.category),
+      categoryId: Value(widget.record.categoryId),
       tradeType: Value(widget.record.tradeType),
       name: Value(widget.record.name),
       code: Value(widget.record.code),
       quantity: Value(quantity.toDouble()),
       currency: Value(currency!),
       price: Value(price),
-      rate: Value(rate),
       remark: Value(_remarkController.text),
     );
 

@@ -42,12 +42,12 @@ class $TradeRecordsTable extends TradeRecords
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<TradeAction>($TradeRecordsTable.$converteraction);
-  static const VerificationMeta _categoryMeta = const VerificationMeta(
-    'category',
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
   );
   @override
-  late final GeneratedColumn<int> category = GeneratedColumn<int>(
-    'category',
+  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
+    'category_id',
     aliasedName,
     false,
     type: DriftSqlType.int,
@@ -76,9 +76,9 @@ class $TradeRecordsTable extends TradeRecords
   late final GeneratedColumn<String> code = GeneratedColumn<String>(
     'code',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.string,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _quantityMeta = const VerificationMeta(
     'quantity',
@@ -87,9 +87,9 @@ class $TradeRecordsTable extends TradeRecords
   late final GeneratedColumn<double> quantity = GeneratedColumn<double>(
     'quantity',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.double,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
   @override
   late final GeneratedColumnWithTypeConverter<Currency, String> currency =
@@ -105,18 +105,29 @@ class $TradeRecordsTable extends TradeRecords
   late final GeneratedColumn<double> price = GeneratedColumn<double>(
     'price',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.double,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
-  static const VerificationMeta _rateMeta = const VerificationMeta('rate');
   @override
-  late final GeneratedColumn<double> rate = GeneratedColumn<double>(
-    'rate',
+  late final GeneratedColumnWithTypeConverter<Currency, String> currencyUsed =
+      GeneratedColumn<String>(
+        'currency_used',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<Currency>($TradeRecordsTable.$convertercurrencyUsed);
+  static const VerificationMeta _moneyUsedMeta = const VerificationMeta(
+    'moneyUsed',
+  );
+  @override
+  late final GeneratedColumn<double> moneyUsed = GeneratedColumn<double>(
+    'money_used',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.double,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _remarkMeta = const VerificationMeta('remark');
   @override
@@ -132,14 +143,15 @@ class $TradeRecordsTable extends TradeRecords
     id,
     tradeDate,
     action,
-    category,
+    categoryId,
     tradeType,
     name,
     code,
     quantity,
     currency,
     price,
-    rate,
+    currencyUsed,
+    moneyUsed,
     remark,
   ];
   @override
@@ -165,13 +177,13 @@ class $TradeRecordsTable extends TradeRecords
     } else if (isInserting) {
       context.missing(_tradeDateMeta);
     }
-    if (data.containsKey('category')) {
+    if (data.containsKey('category_id')) {
       context.handle(
-        _categoryMeta,
-        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
       );
     } else if (isInserting) {
-      context.missing(_categoryMeta);
+      context.missing(_categoryIdMeta);
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -186,24 +198,32 @@ class $TradeRecordsTable extends TradeRecords
         _codeMeta,
         code.isAcceptableOrUnknown(data['code']!, _codeMeta),
       );
+    } else if (isInserting) {
+      context.missing(_codeMeta);
     }
     if (data.containsKey('quantity')) {
       context.handle(
         _quantityMeta,
         quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
       );
+    } else if (isInserting) {
+      context.missing(_quantityMeta);
     }
     if (data.containsKey('price')) {
       context.handle(
         _priceMeta,
         price.isAcceptableOrUnknown(data['price']!, _priceMeta),
       );
+    } else if (isInserting) {
+      context.missing(_priceMeta);
     }
-    if (data.containsKey('rate')) {
+    if (data.containsKey('money_used')) {
       context.handle(
-        _rateMeta,
-        rate.isAcceptableOrUnknown(data['rate']!, _rateMeta),
+        _moneyUsedMeta,
+        moneyUsed.isAcceptableOrUnknown(data['money_used']!, _moneyUsedMeta),
       );
+    } else if (isInserting) {
+      context.missing(_moneyUsedMeta);
     }
     if (data.containsKey('remark')) {
       context.handle(
@@ -234,9 +254,9 @@ class $TradeRecordsTable extends TradeRecords
           data['${effectivePrefix}action'],
         )!,
       ),
-      category: attachedDatabase.typeMapping.read(
+      categoryId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}category'],
+        data['${effectivePrefix}category_id'],
       )!,
       tradeType: $TradeRecordsTable.$convertertradeType.fromSql(
         attachedDatabase.typeMapping.read(
@@ -251,11 +271,11 @@ class $TradeRecordsTable extends TradeRecords
       code: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}code'],
-      ),
+      )!,
       quantity: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}quantity'],
-      ),
+      )!,
       currency: $TradeRecordsTable.$convertercurrency.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -265,11 +285,17 @@ class $TradeRecordsTable extends TradeRecords
       price: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}price'],
+      )!,
+      currencyUsed: $TradeRecordsTable.$convertercurrencyUsed.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}currency_used'],
+        )!,
       ),
-      rate: attachedDatabase.typeMapping.read(
+      moneyUsed: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
-        data['${effectivePrefix}rate'],
-      ),
+        data['${effectivePrefix}money_used'],
+      )!,
       remark: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remark'],
@@ -288,33 +314,37 @@ class $TradeRecordsTable extends TradeRecords
       const TradeTypeConverter();
   static TypeConverter<Currency, String> $convertercurrency =
       const CurrencyConverter();
+  static TypeConverter<Currency, String> $convertercurrencyUsed =
+      const CurrencyConverter();
 }
 
 class TradeRecord extends DataClass implements Insertable<TradeRecord> {
   final int id;
   final DateTime tradeDate;
   final TradeAction action;
-  final int category;
+  final int categoryId;
   final TradeType tradeType;
   final String name;
-  final String? code;
-  final double? quantity;
+  final String code;
+  final double quantity;
   final Currency currency;
-  final double? price;
-  final double? rate;
+  final double price;
+  final Currency currencyUsed;
+  final double moneyUsed;
   final String? remark;
   const TradeRecord({
     required this.id,
     required this.tradeDate,
     required this.action,
-    required this.category,
+    required this.categoryId,
     required this.tradeType,
     required this.name,
-    this.code,
-    this.quantity,
+    required this.code,
+    required this.quantity,
     required this.currency,
-    this.price,
-    this.rate,
+    required this.price,
+    required this.currencyUsed,
+    required this.moneyUsed,
     this.remark,
   });
   @override
@@ -327,30 +357,27 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
         $TradeRecordsTable.$converteraction.toSql(action),
       );
     }
-    map['category'] = Variable<int>(category);
+    map['category_id'] = Variable<int>(categoryId);
     {
       map['trade_type'] = Variable<String>(
         $TradeRecordsTable.$convertertradeType.toSql(tradeType),
       );
     }
     map['name'] = Variable<String>(name);
-    if (!nullToAbsent || code != null) {
-      map['code'] = Variable<String>(code);
-    }
-    if (!nullToAbsent || quantity != null) {
-      map['quantity'] = Variable<double>(quantity);
-    }
+    map['code'] = Variable<String>(code);
+    map['quantity'] = Variable<double>(quantity);
     {
       map['currency'] = Variable<String>(
         $TradeRecordsTable.$convertercurrency.toSql(currency),
       );
     }
-    if (!nullToAbsent || price != null) {
-      map['price'] = Variable<double>(price);
+    map['price'] = Variable<double>(price);
+    {
+      map['currency_used'] = Variable<String>(
+        $TradeRecordsTable.$convertercurrencyUsed.toSql(currencyUsed),
+      );
     }
-    if (!nullToAbsent || rate != null) {
-      map['rate'] = Variable<double>(rate);
-    }
+    map['money_used'] = Variable<double>(moneyUsed);
     if (!nullToAbsent || remark != null) {
       map['remark'] = Variable<String>(remark);
     }
@@ -362,18 +389,15 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       id: Value(id),
       tradeDate: Value(tradeDate),
       action: Value(action),
-      category: Value(category),
+      categoryId: Value(categoryId),
       tradeType: Value(tradeType),
       name: Value(name),
-      code: code == null && nullToAbsent ? const Value.absent() : Value(code),
-      quantity: quantity == null && nullToAbsent
-          ? const Value.absent()
-          : Value(quantity),
+      code: Value(code),
+      quantity: Value(quantity),
       currency: Value(currency),
-      price: price == null && nullToAbsent
-          ? const Value.absent()
-          : Value(price),
-      rate: rate == null && nullToAbsent ? const Value.absent() : Value(rate),
+      price: Value(price),
+      currencyUsed: Value(currencyUsed),
+      moneyUsed: Value(moneyUsed),
       remark: remark == null && nullToAbsent
           ? const Value.absent()
           : Value(remark),
@@ -389,14 +413,15 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       id: serializer.fromJson<int>(json['id']),
       tradeDate: serializer.fromJson<DateTime>(json['tradeDate']),
       action: serializer.fromJson<TradeAction>(json['action']),
-      category: serializer.fromJson<int>(json['category']),
+      categoryId: serializer.fromJson<int>(json['categoryId']),
       tradeType: serializer.fromJson<TradeType>(json['tradeType']),
       name: serializer.fromJson<String>(json['name']),
-      code: serializer.fromJson<String?>(json['code']),
-      quantity: serializer.fromJson<double?>(json['quantity']),
+      code: serializer.fromJson<String>(json['code']),
+      quantity: serializer.fromJson<double>(json['quantity']),
       currency: serializer.fromJson<Currency>(json['currency']),
-      price: serializer.fromJson<double?>(json['price']),
-      rate: serializer.fromJson<double?>(json['rate']),
+      price: serializer.fromJson<double>(json['price']),
+      currencyUsed: serializer.fromJson<Currency>(json['currencyUsed']),
+      moneyUsed: serializer.fromJson<double>(json['moneyUsed']),
       remark: serializer.fromJson<String?>(json['remark']),
     );
   }
@@ -407,14 +432,15 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       'id': serializer.toJson<int>(id),
       'tradeDate': serializer.toJson<DateTime>(tradeDate),
       'action': serializer.toJson<TradeAction>(action),
-      'category': serializer.toJson<int>(category),
+      'categoryId': serializer.toJson<int>(categoryId),
       'tradeType': serializer.toJson<TradeType>(tradeType),
       'name': serializer.toJson<String>(name),
-      'code': serializer.toJson<String?>(code),
-      'quantity': serializer.toJson<double?>(quantity),
+      'code': serializer.toJson<String>(code),
+      'quantity': serializer.toJson<double>(quantity),
       'currency': serializer.toJson<Currency>(currency),
-      'price': serializer.toJson<double?>(price),
-      'rate': serializer.toJson<double?>(rate),
+      'price': serializer.toJson<double>(price),
+      'currencyUsed': serializer.toJson<Currency>(currencyUsed),
+      'moneyUsed': serializer.toJson<double>(moneyUsed),
       'remark': serializer.toJson<String?>(remark),
     };
   }
@@ -423,27 +449,29 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     int? id,
     DateTime? tradeDate,
     TradeAction? action,
-    int? category,
+    int? categoryId,
     TradeType? tradeType,
     String? name,
-    Value<String?> code = const Value.absent(),
-    Value<double?> quantity = const Value.absent(),
+    String? code,
+    double? quantity,
     Currency? currency,
-    Value<double?> price = const Value.absent(),
-    Value<double?> rate = const Value.absent(),
+    double? price,
+    Currency? currencyUsed,
+    double? moneyUsed,
     Value<String?> remark = const Value.absent(),
   }) => TradeRecord(
     id: id ?? this.id,
     tradeDate: tradeDate ?? this.tradeDate,
     action: action ?? this.action,
-    category: category ?? this.category,
+    categoryId: categoryId ?? this.categoryId,
     tradeType: tradeType ?? this.tradeType,
     name: name ?? this.name,
-    code: code.present ? code.value : this.code,
-    quantity: quantity.present ? quantity.value : this.quantity,
+    code: code ?? this.code,
+    quantity: quantity ?? this.quantity,
     currency: currency ?? this.currency,
-    price: price.present ? price.value : this.price,
-    rate: rate.present ? rate.value : this.rate,
+    price: price ?? this.price,
+    currencyUsed: currencyUsed ?? this.currencyUsed,
+    moneyUsed: moneyUsed ?? this.moneyUsed,
     remark: remark.present ? remark.value : this.remark,
   );
   TradeRecord copyWithCompanion(TradeRecordsCompanion data) {
@@ -451,14 +479,19 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       id: data.id.present ? data.id.value : this.id,
       tradeDate: data.tradeDate.present ? data.tradeDate.value : this.tradeDate,
       action: data.action.present ? data.action.value : this.action,
-      category: data.category.present ? data.category.value : this.category,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
       tradeType: data.tradeType.present ? data.tradeType.value : this.tradeType,
       name: data.name.present ? data.name.value : this.name,
       code: data.code.present ? data.code.value : this.code,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
       currency: data.currency.present ? data.currency.value : this.currency,
       price: data.price.present ? data.price.value : this.price,
-      rate: data.rate.present ? data.rate.value : this.rate,
+      currencyUsed: data.currencyUsed.present
+          ? data.currencyUsed.value
+          : this.currencyUsed,
+      moneyUsed: data.moneyUsed.present ? data.moneyUsed.value : this.moneyUsed,
       remark: data.remark.present ? data.remark.value : this.remark,
     );
   }
@@ -469,14 +502,15 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
           ..write('id: $id, ')
           ..write('tradeDate: $tradeDate, ')
           ..write('action: $action, ')
-          ..write('category: $category, ')
+          ..write('categoryId: $categoryId, ')
           ..write('tradeType: $tradeType, ')
           ..write('name: $name, ')
           ..write('code: $code, ')
           ..write('quantity: $quantity, ')
           ..write('currency: $currency, ')
           ..write('price: $price, ')
-          ..write('rate: $rate, ')
+          ..write('currencyUsed: $currencyUsed, ')
+          ..write('moneyUsed: $moneyUsed, ')
           ..write('remark: $remark')
           ..write(')'))
         .toString();
@@ -487,14 +521,15 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     id,
     tradeDate,
     action,
-    category,
+    categoryId,
     tradeType,
     name,
     code,
     quantity,
     currency,
     price,
-    rate,
+    currencyUsed,
+    moneyUsed,
     remark,
   );
   @override
@@ -504,14 +539,15 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
           other.id == this.id &&
           other.tradeDate == this.tradeDate &&
           other.action == this.action &&
-          other.category == this.category &&
+          other.categoryId == this.categoryId &&
           other.tradeType == this.tradeType &&
           other.name == this.name &&
           other.code == this.code &&
           other.quantity == this.quantity &&
           other.currency == this.currency &&
           other.price == this.price &&
-          other.rate == this.rate &&
+          other.currencyUsed == this.currencyUsed &&
+          other.moneyUsed == this.moneyUsed &&
           other.remark == this.remark);
 }
 
@@ -519,74 +555,84 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
   final Value<int> id;
   final Value<DateTime> tradeDate;
   final Value<TradeAction> action;
-  final Value<int> category;
+  final Value<int> categoryId;
   final Value<TradeType> tradeType;
   final Value<String> name;
-  final Value<String?> code;
-  final Value<double?> quantity;
+  final Value<String> code;
+  final Value<double> quantity;
   final Value<Currency> currency;
-  final Value<double?> price;
-  final Value<double?> rate;
+  final Value<double> price;
+  final Value<Currency> currencyUsed;
+  final Value<double> moneyUsed;
   final Value<String?> remark;
   const TradeRecordsCompanion({
     this.id = const Value.absent(),
     this.tradeDate = const Value.absent(),
     this.action = const Value.absent(),
-    this.category = const Value.absent(),
+    this.categoryId = const Value.absent(),
     this.tradeType = const Value.absent(),
     this.name = const Value.absent(),
     this.code = const Value.absent(),
     this.quantity = const Value.absent(),
     this.currency = const Value.absent(),
     this.price = const Value.absent(),
-    this.rate = const Value.absent(),
+    this.currencyUsed = const Value.absent(),
+    this.moneyUsed = const Value.absent(),
     this.remark = const Value.absent(),
   });
   TradeRecordsCompanion.insert({
     this.id = const Value.absent(),
     required DateTime tradeDate,
     required TradeAction action,
-    required int category,
+    required int categoryId,
     required TradeType tradeType,
     required String name,
-    this.code = const Value.absent(),
-    this.quantity = const Value.absent(),
+    required String code,
+    required double quantity,
     required Currency currency,
-    this.price = const Value.absent(),
-    this.rate = const Value.absent(),
+    required double price,
+    required Currency currencyUsed,
+    required double moneyUsed,
     this.remark = const Value.absent(),
   }) : tradeDate = Value(tradeDate),
        action = Value(action),
-       category = Value(category),
+       categoryId = Value(categoryId),
        tradeType = Value(tradeType),
        name = Value(name),
-       currency = Value(currency);
+       code = Value(code),
+       quantity = Value(quantity),
+       currency = Value(currency),
+       price = Value(price),
+       currencyUsed = Value(currencyUsed),
+       moneyUsed = Value(moneyUsed);
   static Insertable<TradeRecord> custom({
     Expression<int>? id,
     Expression<DateTime>? tradeDate,
     Expression<String>? action,
-    Expression<int>? category,
+    Expression<int>? categoryId,
     Expression<String>? tradeType,
     Expression<String>? name,
     Expression<String>? code,
     Expression<double>? quantity,
     Expression<String>? currency,
     Expression<double>? price,
-    Expression<double>? rate,
+    Expression<String>? currencyUsed,
+    Expression<double>? moneyUsed,
     Expression<String>? remark,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (tradeDate != null) 'trade_date': tradeDate,
       if (action != null) 'action': action,
-      if (category != null) 'category': category,
+      if (categoryId != null) 'category_id': categoryId,
       if (tradeType != null) 'trade_type': tradeType,
       if (name != null) 'name': name,
       if (code != null) 'code': code,
       if (quantity != null) 'quantity': quantity,
       if (currency != null) 'currency': currency,
       if (price != null) 'price': price,
-      if (rate != null) 'rate': rate,
+      if (currencyUsed != null) 'currency_used': currencyUsed,
+      if (moneyUsed != null) 'money_used': moneyUsed,
       if (remark != null) 'remark': remark,
     });
   }
@@ -595,28 +641,30 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     Value<int>? id,
     Value<DateTime>? tradeDate,
     Value<TradeAction>? action,
-    Value<int>? category,
+    Value<int>? categoryId,
     Value<TradeType>? tradeType,
     Value<String>? name,
-    Value<String?>? code,
-    Value<double?>? quantity,
+    Value<String>? code,
+    Value<double>? quantity,
     Value<Currency>? currency,
-    Value<double?>? price,
-    Value<double?>? rate,
+    Value<double>? price,
+    Value<Currency>? currencyUsed,
+    Value<double>? moneyUsed,
     Value<String?>? remark,
   }) {
     return TradeRecordsCompanion(
       id: id ?? this.id,
       tradeDate: tradeDate ?? this.tradeDate,
       action: action ?? this.action,
-      category: category ?? this.category,
+      categoryId: categoryId ?? this.categoryId,
       tradeType: tradeType ?? this.tradeType,
       name: name ?? this.name,
       code: code ?? this.code,
       quantity: quantity ?? this.quantity,
       currency: currency ?? this.currency,
       price: price ?? this.price,
-      rate: rate ?? this.rate,
+      currencyUsed: currencyUsed ?? this.currencyUsed,
+      moneyUsed: moneyUsed ?? this.moneyUsed,
       remark: remark ?? this.remark,
     );
   }
@@ -635,8 +683,8 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
         $TradeRecordsTable.$converteraction.toSql(action.value),
       );
     }
-    if (category.present) {
-      map['category'] = Variable<int>(category.value);
+    if (categoryId.present) {
+      map['category_id'] = Variable<int>(categoryId.value);
     }
     if (tradeType.present) {
       map['trade_type'] = Variable<String>(
@@ -660,8 +708,13 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     if (price.present) {
       map['price'] = Variable<double>(price.value);
     }
-    if (rate.present) {
-      map['rate'] = Variable<double>(rate.value);
+    if (currencyUsed.present) {
+      map['currency_used'] = Variable<String>(
+        $TradeRecordsTable.$convertercurrencyUsed.toSql(currencyUsed.value),
+      );
+    }
+    if (moneyUsed.present) {
+      map['money_used'] = Variable<double>(moneyUsed.value);
     }
     if (remark.present) {
       map['remark'] = Variable<String>(remark.value);
@@ -675,14 +728,15 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
           ..write('id: $id, ')
           ..write('tradeDate: $tradeDate, ')
           ..write('action: $action, ')
-          ..write('category: $category, ')
+          ..write('categoryId: $categoryId, ')
           ..write('tradeType: $tradeType, ')
           ..write('name: $name, ')
           ..write('code: $code, ')
           ..write('quantity: $quantity, ')
           ..write('currency: $currency, ')
           ..write('price: $price, ')
-          ..write('rate: $rate, ')
+          ..write('currencyUsed: $currencyUsed, ')
+          ..write('moneyUsed: $moneyUsed, ')
           ..write('remark: $remark')
           ..write(')'))
         .toString();
@@ -2435,14 +2489,15 @@ typedef $$TradeRecordsTableCreateCompanionBuilder =
       Value<int> id,
       required DateTime tradeDate,
       required TradeAction action,
-      required int category,
+      required int categoryId,
       required TradeType tradeType,
       required String name,
-      Value<String?> code,
-      Value<double?> quantity,
+      required String code,
+      required double quantity,
       required Currency currency,
-      Value<double?> price,
-      Value<double?> rate,
+      required double price,
+      required Currency currencyUsed,
+      required double moneyUsed,
       Value<String?> remark,
     });
 typedef $$TradeRecordsTableUpdateCompanionBuilder =
@@ -2450,14 +2505,15 @@ typedef $$TradeRecordsTableUpdateCompanionBuilder =
       Value<int> id,
       Value<DateTime> tradeDate,
       Value<TradeAction> action,
-      Value<int> category,
+      Value<int> categoryId,
       Value<TradeType> tradeType,
       Value<String> name,
-      Value<String?> code,
-      Value<double?> quantity,
+      Value<String> code,
+      Value<double> quantity,
       Value<Currency> currency,
-      Value<double?> price,
-      Value<double?> rate,
+      Value<double> price,
+      Value<Currency> currencyUsed,
+      Value<double> moneyUsed,
       Value<String?> remark,
     });
 
@@ -2486,8 +2542,8 @@ class $$TradeRecordsTableFilterComposer
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
-  ColumnFilters<int> get category => $composableBuilder(
-    column: $table.category,
+  ColumnFilters<int> get categoryId => $composableBuilder(
+    column: $table.categoryId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2523,8 +2579,14 @@ class $$TradeRecordsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<double> get rate => $composableBuilder(
-    column: $table.rate,
+  ColumnWithTypeConverterFilters<Currency, Currency, String> get currencyUsed =>
+      $composableBuilder(
+        column: $table.currencyUsed,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<double> get moneyUsed => $composableBuilder(
+    column: $table.moneyUsed,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2558,8 +2620,8 @@ class $$TradeRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get category => $composableBuilder(
-    column: $table.category,
+  ColumnOrderings<int> get categoryId => $composableBuilder(
+    column: $table.categoryId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2593,8 +2655,13 @@ class $$TradeRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<double> get rate => $composableBuilder(
-    column: $table.rate,
+  ColumnOrderings<String> get currencyUsed => $composableBuilder(
+    column: $table.currencyUsed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get moneyUsed => $composableBuilder(
+    column: $table.moneyUsed,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2622,8 +2689,10 @@ class $$TradeRecordsTableAnnotationComposer
   GeneratedColumnWithTypeConverter<TradeAction, String> get action =>
       $composableBuilder(column: $table.action, builder: (column) => column);
 
-  GeneratedColumn<int> get category =>
-      $composableBuilder(column: $table.category, builder: (column) => column);
+  GeneratedColumn<int> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => column,
+  );
 
   GeneratedColumnWithTypeConverter<TradeType, String> get tradeType =>
       $composableBuilder(column: $table.tradeType, builder: (column) => column);
@@ -2643,8 +2712,14 @@ class $$TradeRecordsTableAnnotationComposer
   GeneratedColumn<double> get price =>
       $composableBuilder(column: $table.price, builder: (column) => column);
 
-  GeneratedColumn<double> get rate =>
-      $composableBuilder(column: $table.rate, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<Currency, String> get currencyUsed =>
+      $composableBuilder(
+        column: $table.currencyUsed,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<double> get moneyUsed =>
+      $composableBuilder(column: $table.moneyUsed, builder: (column) => column);
 
   GeneratedColumn<String> get remark =>
       $composableBuilder(column: $table.remark, builder: (column) => column);
@@ -2684,27 +2759,29 @@ class $$TradeRecordsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<DateTime> tradeDate = const Value.absent(),
                 Value<TradeAction> action = const Value.absent(),
-                Value<int> category = const Value.absent(),
+                Value<int> categoryId = const Value.absent(),
                 Value<TradeType> tradeType = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<String?> code = const Value.absent(),
-                Value<double?> quantity = const Value.absent(),
+                Value<String> code = const Value.absent(),
+                Value<double> quantity = const Value.absent(),
                 Value<Currency> currency = const Value.absent(),
-                Value<double?> price = const Value.absent(),
-                Value<double?> rate = const Value.absent(),
+                Value<double> price = const Value.absent(),
+                Value<Currency> currencyUsed = const Value.absent(),
+                Value<double> moneyUsed = const Value.absent(),
                 Value<String?> remark = const Value.absent(),
               }) => TradeRecordsCompanion(
                 id: id,
                 tradeDate: tradeDate,
                 action: action,
-                category: category,
+                categoryId: categoryId,
                 tradeType: tradeType,
                 name: name,
                 code: code,
                 quantity: quantity,
                 currency: currency,
                 price: price,
-                rate: rate,
+                currencyUsed: currencyUsed,
+                moneyUsed: moneyUsed,
                 remark: remark,
               ),
           createCompanionCallback:
@@ -2712,27 +2789,29 @@ class $$TradeRecordsTableTableManager
                 Value<int> id = const Value.absent(),
                 required DateTime tradeDate,
                 required TradeAction action,
-                required int category,
+                required int categoryId,
                 required TradeType tradeType,
                 required String name,
-                Value<String?> code = const Value.absent(),
-                Value<double?> quantity = const Value.absent(),
+                required String code,
+                required double quantity,
                 required Currency currency,
-                Value<double?> price = const Value.absent(),
-                Value<double?> rate = const Value.absent(),
+                required double price,
+                required Currency currencyUsed,
+                required double moneyUsed,
                 Value<String?> remark = const Value.absent(),
               }) => TradeRecordsCompanion.insert(
                 id: id,
                 tradeDate: tradeDate,
                 action: action,
-                category: category,
+                categoryId: categoryId,
                 tradeType: tradeType,
                 name: name,
                 code: code,
                 quantity: quantity,
                 currency: currency,
                 price: price,
-                rate: rate,
+                currencyUsed: currencyUsed,
+                moneyUsed: moneyUsed,
                 remark: remark,
               ),
           withReferenceMapper: (p0) => p0

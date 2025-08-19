@@ -31,25 +31,29 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
   // 买入tab的输入内容
   DateTime? _buyTradeDate;
   TradeCategory? _buyCategory;
-  TradeType? _buyTradeType;
-  Currency? _buyCurrency;
+  TradeType _buyTradeType = TradeType.values.first;
+  Currency _buyCurrency = Currency.values.first;
+  Currency _buyCurrencyUsed = Currency.values.first;
   final _buyNameController = TextEditingController();
   final _buyCodeController = TextEditingController();
   final _buyQuantityController = TextEditingController();
   final _buyPriceController = TextEditingController();
-  final _buyRateController = TextEditingController();
+  final _buyCurrencyUsedController = TextEditingController();
+  final _buyMoneyUsedController = TextEditingController();
   final _buyRemarkController = TextEditingController();
 
   // 卖出tab的输入内容
   DateTime? _sellTradeDate;
   TradeCategory? _sellCategory;
-  TradeType? _sellTradeType;
-  Currency? _sellCurrency;
+  TradeType _sellTradeType = TradeType.values.first;
+  Currency _sellCurrency = Currency.values.first;
+  Currency _sellCurrencyUsed = Currency.values.first;
   final _sellNameController = TextEditingController();
   final _sellCodeController = TextEditingController();
   final _sellQuantityController = TextEditingController();
   final _sellPriceController = TextEditingController();
-  final _sellRateController = TextEditingController();
+  final _sellCurrencyUsedController = TextEditingController();
+  final _sellMoneyUsedController = TextEditingController();
   final _sellRemarkController = TextEditingController();
 
   // 卖出tab新增变量
@@ -71,13 +75,15 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
     _buyCodeController.dispose();
     _buyQuantityController.dispose();
     _buyPriceController.dispose();
-    _buyRateController.dispose();
+    _buyMoneyUsedController.dispose();
+    _buyCurrencyUsedController.dispose();
     _buyRemarkController.dispose();
     _sellNameController.dispose();
     _sellCodeController.dispose();
     _sellQuantityController.dispose();
     _sellPriceController.dispose();
-    _sellRateController.dispose();
+    _sellMoneyUsedController.dispose();
+    _sellCurrencyUsedController.dispose();
     _sellRemarkController.dispose();
     super.dispose();
   }
@@ -257,14 +263,15 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
       final newRecord = TradeRecordsCompanion(
         tradeDate: Value(_buyTradeDate!),
         action: Value(TradeAction.buy),
-        category: Value(_buyCategory!.id),
-        tradeType: Value(_buyTradeType!),
-        currency: Value(_buyCurrency!),
+        categoryId: Value(_buyCategory!.id),
+        tradeType: Value(_buyTradeType),
+        currency: Value(_buyCurrency),
         name: Value(_buyNameController.text),
         code: Value(_buyCodeController.text),
-        quantity: Value(double.tryParse(_buyQuantityController.text)),
-        price: Value(double.tryParse(_buyPriceController.text)),
-        rate: Value(double.tryParse(_buyRateController.text)),
+        quantity: Value(double.tryParse(_buyQuantityController.text) ?? 0.0),
+        price: Value(double.tryParse(_buyPriceController.text) ?? 0.0),
+        currencyUsed: Value(_buyCurrencyUsed),
+        moneyUsed: Value(double.tryParse(_buyMoneyUsedController.text) ?? 0.0),
         remark: Value(_buyRemarkController.text),
       );
       await widget.db.into(widget.db.tradeRecords).insert(newRecord);
@@ -274,14 +281,17 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
         final sellRecord = TradeRecordsCompanion(
           tradeDate: Value(_sellTradeDate!),
           action: Value(TradeAction.sell),
-          category: Value(buy.record.category), // 用买入记录的类别
+          categoryId: Value(buy.record.categoryId), // 用买入记录的类别
           tradeType: Value(buy.record.tradeType), // 用买入记录的类型
-          currency: Value(_sellCurrency!), // 卖出币种用表单设定
+          currency: Value(_sellCurrency), // 卖出币种用表单设定
           name: Value(buy.record.name), // 用买入记录的名称
           code: Value(buy.record.code), // 用买入记录的代码
           quantity: Value(buy.quantity), // 卖出数量
-          price: Value(double.tryParse(_sellPriceController.text)),
-          rate: Value(double.tryParse(_sellRateController.text)),
+          price: Value(double.tryParse(_sellPriceController.text) ?? 0.0),
+          currencyUsed: Value(_sellCurrencyUsed),
+          moneyUsed: Value(
+            double.tryParse(_sellMoneyUsedController.text) ?? 0.0,
+          ),
           remark: Value(_sellRemarkController.text),
         );
         final sellId = await widget.db
@@ -360,13 +370,16 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
     final category = isBuy ? _buyCategory : _sellCategory;
     final tradeType = isBuy ? _buyTradeType : _sellTradeType;
     final currency = isBuy ? _buyCurrency : _sellCurrency;
+    final currencyUsed = isBuy ? _buyCurrencyUsed : _sellCurrencyUsed;
     final nameController = isBuy ? _buyNameController : _sellNameController;
     final codeController = isBuy ? _buyCodeController : _sellCodeController;
     final quantityController = isBuy
         ? _buyQuantityController
         : _sellQuantityController;
     final priceController = isBuy ? _buyPriceController : _sellPriceController;
-    final rateController = isBuy ? _buyRateController : _sellRateController;
+    final moneyUsedController = isBuy
+        ? _buyMoneyUsedController
+        : _sellMoneyUsedController;
     final remarkController = isBuy
         ? _buyRemarkController
         : _sellRemarkController;
@@ -463,7 +476,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${r.record.name}  ${r.record.code ?? ''}',
+                              '${r.record.name}  ${r.record.code}',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
@@ -511,6 +524,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     const SizedBox(height: 8),
                   ],
                 ),
+
               if (isBuy || _selectedBuyRecords.isNotEmpty)
                 // 日期
                 Padding(
@@ -519,7 +533,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 80,
+                        width: 100,
                         child: Row(
                           children: [
                             const Icon(
@@ -590,7 +604,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 80,
+                        width: 100,
                         child: Row(
                           children: [
                             const Icon(
@@ -639,16 +653,10 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                               children: [
                                 Expanded(
                                   child: Text(
-                                    tradeType != null
-                                        ? tradeType.displayName
-                                        : AppLocalizations.of(
-                                            context,
-                                          )!.tradeAddPageTypePlaceholder,
+                                    tradeType.displayName,
                                     style: TextStyle(
                                       fontSize: 15,
-                                      color: tradeType != null
-                                          ? Colors.black
-                                          : Colors.grey,
+                                      color: Colors.black,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -674,7 +682,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 80,
+                        width: 100,
                         child: Row(
                           children: [
                             const Icon(
@@ -758,7 +766,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 80,
+                        width: 100,
                         child: Row(
                           children: [
                             const Icon(
@@ -813,7 +821,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 80,
+                        width: 100,
                         child: Row(
                           children: [
                             const Icon(
@@ -855,75 +863,17 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     ],
                   ),
                 ),
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 数量
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 80,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.confirmation_number,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageQuantityLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: TextFormField(
-                          controller: quantityController,
-                          style: const TextStyle(fontSize: 15),
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          decoration: InputDecoration(
-                            hintText: AppLocalizations.of(
-                              context,
-                            )!.tradeAddPageQuantityPlaceholder,
-                            hintStyle: const TextStyle(fontSize: 15),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
-                          ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageQuantityError
-                              : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
               if (isBuy || _selectedBuyRecords.isNotEmpty) ...[
                 const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                // 交易货币
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 80,
+                        width: 100,
                         child: Row(
                           children: [
                             const Icon(
@@ -972,16 +922,10 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                               children: [
                                 Expanded(
                                   child: Text(
-                                    currency != null
-                                        ? currency.displayName(context)
-                                        : AppLocalizations.of(
-                                            context,
-                                          )!.tradeAddPageCurrencyPlaceholder,
+                                    currency.displayName(context),
                                     style: TextStyle(
                                       fontSize: 15,
-                                      color: currency != null
-                                          ? Colors.black
-                                          : Colors.grey,
+                                      color: Colors.black,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1000,14 +944,14 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                   ),
                 ),
                 const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 价格
+                // 交易单价
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 80,
+                        width: 100,
                         child: Row(
                           children: [
                             const Icon(
@@ -1062,19 +1006,21 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     ],
                   ),
                 ),
+              ],
+              if (isBuy) ...[
                 const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 汇率
+                // 交易数量
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 80,
+                        width: 100,
                         child: Row(
                           children: [
                             const Icon(
-                              Icons.swap_horiz,
+                              Icons.confirmation_number,
                               size: 18,
                               color: Colors.grey,
                             ),
@@ -1083,7 +1029,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                               child: Text(
                                 AppLocalizations.of(
                                   context,
-                                )!.tradeAddPageRateLabel,
+                                )!.tradeAddPageQuantityLabel,
                                 style: const TextStyle(fontSize: 15),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -1093,20 +1039,16 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                       ),
                       Expanded(
                         child: TextFormField(
-                          controller: rateController,
+                          controller: quantityController,
                           style: const TextStyle(fontSize: 15),
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
+                          keyboardType: TextInputType.number,
                           inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^\d*\.?\d{0,6}'),
-                            ),
+                            FilteringTextInputFormatter.digitsOnly,
                           ],
                           decoration: InputDecoration(
                             hintText: AppLocalizations.of(
                               context,
-                            )!.tradeAddPageRatePlaceholder,
+                            )!.tradeAddPageQuantityPlaceholder,
                             hintStyle: const TextStyle(fontSize: 15),
                             border: InputBorder.none,
                             isDense: true,
@@ -1118,7 +1060,228 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                           validator: (v) => v == null || v.isEmpty
                               ? AppLocalizations.of(
                                   context,
-                                )!.tradeAddPageRateError
+                                )!.tradeAddPageQuantityError
+                              : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (isBuy || _selectedBuyRecords.isNotEmpty) ...[
+                const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                // 交易总额（交易货币）（单价 × 数量）
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 100,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.confirmation_number,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.tradeAddPageTotalLabel,
+                                style: const TextStyle(fontSize: 15),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 12,
+                          ),
+                          child: Text(
+                            isBuy
+                                ? ((int.tryParse(quantityController.text) ??
+                                              0) *
+                                          (double.tryParse(
+                                                priceController.text,
+                                              ) ??
+                                              0))
+                                      .toString()
+                                : ((_selectedBuyRecords.fold(
+                                            0.0,
+                                            (previousValue, element) =>
+                                                previousValue +
+                                                element.quantity,
+                                          )) *
+                                          (double.tryParse(
+                                                priceController.text,
+                                              ) ??
+                                              0))
+                                      .toString(),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                // 资金货币（买入时=结算货币，卖出时=到账货币）
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 100,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.monetization_on,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                isBuy
+                                    ? AppLocalizations.of(
+                                        context,
+                                      )!.tradeAddPageCurrencyUsedBuyLabel
+                                    : AppLocalizations.of(
+                                        context,
+                                      )!.tradeAddPageCurrencyUsedSellLabel,
+                                style: const TextStyle(fontSize: 15),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () async {
+                            final picked = await showPickerSheet<Currency>(
+                              context: context,
+                              options: Currency.values,
+                              selected: currencyUsed,
+                              display: (c) => c.displayName(context),
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                if (isBuy) {
+                                  _buyCurrencyUsed = picked;
+                                } else {
+                                  _sellCurrencyUsed = picked;
+                                }
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    currencyUsed.displayName(context),
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.black,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_drop_down,
+                                  size: 22,
+                                  color: Colors.grey,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                // 资金金额（买入时=结算金额，卖出时=到账金额）
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 100,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.attach_money,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                isBuy
+                                    ? AppLocalizations.of(
+                                        context,
+                                      )!.tradeAddPageMoneyUsedBuyLabel
+                                    : AppLocalizations.of(
+                                        context,
+                                      )!.tradeAddPageMoneyUsedSellLabel,
+                                style: const TextStyle(fontSize: 15),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: TextFormField(
+                          controller: moneyUsedController,
+                          style: const TextStyle(fontSize: 15),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d*\.?\d{0,6}'),
+                            ),
+                          ],
+                          decoration: InputDecoration(
+                            hintText: isBuy
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageMoneyUsedBuyPlaceholder
+                                : AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageMoneyUsedSellPlaceholder,
+                            hintStyle: const TextStyle(fontSize: 15),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 12,
+                            ),
+                          ),
+                          validator: (v) => v == null || v.isEmpty
+                              ? AppLocalizations.of(
+                                  context,
+                                )!.tradeAddPageMoneyUsedBuyError
                               : null,
                         ),
                       ),
@@ -1133,7 +1296,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(
-                        width: 80,
+                        width: 100,
                         child: Row(
                           children: [
                             const Icon(
