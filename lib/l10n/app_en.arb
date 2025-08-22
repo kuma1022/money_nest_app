@@ -53,8 +53,6 @@
   "tradeAddPageMoneyUsedSellPlaceholder": "请输入到账金额",
   "tradeAddPageMoneyUsedBuyError": "请输入结算金额",
   "tradeAddPageMoneyUsedSellError": "请输入到账金额",
-  "tradeAddPageRateLabel": "汇率",
-  "tradeAddPageRateError": "请输入汇率",
   "tradeAddPageRemarkLabel": "备注",
   "tradeAddPageSaveLabel": "保存",
   "tradeAddPageBuyTab": "买入",
@@ -121,5 +119,9 @@
   "tradeAddPageCurrencyPlaceholder": "请选择币种",
   "tradeAddPagePricePlaceholder": "请输入单价",
   "tradeAddPageRatePlaceholder": "请输入汇率",
-  "tradeAddPageRemarkPlaceholder": "（任意）输入备注"
+  "tradeAddPageRemarkPlaceholder": "（任意）输入备注",
+  "totalCapitalTabPageTotalTitle": "总资产额",
+  "totalCapitalTabPageCashExcluedLabel": "现金除外",
+  "totalCapitalTabPageCurrentProfitAndLossLabel": "当前盈亏",
+  "totalCapitalTabPageTotalRateTitle": "资产构成比率"
 }

@@ -28,7 +28,6 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
     TradeTabPage(db: widget.db), // 交易明细tab
     AccountTabPage(),
     Center(child: Text(AppLocalizations.of(context)!.mainPageBookTitle)),
-    TotalCapitalTabPage(db: widget.db), // 总资产tab
     Center(child: Text(AppLocalizations.of(context)!.mainPageMoreTitle)),
   ];
 
@@ -40,7 +39,6 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
       AppLocalizations.of(context)!.mainPageTradeTitle,
       AppLocalizations.of(context)!.mainPageAccountTitle,
       AppLocalizations.of(context)!.mainPageBookTitle,
-      AppLocalizations.of(context)!.mainPageWalletTitle,
       AppLocalizations.of(context)!.mainPageMoreTitle,
     ];
 
@@ -210,6 +208,11 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                 label: AppLocalizations.of(context)!.mainPageTradeTitle,
               ),
               BottomNavigationBarItem(
+                icon: Icon(Icons.pie_chart_outline, color: Colors.grey[700]),
+                activeIcon: Icon(Icons.pie_chart, color: Color(0xFF34B363)),
+                label: AppLocalizations.of(context)!.mainPageWalletTitle,
+              ),
+              BottomNavigationBarItem(
                 icon: Icon(
                   Icons.account_balance_wallet_outlined,
                   color: Colors.grey[700],
@@ -231,11 +234,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                 ),
                 label: AppLocalizations.of(context)!.mainPageBookTitle,
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.pie_chart_outline, color: Colors.grey[700]),
-                activeIcon: Icon(Icons.pie_chart, color: Color(0xFF34B363)),
-                label: AppLocalizations.of(context)!.mainPageWalletTitle,
-              ),
+
               BottomNavigationBarItem(
                 icon: Icon(Icons.menu, color: Colors.grey[700]),
                 activeIcon: Icon(Icons.menu, color: Color(0xFF34B363)),

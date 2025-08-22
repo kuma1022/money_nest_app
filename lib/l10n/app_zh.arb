@@ -119,5 +119,9 @@
   "tradeAddPageCurrencyPlaceholder": "请选择币种",
   "tradeAddPagePricePlaceholder": "请输入单价",
   "tradeAddPageRatePlaceholder": "请输入汇率",
-  "tradeAddPageRemarkPlaceholder": "（任意）输入备注"
+  "tradeAddPageRemarkPlaceholder": "（任意）输入备注",
+  "totalCapitalTabPageTotalTitle": "总资产额",
+  "totalCapitalTabPageCashExcluedLabel": "现金除外",
+  "totalCapitalTabPageCurrentProfitAndLossLabel": "当前盈亏",
+  "totalCapitalTabPageTotalRateTitle": "资产构成比率"
 }

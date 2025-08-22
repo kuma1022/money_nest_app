@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_switch/flutter_switch.dart';
 import 'package:intl/intl.dart';
+import 'package:money_nest_app/l10n/app_localizations.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/widgets/indicator.dart';
 import 'package:provider/provider.dart';
 
 class TotalCapitalTabPage extends StatefulWidget {
@@ -15,6 +19,7 @@ class TotalCapitalTabPage extends StatefulWidget {
 
 class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
   int touchedIndex = -1;
+  bool isCashExcluded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -27,11 +32,117 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
     );
 
     return Scaffold(
-      //appBar: AppBar(title: const Text('总资产分布')),
+      //appBar: AppBar(title: const Text('')),
       body: Column(
         children: [
           //const SizedBox(height: 24),
           //const Divider(height: 1, color: Color(0xFFE0E0E0)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.totalCapitalTabPageTotalTitle,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Row(
+                  children: [
+                    const Spacer(), // 左侧留空
+                    Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.totalCapitalTabPageCashExcluedLabel,
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(width: 8),
+                    FlutterSwitch(
+                      value: isCashExcluded,
+                      width: 44,
+                      height: 24,
+                      toggleSize: 20,
+                      borderRadius: 16.0,
+                      activeColor: Color(0xFF34B363),
+                      inactiveColor: Colors.grey[300]!,
+                      toggleColor: Colors.white,
+                      padding: 2,
+                      onToggle: (v) {
+                        setState(() {
+                          isCashExcluded = v;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      DateFormat(
+                        'yyyy-MM-dd HH:mm',
+                      ).format(DateTime.now()), // 更新时间
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                    Text(
+                      '¥${NumberFormat('#,##0').format(total)}', // 当前总资产金额
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.totalCapitalTabPageCurrentProfitAndLossLabel,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '+¥12,345', // 这里填你的盈亏金额
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.red, // 盈利红色，亏损绿色
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '+8.2%', // 这里填你的盈亏率
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                const SizedBox(height: 32),
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.totalCapitalTabPageTotalRateTitle,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           Center(
             child: SizedBox(
               height: chartSize,
@@ -65,7 +176,36 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
               ),
             ),
           ),
-          // 你可以在这里加图例或其它内容
+
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              getIndicator(
+                AppColors.contentColorBlue,
+                'One',
+                touchedIndex == 0,
+              ),
+
+              getIndicator(
+                AppColors.contentColorYellow,
+                'Two',
+                touchedIndex == 1,
+              ),
+
+              getIndicator(
+                AppColors.contentColorPink,
+                'Three',
+                touchedIndex == 2,
+              ),
+              getIndicator(
+                AppColors.contentColorGreen,
+                'Four',
+                touchedIndex == 3,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           const Divider(height: 1, color: Color(0xFFE0E0E0)),
         ],
       ),
@@ -128,5 +268,15 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
       visibleIndex++;
     }
     return sections;
+  }
+
+  Indicator getIndicator(Color color, String text, bool isTouched) {
+    return Indicator(
+      color: color,
+      text: text,
+      isSquare: false,
+      size: isTouched ? 18 : 16,
+      textColor: isTouched ? Color(0xFF34B363) : Colors.black,
+    );
   }
 }
