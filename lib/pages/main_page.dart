@@ -28,6 +28,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
     Center(child: Text(AppLocalizations.of(context)!.mainPageTopTitle)),
     TradeTabPage(db: widget.db), // 交易明细tab
     AccountTabPage(),
+    TotalCapitalTabPage(db: widget.db), // 资产总览tab
     Center(child: Text(AppLocalizations.of(context)!.mainPageBookTitle)),
     Center(child: Text(AppLocalizations.of(context)!.mainPageMoreTitle)),
   ];

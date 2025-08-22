@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter_switch/flutter_switch.dart';
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
@@ -56,17 +55,12 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                       style: TextStyle(fontSize: 14),
                     ),
                     const SizedBox(width: 8),
-                    FlutterSwitch(
+                    Switch(
                       value: isCashExcluded,
-                      width: 44,
-                      height: 24,
-                      toggleSize: 20,
-                      borderRadius: 16.0,
-                      activeColor: AppColors.appGreen,
-                      inactiveColor: Colors.grey[300]!,
-                      toggleColor: Colors.white,
-                      padding: 2,
-                      onToggle: (v) {
+                      activeThumbColor: AppColors.appGreen,
+                      inactiveThumbColor: Colors.white,
+                      inactiveTrackColor: Colors.grey[300],
+                      onChanged: (v) {
                         setState(() {
                           isCashExcluded = v;
                         });
