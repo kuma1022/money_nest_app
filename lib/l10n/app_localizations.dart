@@ -133,6 +133,66 @@ abstract class AppLocalizations {
   /// **'发生错误'**
   String get error;
 
+  /// No description provided for @marketDataJpLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'日股'**
+  String get marketDataJpLabel;
+
+  /// No description provided for @marketDataUsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'美股'**
+  String get marketDataUsLabel;
+
+  /// No description provided for @marketDataFundLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'基金'**
+  String get marketDataFundLabel;
+
+  /// No description provided for @marketDataEtfLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'ETF'**
+  String get marketDataEtfLabel;
+
+  /// No description provided for @marketDataOptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'期权'**
+  String get marketDataOptionLabel;
+
+  /// No description provided for @marketDataCryptoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'加密货币'**
+  String get marketDataCryptoLabel;
+
+  /// No description provided for @marketDataForexLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'外汇'**
+  String get marketDataForexLabel;
+
+  /// No description provided for @marketDataShszLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'沪深'**
+  String get marketDataShszLabel;
+
+  /// No description provided for @marketDataHkLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'港股'**
+  String get marketDataHkLabel;
+
+  /// No description provided for @marketDataOtherLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'其他'**
+  String get marketDataOtherLabel;
+
   /// No description provided for @noTradeRecords.
   ///
   /// In en, this message translates to:
@@ -163,11 +223,11 @@ abstract class AppLocalizations {
   /// **'交易记录'**
   String get mainPageTradeTitle;
 
-  /// No description provided for @mainPageCashTitle.
+  /// No description provided for @mainPageAccountTitle.
   ///
   /// In en, this message translates to:
-  /// **'现金仓'**
-  String get mainPageCashTitle;
+  /// **'账户'**
+  String get mainPageAccountTitle;
 
   /// No description provided for @mainPageBookTitle.
   ///

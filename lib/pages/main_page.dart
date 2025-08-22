@@ -1,6 +1,8 @@
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
+import 'package:money_nest_app/pages/account/account_tab_page.dart';
 import 'package:money_nest_app/pages/total_capital/total_capital_tab_page.dart';
 import 'package:money_nest_app/pages/trade_detail/trade_tab_page.dart';
 import 'package:money_nest_app/pages/search_result/search_result_list.dart';
@@ -24,7 +26,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
   late final List<Widget> _pages = [
     Center(child: Text(AppLocalizations.of(context)!.mainPageTopTitle)),
     TradeTabPage(db: widget.db), // 交易明细tab
-    Center(child: Text(AppLocalizations.of(context)!.mainPageCashTitle)),
+    AccountTabPage(),
     Center(child: Text(AppLocalizations.of(context)!.mainPageBookTitle)),
     TotalCapitalTabPage(db: widget.db), // 总资产tab
     Center(child: Text(AppLocalizations.of(context)!.mainPageMoreTitle)),
@@ -36,7 +38,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
     final titles = [
       AppLocalizations.of(context)!.mainPageTopTitle,
       AppLocalizations.of(context)!.mainPageTradeTitle,
-      AppLocalizations.of(context)!.mainPageCashTitle,
+      AppLocalizations.of(context)!.mainPageAccountTitle,
       AppLocalizations.of(context)!.mainPageBookTitle,
       AppLocalizations.of(context)!.mainPageWalletTitle,
       AppLocalizations.of(context)!.mainPageMoreTitle,
@@ -209,22 +211,22 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
               ),
               BottomNavigationBarItem(
                 icon: Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: Colors.grey[700],
+                ),
+                activeIcon: Icon(
+                  Icons.account_balance_wallet,
+                  color: Color(0xFF34B363),
+                ),
+                label: AppLocalizations.of(context)!.mainPageAccountTitle,
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(
                   Icons.monetization_on_outlined,
                   color: Colors.grey[700],
                 ),
                 activeIcon: Icon(
                   Icons.monetization_on,
-                  color: Color(0xFF34B363),
-                ),
-                label: AppLocalizations.of(context)!.mainPageCashTitle,
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(
-                  Icons.account_balance_wallet_outlined,
-                  color: Colors.grey[700],
-                ),
-                activeIcon: Icon(
-                  Icons.account_balance_wallet_outlined,
                   color: Color(0xFF34B363),
                 ),
                 label: AppLocalizations.of(context)!.mainPageBookTitle,

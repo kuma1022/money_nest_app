@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
+import 'package:money_nest_app/main.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/select_buy_record.dart';
 
@@ -66,15 +67,18 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
     });
   }
 
-  void _onSearchChanged(String value) {
+  Future<void> _onSearchChanged(String value, [AppDatabase? db]) async {
+    final database = db ?? widget.db;
+    final List<TradeRecord> filtered = [];
+    for (final r in uniqueByCode(_allRecords, (r) => r.code)) {
+      final marketData = await database.getMarketDataByCode(r.code);
+      if (marketData != null &&
+          (marketData.name.contains(value) || r.code.contains(value))) {
+        filtered.add(r);
+      }
+    }
     setState(() {
-      _searchResults = uniqueByCode(_allRecords, (r) => r.code)
-          .where(
-            (r) =>
-                (r.name?.contains(value) ?? false) ||
-                (r.code?.contains(value) ?? false),
-          )
-          .toList();
+      _searchResults = filtered;
     });
   }
 
@@ -109,12 +113,12 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                           icon: const Icon(Icons.close),
                           onPressed: () {
                             _searchController.clear();
-                            _onSearchChanged('');
+                            _onSearchChanged('', db);
                           },
                         )
                       : null,
                 ),
-                onChanged: _onSearchChanged,
+                onChanged: (value) => _onSearchChanged(value, db),
               ),
             // 搜索结果
             if (_selectedCode == null)
@@ -130,8 +134,20 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                     final r = _searchResults[i];
                     return ListTile(
                       //dense: true,
-                      title: Text(r.name),
-                      subtitle: Text('${r.code}'),
+                      title: FutureBuilder<MarketDataData?>(
+                        future: db.getMarketDataByCode(r.code),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Text('...');
+                          }
+                          if (snapshot.hasData && snapshot.data != null) {
+                            return Text(snapshot.data!.name);
+                          }
+                          return const Text('');
+                        },
+                      ),
+                      subtitle: Text(r.code),
                       onTap: () {
                         setState(() {
                           _selectedCode = r.code;
@@ -171,7 +187,7 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                       if (dateComparison != 0) return dateComparison;
 
                       // 代码升序
-                      return (a.code ?? '').compareTo(b.code ?? '');
+                      return a.code.compareTo(b.code);
                     });
 
                     // 按日期（不含时分秒）分组
@@ -239,22 +255,31 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                                 setState(() {
                                   if (v == true) {
                                     _selectedBuyQuantities[buy.id] =
-                                        buy.quantity ?? 0;
+                                        buy.quantity;
                                   } else {
                                     _selectedBuyQuantities.remove(buy.id);
                                   }
                                 });
                               },
                             ),
-                            title: Text(
-                              '${buy.name}(${buy.categoryId})  ${buy.code}',
-                              style: const TextStyle(fontSize: 16),
-                              overflow: TextOverflow.ellipsis,
+                            title: FutureBuilder<MarketDataData?>(
+                              future: db.getMarketDataByCode(buy.marketCode),
+                              builder: (context, snapshot) {
+                                final name =
+                                    snapshot.hasData && snapshot.data != null
+                                    ? snapshot.data!.name
+                                    : '';
+                                return Text(
+                                  '$name(${buy.marketCode})  ${buy.code}',
+                                  style: const TextStyle(fontSize: 16),
+                                  overflow: TextOverflow.ellipsis,
+                                );
+                              },
                             ),
                             subtitle: Text(
                               // 数量和价格，靠右显示
-                              '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${buy.quantity == null ? "-" : NumberFormat.decimalPattern().format(buy.quantity)}   '
-                              '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${buy.price == null ? "-" : NumberFormat.simpleCurrency(name: buy.currency.displayName(context)).format(buy.price)}',
+                              '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${NumberFormat.decimalPattern().format(buy.quantity)}   '
+                              '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${NumberFormat.simpleCurrency(name: buy.currency.displayName(context)).format(buy.price)}',
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: Colors.black54,
@@ -311,7 +336,7 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                                               (_selectedBuyQuantities[buy.id]
                                                           ?.toInt() ??
                                                       1) >=
-                                                  (buy.quantity?.toInt() ?? 1)
+                                                  buy.quantity.toInt()
                                               ? null
                                               : () {
                                                   setState(() {
@@ -319,9 +344,8 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                                                         _selectedBuyQuantities[buy
                                                             .id] ??
                                                         1;
-                                                    final max =
-                                                        buy.quantity?.toInt() ??
-                                                        1;
+                                                    final max = buy.quantity
+                                                        .toInt();
                                                     if (current < max) {
                                                       _selectedBuyQuantities[buy
                                                               .id] =

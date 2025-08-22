@@ -33,76 +33,84 @@ class SearchResultList extends StatelessWidget {
               const Divider(color: Color(0xFFE0E0E0), thickness: 1, height: 1),
           itemBuilder: (context, i) {
             final r = records[i];
-            return Dismissible(
-              key: ValueKey(r.id),
-              direction: DismissDirection.endToStart,
-              background: Container(
-                alignment: Alignment.centerRight,
-                color: Colors.red,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: const Icon(Icons.delete, color: Colors.white),
-              ),
-              confirmDismiss: (direction) async {
-                // 可选：弹窗确认
-                return await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(
-                          AppLocalizations.of(
-                            context,
-                          )!.confirmDeleteDialogTitle,
-                        ),
-                        content: Text(
-                          AppLocalizations.of(
-                            context,
-                          )!.confirmDeleteDialogContent,
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: Text(
+            return FutureBuilder<MarketDataData?>(
+              future: db.getMarketDataByCode(r.marketCode),
+              builder: (context, marketSnapshot) {
+                final marketData = marketSnapshot.data;
+                return Dismissible(
+                  key: ValueKey(r.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    color: Colors.red,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  confirmDismiss: (direction) async {
+                    // 可选：弹窗确认
+                    return await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: Text(
                               AppLocalizations.of(
                                 context,
-                              )!.confirmDeleteDialogCancel,
+                              )!.confirmDeleteDialogTitle,
                             ),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: Text(
+                            content: Text(
                               AppLocalizations.of(
                                 context,
-                              )!.confirmDeleteDialogDelete,
-                              style: TextStyle(color: Colors.red),
+                              )!.confirmDeleteDialogContent,
                             ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.confirmDeleteDialogCancel,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(true),
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.confirmDeleteDialogDelete,
+                                  style: TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ) ??
-                    false;
+                        ) ??
+                        false;
+                  },
+                  onDismissed: (direction) {
+                    //  _deleteRecord(r.id);
+                  },
+                  child: ListTile(
+                    leading: Icon(
+                      r.action == TradeAction.buy
+                          ? Icons.add_circle_outline
+                          : Icons.remove_circle_outline,
+                      color: r.action == TradeAction.buy
+                          ? Colors.green
+                          : Colors.red,
+                      size: 28,
+                    ),
+                    title: Text(
+                      '${r.action.displayName}  ${marketData?.name ?? ''}(${r.marketCode})',
+                    ),
+                    subtitle: Text(
+                      '${DateFormat.yMMMd().format(r.tradeDate.toLocal())}   '
+                      '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${NumberFormat.decimalPattern().format(r.quantity)}   '
+                      '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
+                    ),
+                    //onTap: () => _navigateToDetail(r),
+                  ),
+                );
               },
-              onDismissed: (direction) {
-                //  _deleteRecord(r.id);
-              },
-              child: ListTile(
-                leading: Icon(
-                  r.action == TradeAction.buy
-                      ? Icons.add_circle_outline
-                      : Icons.remove_circle_outline,
-                  color: r.action == TradeAction.buy
-                      ? Colors.green
-                      : Colors.red,
-                  size: 28,
-                ),
-                title: Text(
-                  '${r.action.displayName}  ${r.name}(${r.categoryId})',
-                ),
-                subtitle: Text(
-                  '${DateFormat.yMMMd().format(r.tradeDate.toLocal())}   '
-                  '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${r.quantity == null ? "-" : NumberFormat.decimalPattern().format(r.quantity)}   '
-                  '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${r.price == null ? "-" : NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
-                ),
-                //onTap: () => _navigateToDetail(r),
-              ),
             );
           },
         );

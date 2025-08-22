@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
-import 'package:money_nest_app/util/provider/category_provider.dart';
+import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
@@ -67,7 +67,7 @@ class _TradeTabPageState extends State<TradeTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tradeCategoryList = context.watch<CategoryProvider>().categories;
+    final marketDataList = context.watch<MarketDataProvider>().marketData;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton(
@@ -221,40 +221,55 @@ class _TradeTabPageState extends State<TradeTabPage> {
                   onDismissed: (direction) {
                     _deleteRecord(r.id);
                   },
-                  child: ListTile(
-                    dense: true,
-                    leading: Icon(
-                      r.action == TradeAction.buy
-                          ? Icons.add_circle_outline
-                          : Icons.remove_circle_outline,
-                      color: r.action == TradeAction.buy
-                          ? Colors.green
-                          : Colors.red,
-                      size: 28,
-                    ),
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${r.action.displayName(context)}  '
-                            '${r.name}(${tradeCategoryList.firstWhere((category) => category.id == r.categoryId).name})',
-                            style: const TextStyle(fontSize: 16),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                  child: FutureBuilder<MarketDataData?>(
+                    future: widget.db.getMarketDataByCode(r.marketCode),
+                    builder: (context, snapshot) {
+                      final marketData = snapshot.data;
+                      final marketName = marketData?.name ?? '';
+                      final marketListName = (marketDataList.isNotEmpty
+                          ? marketDataList
+                                .firstWhere(
+                                  (market) => market.code == r.marketCode,
+                                  orElse: () => marketDataList.first,
+                                )
+                                .name
+                          : '');
+                      return ListTile(
+                        dense: true,
+                        leading: Icon(
+                          r.action == TradeAction.buy
+                              ? Icons.add_circle_outline
+                              : Icons.remove_circle_outline,
+                          color: r.action == TradeAction.buy
+                              ? Colors.green
+                              : Colors.red,
+                          size: 28,
                         ),
-                        Text(
-                          // 数量和价格，靠右显示
-                          '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${NumberFormat.decimalPattern().format(r.quantity)}   '
-                          '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black54,
-                          ),
-                          textAlign: TextAlign.right,
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${r.action.displayName(context)}  '
+                                '$marketName($marketListName)',
+                                style: const TextStyle(fontSize: 16),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              // 数量和价格，靠右显示
+                              '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${NumberFormat.decimalPattern().format(r.quantity)}   '
+                              '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    onTap: () => _navigateToDetail(r),
+                        onTap: () => _navigateToDetail(r),
+                      );
+                    },
                   ),
                 );
               }

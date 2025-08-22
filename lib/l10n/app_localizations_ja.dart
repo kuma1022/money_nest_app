@@ -27,6 +27,36 @@ class AppLocalizationsJa extends AppLocalizations {
   String get error => '发生错误';
 
   @override
+  String get marketDataJpLabel => '日股';
+
+  @override
+  String get marketDataUsLabel => '美股';
+
+  @override
+  String get marketDataFundLabel => '基金';
+
+  @override
+  String get marketDataEtfLabel => 'ETF';
+
+  @override
+  String get marketDataOptionLabel => '期权';
+
+  @override
+  String get marketDataCryptoLabel => '加密货币';
+
+  @override
+  String get marketDataForexLabel => '外汇';
+
+  @override
+  String get marketDataShszLabel => '沪深';
+
+  @override
+  String get marketDataHkLabel => '港股';
+
+  @override
+  String get marketDataOtherLabel => '其他';
+
+  @override
   String get noTradeRecords => '暂无交易记录';
 
   @override
@@ -42,7 +72,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mainPageTradeTitle => '交易记录';
 
   @override
-  String get mainPageCashTitle => '现金仓';
+  String get mainPageAccountTitle => '账户';
 
   @override
   String get mainPageBookTitle => '我的账本';

@@ -42,15 +42,19 @@ class $TradeRecordsTable extends TradeRecords
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<TradeAction>($TradeRecordsTable.$converteraction);
-  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
-    'categoryId',
+  static const VerificationMeta _marketCodeMeta = const VerificationMeta(
+    'marketCode',
   );
   @override
-  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
-    'category_id',
+  late final GeneratedColumn<String> marketCode = GeneratedColumn<String>(
+    'market_code',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 32,
+    ),
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
   @override
@@ -62,21 +66,16 @@ class $TradeRecordsTable extends TradeRecords
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<TradeType>($TradeRecordsTable.$convertertradeType);
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _codeMeta = const VerificationMeta('code');
   @override
   late final GeneratedColumn<String> code = GeneratedColumn<String>(
     'code',
     aliasedName,
     false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 32,
+    ),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
@@ -143,9 +142,8 @@ class $TradeRecordsTable extends TradeRecords
     id,
     tradeDate,
     action,
-    categoryId,
+    marketCode,
     tradeType,
-    name,
     code,
     quantity,
     currency,
@@ -177,21 +175,13 @@ class $TradeRecordsTable extends TradeRecords
     } else if (isInserting) {
       context.missing(_tradeDateMeta);
     }
-    if (data.containsKey('category_id')) {
+    if (data.containsKey('market_code')) {
       context.handle(
-        _categoryIdMeta,
-        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+        _marketCodeMeta,
+        marketCode.isAcceptableOrUnknown(data['market_code']!, _marketCodeMeta),
       );
     } else if (isInserting) {
-      context.missing(_categoryIdMeta);
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
+      context.missing(_marketCodeMeta);
     }
     if (data.containsKey('code')) {
       context.handle(
@@ -254,9 +244,9 @@ class $TradeRecordsTable extends TradeRecords
           data['${effectivePrefix}action'],
         )!,
       ),
-      categoryId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}category_id'],
+      marketCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}market_code'],
       )!,
       tradeType: $TradeRecordsTable.$convertertradeType.fromSql(
         attachedDatabase.typeMapping.read(
@@ -264,10 +254,6 @@ class $TradeRecordsTable extends TradeRecords
           data['${effectivePrefix}trade_type'],
         )!,
       ),
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
       code: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}code'],
@@ -322,9 +308,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
   final int id;
   final DateTime tradeDate;
   final TradeAction action;
-  final int categoryId;
+  final String marketCode;
   final TradeType tradeType;
-  final String name;
   final String code;
   final double quantity;
   final Currency currency;
@@ -336,9 +321,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     required this.id,
     required this.tradeDate,
     required this.action,
-    required this.categoryId,
+    required this.marketCode,
     required this.tradeType,
-    required this.name,
     required this.code,
     required this.quantity,
     required this.currency,
@@ -357,13 +341,12 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
         $TradeRecordsTable.$converteraction.toSql(action),
       );
     }
-    map['category_id'] = Variable<int>(categoryId);
+    map['market_code'] = Variable<String>(marketCode);
     {
       map['trade_type'] = Variable<String>(
         $TradeRecordsTable.$convertertradeType.toSql(tradeType),
       );
     }
-    map['name'] = Variable<String>(name);
     map['code'] = Variable<String>(code);
     map['quantity'] = Variable<double>(quantity);
     {
@@ -389,9 +372,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       id: Value(id),
       tradeDate: Value(tradeDate),
       action: Value(action),
-      categoryId: Value(categoryId),
+      marketCode: Value(marketCode),
       tradeType: Value(tradeType),
-      name: Value(name),
       code: Value(code),
       quantity: Value(quantity),
       currency: Value(currency),
@@ -413,9 +395,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       id: serializer.fromJson<int>(json['id']),
       tradeDate: serializer.fromJson<DateTime>(json['tradeDate']),
       action: serializer.fromJson<TradeAction>(json['action']),
-      categoryId: serializer.fromJson<int>(json['categoryId']),
+      marketCode: serializer.fromJson<String>(json['marketCode']),
       tradeType: serializer.fromJson<TradeType>(json['tradeType']),
-      name: serializer.fromJson<String>(json['name']),
       code: serializer.fromJson<String>(json['code']),
       quantity: serializer.fromJson<double>(json['quantity']),
       currency: serializer.fromJson<Currency>(json['currency']),
@@ -432,9 +413,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       'id': serializer.toJson<int>(id),
       'tradeDate': serializer.toJson<DateTime>(tradeDate),
       'action': serializer.toJson<TradeAction>(action),
-      'categoryId': serializer.toJson<int>(categoryId),
+      'marketCode': serializer.toJson<String>(marketCode),
       'tradeType': serializer.toJson<TradeType>(tradeType),
-      'name': serializer.toJson<String>(name),
       'code': serializer.toJson<String>(code),
       'quantity': serializer.toJson<double>(quantity),
       'currency': serializer.toJson<Currency>(currency),
@@ -449,9 +429,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     int? id,
     DateTime? tradeDate,
     TradeAction? action,
-    int? categoryId,
+    String? marketCode,
     TradeType? tradeType,
-    String? name,
     String? code,
     double? quantity,
     Currency? currency,
@@ -463,9 +442,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     id: id ?? this.id,
     tradeDate: tradeDate ?? this.tradeDate,
     action: action ?? this.action,
-    categoryId: categoryId ?? this.categoryId,
+    marketCode: marketCode ?? this.marketCode,
     tradeType: tradeType ?? this.tradeType,
-    name: name ?? this.name,
     code: code ?? this.code,
     quantity: quantity ?? this.quantity,
     currency: currency ?? this.currency,
@@ -479,11 +457,10 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       id: data.id.present ? data.id.value : this.id,
       tradeDate: data.tradeDate.present ? data.tradeDate.value : this.tradeDate,
       action: data.action.present ? data.action.value : this.action,
-      categoryId: data.categoryId.present
-          ? data.categoryId.value
-          : this.categoryId,
+      marketCode: data.marketCode.present
+          ? data.marketCode.value
+          : this.marketCode,
       tradeType: data.tradeType.present ? data.tradeType.value : this.tradeType,
-      name: data.name.present ? data.name.value : this.name,
       code: data.code.present ? data.code.value : this.code,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
       currency: data.currency.present ? data.currency.value : this.currency,
@@ -502,9 +479,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
           ..write('id: $id, ')
           ..write('tradeDate: $tradeDate, ')
           ..write('action: $action, ')
-          ..write('categoryId: $categoryId, ')
+          ..write('marketCode: $marketCode, ')
           ..write('tradeType: $tradeType, ')
-          ..write('name: $name, ')
           ..write('code: $code, ')
           ..write('quantity: $quantity, ')
           ..write('currency: $currency, ')
@@ -521,9 +497,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     id,
     tradeDate,
     action,
-    categoryId,
+    marketCode,
     tradeType,
-    name,
     code,
     quantity,
     currency,
@@ -539,9 +514,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
           other.id == this.id &&
           other.tradeDate == this.tradeDate &&
           other.action == this.action &&
-          other.categoryId == this.categoryId &&
+          other.marketCode == this.marketCode &&
           other.tradeType == this.tradeType &&
-          other.name == this.name &&
           other.code == this.code &&
           other.quantity == this.quantity &&
           other.currency == this.currency &&
@@ -555,9 +529,8 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
   final Value<int> id;
   final Value<DateTime> tradeDate;
   final Value<TradeAction> action;
-  final Value<int> categoryId;
+  final Value<String> marketCode;
   final Value<TradeType> tradeType;
-  final Value<String> name;
   final Value<String> code;
   final Value<double> quantity;
   final Value<Currency> currency;
@@ -569,9 +542,8 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     this.id = const Value.absent(),
     this.tradeDate = const Value.absent(),
     this.action = const Value.absent(),
-    this.categoryId = const Value.absent(),
+    this.marketCode = const Value.absent(),
     this.tradeType = const Value.absent(),
-    this.name = const Value.absent(),
     this.code = const Value.absent(),
     this.quantity = const Value.absent(),
     this.currency = const Value.absent(),
@@ -584,9 +556,8 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     this.id = const Value.absent(),
     required DateTime tradeDate,
     required TradeAction action,
-    required int categoryId,
+    required String marketCode,
     required TradeType tradeType,
-    required String name,
     required String code,
     required double quantity,
     required Currency currency,
@@ -596,9 +567,8 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     this.remark = const Value.absent(),
   }) : tradeDate = Value(tradeDate),
        action = Value(action),
-       categoryId = Value(categoryId),
+       marketCode = Value(marketCode),
        tradeType = Value(tradeType),
-       name = Value(name),
        code = Value(code),
        quantity = Value(quantity),
        currency = Value(currency),
@@ -609,9 +579,8 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     Expression<int>? id,
     Expression<DateTime>? tradeDate,
     Expression<String>? action,
-    Expression<int>? categoryId,
+    Expression<String>? marketCode,
     Expression<String>? tradeType,
-    Expression<String>? name,
     Expression<String>? code,
     Expression<double>? quantity,
     Expression<String>? currency,
@@ -624,9 +593,8 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
       if (id != null) 'id': id,
       if (tradeDate != null) 'trade_date': tradeDate,
       if (action != null) 'action': action,
-      if (categoryId != null) 'category_id': categoryId,
+      if (marketCode != null) 'market_code': marketCode,
       if (tradeType != null) 'trade_type': tradeType,
-      if (name != null) 'name': name,
       if (code != null) 'code': code,
       if (quantity != null) 'quantity': quantity,
       if (currency != null) 'currency': currency,
@@ -641,9 +609,8 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     Value<int>? id,
     Value<DateTime>? tradeDate,
     Value<TradeAction>? action,
-    Value<int>? categoryId,
+    Value<String>? marketCode,
     Value<TradeType>? tradeType,
-    Value<String>? name,
     Value<String>? code,
     Value<double>? quantity,
     Value<Currency>? currency,
@@ -656,9 +623,8 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
       id: id ?? this.id,
       tradeDate: tradeDate ?? this.tradeDate,
       action: action ?? this.action,
-      categoryId: categoryId ?? this.categoryId,
+      marketCode: marketCode ?? this.marketCode,
       tradeType: tradeType ?? this.tradeType,
-      name: name ?? this.name,
       code: code ?? this.code,
       quantity: quantity ?? this.quantity,
       currency: currency ?? this.currency,
@@ -683,16 +649,13 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
         $TradeRecordsTable.$converteraction.toSql(action.value),
       );
     }
-    if (categoryId.present) {
-      map['category_id'] = Variable<int>(categoryId.value);
+    if (marketCode.present) {
+      map['market_code'] = Variable<String>(marketCode.value);
     }
     if (tradeType.present) {
       map['trade_type'] = Variable<String>(
         $TradeRecordsTable.$convertertradeType.toSql(tradeType.value),
       );
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
     }
     if (code.present) {
       map['code'] = Variable<String>(code.value);
@@ -728,9 +691,8 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
           ..write('id: $id, ')
           ..write('tradeDate: $tradeDate, ')
           ..write('action: $action, ')
-          ..write('categoryId: $categoryId, ')
+          ..write('marketCode: $marketCode, ')
           ..write('tradeType: $tradeType, ')
-          ..write('name: $name, ')
           ..write('code: $code, ')
           ..write('quantity: $quantity, ')
           ..write('currency: $currency, ')
@@ -2103,24 +2065,24 @@ class CashBalanceHistoriesCompanion
   }
 }
 
-class $TradeCategoriesTable extends TradeCategories
-    with TableInfo<$TradeCategoriesTable, TradeCategory> {
+class $MarketDataTable extends MarketData
+    with TableInfo<$MarketDataTable, MarketDataData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $TradeCategoriesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  $MarketDataTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _codeMeta = const VerificationMeta('code');
   @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
+  late final GeneratedColumn<String> code = GeneratedColumn<String>(
+    'code',
     aliasedName,
     false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 32,
     ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -2175,7 +2137,7 @@ class $TradeCategoriesTable extends TradeCategories
   );
   @override
   List<GeneratedColumn> get $columns => [
-    id,
+    code,
     name,
     colorHex,
     sortOrder,
@@ -2185,16 +2147,21 @@ class $TradeCategoriesTable extends TradeCategories
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'trade_categories';
+  static const String $name = 'market_data';
   @override
   VerificationContext validateIntegrity(
-    Insertable<TradeCategory> instance, {
+    Insertable<MarketDataData> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    if (data.containsKey('code')) {
+      context.handle(
+        _codeMeta,
+        code.isAcceptableOrUnknown(data['code']!, _codeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_codeMeta);
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -2226,14 +2193,14 @@ class $TradeCategoriesTable extends TradeCategories
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id};
+  Set<GeneratedColumn> get $primaryKey => {code};
   @override
-  TradeCategory map(Map<String, dynamic> data, {String? tablePrefix}) {
+  MarketDataData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return TradeCategory(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
+    return MarketDataData(
+      code: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}code'],
       )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -2255,19 +2222,19 @@ class $TradeCategoriesTable extends TradeCategories
   }
 
   @override
-  $TradeCategoriesTable createAlias(String alias) {
-    return $TradeCategoriesTable(attachedDatabase, alias);
+  $MarketDataTable createAlias(String alias) {
+    return $MarketDataTable(attachedDatabase, alias);
   }
 }
 
-class TradeCategory extends DataClass implements Insertable<TradeCategory> {
-  final int id;
+class MarketDataData extends DataClass implements Insertable<MarketDataData> {
+  final String code;
   final String name;
   final int? colorHex;
   final int sortOrder;
   final bool isActive;
-  const TradeCategory({
-    required this.id,
+  const MarketDataData({
+    required this.code,
     required this.name,
     this.colorHex,
     required this.sortOrder,
@@ -2276,7 +2243,7 @@ class TradeCategory extends DataClass implements Insertable<TradeCategory> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
+    map['code'] = Variable<String>(code);
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || colorHex != null) {
       map['color_hex'] = Variable<int>(colorHex);
@@ -2286,9 +2253,9 @@ class TradeCategory extends DataClass implements Insertable<TradeCategory> {
     return map;
   }
 
-  TradeCategoriesCompanion toCompanion(bool nullToAbsent) {
-    return TradeCategoriesCompanion(
-      id: Value(id),
+  MarketDataCompanion toCompanion(bool nullToAbsent) {
+    return MarketDataCompanion(
+      code: Value(code),
       name: Value(name),
       colorHex: colorHex == null && nullToAbsent
           ? const Value.absent()
@@ -2298,13 +2265,13 @@ class TradeCategory extends DataClass implements Insertable<TradeCategory> {
     );
   }
 
-  factory TradeCategory.fromJson(
+  factory MarketDataData.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return TradeCategory(
-      id: serializer.fromJson<int>(json['id']),
+    return MarketDataData(
+      code: serializer.fromJson<String>(json['code']),
       name: serializer.fromJson<String>(json['name']),
       colorHex: serializer.fromJson<int?>(json['colorHex']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
@@ -2315,7 +2282,7 @@ class TradeCategory extends DataClass implements Insertable<TradeCategory> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
+      'code': serializer.toJson<String>(code),
       'name': serializer.toJson<String>(name),
       'colorHex': serializer.toJson<int?>(colorHex),
       'sortOrder': serializer.toJson<int>(sortOrder),
@@ -2323,22 +2290,22 @@ class TradeCategory extends DataClass implements Insertable<TradeCategory> {
     };
   }
 
-  TradeCategory copyWith({
-    int? id,
+  MarketDataData copyWith({
+    String? code,
     String? name,
     Value<int?> colorHex = const Value.absent(),
     int? sortOrder,
     bool? isActive,
-  }) => TradeCategory(
-    id: id ?? this.id,
+  }) => MarketDataData(
+    code: code ?? this.code,
     name: name ?? this.name,
     colorHex: colorHex.present ? colorHex.value : this.colorHex,
     sortOrder: sortOrder ?? this.sortOrder,
     isActive: isActive ?? this.isActive,
   );
-  TradeCategory copyWithCompanion(TradeCategoriesCompanion data) {
-    return TradeCategory(
-      id: data.id.present ? data.id.value : this.id,
+  MarketDataData copyWithCompanion(MarketDataCompanion data) {
+    return MarketDataData(
+      code: data.code.present ? data.code.value : this.code,
       name: data.name.present ? data.name.value : this.name,
       colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
@@ -2348,8 +2315,8 @@ class TradeCategory extends DataClass implements Insertable<TradeCategory> {
 
   @override
   String toString() {
-    return (StringBuffer('TradeCategory(')
-          ..write('id: $id, ')
+    return (StringBuffer('MarketDataData(')
+          ..write('code: $code, ')
           ..write('name: $name, ')
           ..write('colorHex: $colorHex, ')
           ..write('sortOrder: $sortOrder, ')
@@ -2359,75 +2326,83 @@ class TradeCategory extends DataClass implements Insertable<TradeCategory> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, colorHex, sortOrder, isActive);
+  int get hashCode => Object.hash(code, name, colorHex, sortOrder, isActive);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is TradeCategory &&
-          other.id == this.id &&
+      (other is MarketDataData &&
+          other.code == this.code &&
           other.name == this.name &&
           other.colorHex == this.colorHex &&
           other.sortOrder == this.sortOrder &&
           other.isActive == this.isActive);
 }
 
-class TradeCategoriesCompanion extends UpdateCompanion<TradeCategory> {
-  final Value<int> id;
+class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
+  final Value<String> code;
   final Value<String> name;
   final Value<int?> colorHex;
   final Value<int> sortOrder;
   final Value<bool> isActive;
-  const TradeCategoriesCompanion({
-    this.id = const Value.absent(),
+  final Value<int> rowid;
+  const MarketDataCompanion({
+    this.code = const Value.absent(),
     this.name = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
-  TradeCategoriesCompanion.insert({
-    this.id = const Value.absent(),
+  MarketDataCompanion.insert({
+    required String code,
     required String name,
     this.colorHex = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.isActive = const Value.absent(),
-  }) : name = Value(name);
-  static Insertable<TradeCategory> custom({
-    Expression<int>? id,
+    this.rowid = const Value.absent(),
+  }) : code = Value(code),
+       name = Value(name);
+  static Insertable<MarketDataData> custom({
+    Expression<String>? code,
     Expression<String>? name,
     Expression<int>? colorHex,
     Expression<int>? sortOrder,
     Expression<bool>? isActive,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (id != null) 'id': id,
+      if (code != null) 'code': code,
       if (name != null) 'name': name,
       if (colorHex != null) 'color_hex': colorHex,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (isActive != null) 'is_active': isActive,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
-  TradeCategoriesCompanion copyWith({
-    Value<int>? id,
+  MarketDataCompanion copyWith({
+    Value<String>? code,
     Value<String>? name,
     Value<int?>? colorHex,
     Value<int>? sortOrder,
     Value<bool>? isActive,
+    Value<int>? rowid,
   }) {
-    return TradeCategoriesCompanion(
-      id: id ?? this.id,
+    return MarketDataCompanion(
+      code: code ?? this.code,
       name: name ?? this.name,
       colorHex: colorHex ?? this.colorHex,
       sortOrder: sortOrder ?? this.sortOrder,
       isActive: isActive ?? this.isActive,
+      rowid: rowid ?? this.rowid,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
+    if (code.present) {
+      map['code'] = Variable<String>(code.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -2441,17 +2416,517 @@ class TradeCategoriesCompanion extends UpdateCompanion<TradeCategory> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
   @override
   String toString() {
-    return (StringBuffer('TradeCategoriesCompanion(')
-          ..write('id: $id, ')
+    return (StringBuffer('MarketDataCompanion(')
+          ..write('code: $code, ')
           ..write('name: $name, ')
           ..write('colorHex: $colorHex, ')
           ..write('sortOrder: $sortOrder, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $StocksTable extends Stocks with TableInfo<$StocksTable, Stock> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StocksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _codeMeta = const VerificationMeta('code');
+  @override
+  late final GeneratedColumn<String> code = GeneratedColumn<String>(
+    'code',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 32,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 64,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _marketCodeMeta = const VerificationMeta(
+    'marketCode',
+  );
+  @override
+  late final GeneratedColumn<String> marketCode = GeneratedColumn<String>(
+    'market_code',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 32,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 8,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currentPriceMeta = const VerificationMeta(
+    'currentPrice',
+  );
+  @override
+  late final GeneratedColumn<double> currentPrice = GeneratedColumn<double>(
+    'current_price',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _priceUpdatedAtMeta = const VerificationMeta(
+    'priceUpdatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> priceUpdatedAt =
+      GeneratedColumn<DateTime>(
+        'price_updated_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _remarkMeta = const VerificationMeta('remark');
+  @override
+  late final GeneratedColumn<String> remark = GeneratedColumn<String>(
+    'remark',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    code,
+    name,
+    marketCode,
+    currency,
+    currentPrice,
+    priceUpdatedAt,
+    remark,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stocks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Stock> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('code')) {
+      context.handle(
+        _codeMeta,
+        code.isAcceptableOrUnknown(data['code']!, _codeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_codeMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('market_code')) {
+      context.handle(
+        _marketCodeMeta,
+        marketCode.isAcceptableOrUnknown(data['market_code']!, _marketCodeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_marketCodeMeta);
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_currencyMeta);
+    }
+    if (data.containsKey('current_price')) {
+      context.handle(
+        _currentPriceMeta,
+        currentPrice.isAcceptableOrUnknown(
+          data['current_price']!,
+          _currentPriceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('price_updated_at')) {
+      context.handle(
+        _priceUpdatedAtMeta,
+        priceUpdatedAt.isAcceptableOrUnknown(
+          data['price_updated_at']!,
+          _priceUpdatedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remark')) {
+      context.handle(
+        _remarkMeta,
+        remark.isAcceptableOrUnknown(data['remark']!, _remarkMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {code};
+  @override
+  Stock map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Stock(
+      code: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}code'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      marketCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}market_code'],
+      )!,
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
+      currentPrice: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}current_price'],
+      ),
+      priceUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}price_updated_at'],
+      ),
+      remark: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remark'],
+      ),
+    );
+  }
+
+  @override
+  $StocksTable createAlias(String alias) {
+    return $StocksTable(attachedDatabase, alias);
+  }
+}
+
+class Stock extends DataClass implements Insertable<Stock> {
+  final String code;
+  final String name;
+  final String marketCode;
+  final String currency;
+  final double? currentPrice;
+  final DateTime? priceUpdatedAt;
+  final String? remark;
+  const Stock({
+    required this.code,
+    required this.name,
+    required this.marketCode,
+    required this.currency,
+    this.currentPrice,
+    this.priceUpdatedAt,
+    this.remark,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['code'] = Variable<String>(code);
+    map['name'] = Variable<String>(name);
+    map['market_code'] = Variable<String>(marketCode);
+    map['currency'] = Variable<String>(currency);
+    if (!nullToAbsent || currentPrice != null) {
+      map['current_price'] = Variable<double>(currentPrice);
+    }
+    if (!nullToAbsent || priceUpdatedAt != null) {
+      map['price_updated_at'] = Variable<DateTime>(priceUpdatedAt);
+    }
+    if (!nullToAbsent || remark != null) {
+      map['remark'] = Variable<String>(remark);
+    }
+    return map;
+  }
+
+  StocksCompanion toCompanion(bool nullToAbsent) {
+    return StocksCompanion(
+      code: Value(code),
+      name: Value(name),
+      marketCode: Value(marketCode),
+      currency: Value(currency),
+      currentPrice: currentPrice == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currentPrice),
+      priceUpdatedAt: priceUpdatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(priceUpdatedAt),
+      remark: remark == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remark),
+    );
+  }
+
+  factory Stock.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Stock(
+      code: serializer.fromJson<String>(json['code']),
+      name: serializer.fromJson<String>(json['name']),
+      marketCode: serializer.fromJson<String>(json['marketCode']),
+      currency: serializer.fromJson<String>(json['currency']),
+      currentPrice: serializer.fromJson<double?>(json['currentPrice']),
+      priceUpdatedAt: serializer.fromJson<DateTime?>(json['priceUpdatedAt']),
+      remark: serializer.fromJson<String?>(json['remark']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'code': serializer.toJson<String>(code),
+      'name': serializer.toJson<String>(name),
+      'marketCode': serializer.toJson<String>(marketCode),
+      'currency': serializer.toJson<String>(currency),
+      'currentPrice': serializer.toJson<double?>(currentPrice),
+      'priceUpdatedAt': serializer.toJson<DateTime?>(priceUpdatedAt),
+      'remark': serializer.toJson<String?>(remark),
+    };
+  }
+
+  Stock copyWith({
+    String? code,
+    String? name,
+    String? marketCode,
+    String? currency,
+    Value<double?> currentPrice = const Value.absent(),
+    Value<DateTime?> priceUpdatedAt = const Value.absent(),
+    Value<String?> remark = const Value.absent(),
+  }) => Stock(
+    code: code ?? this.code,
+    name: name ?? this.name,
+    marketCode: marketCode ?? this.marketCode,
+    currency: currency ?? this.currency,
+    currentPrice: currentPrice.present ? currentPrice.value : this.currentPrice,
+    priceUpdatedAt: priceUpdatedAt.present
+        ? priceUpdatedAt.value
+        : this.priceUpdatedAt,
+    remark: remark.present ? remark.value : this.remark,
+  );
+  Stock copyWithCompanion(StocksCompanion data) {
+    return Stock(
+      code: data.code.present ? data.code.value : this.code,
+      name: data.name.present ? data.name.value : this.name,
+      marketCode: data.marketCode.present
+          ? data.marketCode.value
+          : this.marketCode,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      currentPrice: data.currentPrice.present
+          ? data.currentPrice.value
+          : this.currentPrice,
+      priceUpdatedAt: data.priceUpdatedAt.present
+          ? data.priceUpdatedAt.value
+          : this.priceUpdatedAt,
+      remark: data.remark.present ? data.remark.value : this.remark,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Stock(')
+          ..write('code: $code, ')
+          ..write('name: $name, ')
+          ..write('marketCode: $marketCode, ')
+          ..write('currency: $currency, ')
+          ..write('currentPrice: $currentPrice, ')
+          ..write('priceUpdatedAt: $priceUpdatedAt, ')
+          ..write('remark: $remark')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    code,
+    name,
+    marketCode,
+    currency,
+    currentPrice,
+    priceUpdatedAt,
+    remark,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Stock &&
+          other.code == this.code &&
+          other.name == this.name &&
+          other.marketCode == this.marketCode &&
+          other.currency == this.currency &&
+          other.currentPrice == this.currentPrice &&
+          other.priceUpdatedAt == this.priceUpdatedAt &&
+          other.remark == this.remark);
+}
+
+class StocksCompanion extends UpdateCompanion<Stock> {
+  final Value<String> code;
+  final Value<String> name;
+  final Value<String> marketCode;
+  final Value<String> currency;
+  final Value<double?> currentPrice;
+  final Value<DateTime?> priceUpdatedAt;
+  final Value<String?> remark;
+  final Value<int> rowid;
+  const StocksCompanion({
+    this.code = const Value.absent(),
+    this.name = const Value.absent(),
+    this.marketCode = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.currentPrice = const Value.absent(),
+    this.priceUpdatedAt = const Value.absent(),
+    this.remark = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StocksCompanion.insert({
+    required String code,
+    required String name,
+    required String marketCode,
+    required String currency,
+    this.currentPrice = const Value.absent(),
+    this.priceUpdatedAt = const Value.absent(),
+    this.remark = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : code = Value(code),
+       name = Value(name),
+       marketCode = Value(marketCode),
+       currency = Value(currency);
+  static Insertable<Stock> custom({
+    Expression<String>? code,
+    Expression<String>? name,
+    Expression<String>? marketCode,
+    Expression<String>? currency,
+    Expression<double>? currentPrice,
+    Expression<DateTime>? priceUpdatedAt,
+    Expression<String>? remark,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (code != null) 'code': code,
+      if (name != null) 'name': name,
+      if (marketCode != null) 'market_code': marketCode,
+      if (currency != null) 'currency': currency,
+      if (currentPrice != null) 'current_price': currentPrice,
+      if (priceUpdatedAt != null) 'price_updated_at': priceUpdatedAt,
+      if (remark != null) 'remark': remark,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StocksCompanion copyWith({
+    Value<String>? code,
+    Value<String>? name,
+    Value<String>? marketCode,
+    Value<String>? currency,
+    Value<double?>? currentPrice,
+    Value<DateTime?>? priceUpdatedAt,
+    Value<String?>? remark,
+    Value<int>? rowid,
+  }) {
+    return StocksCompanion(
+      code: code ?? this.code,
+      name: name ?? this.name,
+      marketCode: marketCode ?? this.marketCode,
+      currency: currency ?? this.currency,
+      currentPrice: currentPrice ?? this.currentPrice,
+      priceUpdatedAt: priceUpdatedAt ?? this.priceUpdatedAt,
+      remark: remark ?? this.remark,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (code.present) {
+      map['code'] = Variable<String>(code.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (marketCode.present) {
+      map['market_code'] = Variable<String>(marketCode.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (currentPrice.present) {
+      map['current_price'] = Variable<double>(currentPrice.value);
+    }
+    if (priceUpdatedAt.present) {
+      map['price_updated_at'] = Variable<DateTime>(priceUpdatedAt.value);
+    }
+    if (remark.present) {
+      map['remark'] = Variable<String>(remark.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StocksCompanion(')
+          ..write('code: $code, ')
+          ..write('name: $name, ')
+          ..write('marketCode: $marketCode, ')
+          ..write('currency: $currency, ')
+          ..write('currentPrice: $currentPrice, ')
+          ..write('priceUpdatedAt: $priceUpdatedAt, ')
+          ..write('remark: $remark, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -2467,9 +2942,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CashBalancesTable cashBalances = $CashBalancesTable(this);
   late final $CashBalanceHistoriesTable cashBalanceHistories =
       $CashBalanceHistoriesTable(this);
-  late final $TradeCategoriesTable tradeCategories = $TradeCategoriesTable(
-    this,
-  );
+  late final $MarketDataTable marketData = $MarketDataTable(this);
+  late final $StocksTable stocks = $StocksTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2480,7 +2954,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cashFlows,
     cashBalances,
     cashBalanceHistories,
-    tradeCategories,
+    marketData,
+    stocks,
   ];
 }
 
@@ -2489,9 +2964,8 @@ typedef $$TradeRecordsTableCreateCompanionBuilder =
       Value<int> id,
       required DateTime tradeDate,
       required TradeAction action,
-      required int categoryId,
+      required String marketCode,
       required TradeType tradeType,
-      required String name,
       required String code,
       required double quantity,
       required Currency currency,
@@ -2505,9 +2979,8 @@ typedef $$TradeRecordsTableUpdateCompanionBuilder =
       Value<int> id,
       Value<DateTime> tradeDate,
       Value<TradeAction> action,
-      Value<int> categoryId,
+      Value<String> marketCode,
       Value<TradeType> tradeType,
-      Value<String> name,
       Value<String> code,
       Value<double> quantity,
       Value<Currency> currency,
@@ -2542,8 +3015,8 @@ class $$TradeRecordsTableFilterComposer
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
-  ColumnFilters<int> get categoryId => $composableBuilder(
-    column: $table.categoryId,
+  ColumnFilters<String> get marketCode => $composableBuilder(
+    column: $table.marketCode,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2552,11 +3025,6 @@ class $$TradeRecordsTableFilterComposer
         column: $table.tradeType,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
 
   ColumnFilters<String> get code => $composableBuilder(
     column: $table.code,
@@ -2620,18 +3088,13 @@ class $$TradeRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get categoryId => $composableBuilder(
-    column: $table.categoryId,
+  ColumnOrderings<String> get marketCode => $composableBuilder(
+    column: $table.marketCode,
     builder: (column) => ColumnOrderings(column),
   );
 
   ColumnOrderings<String> get tradeType => $composableBuilder(
     column: $table.tradeType,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2689,16 +3152,13 @@ class $$TradeRecordsTableAnnotationComposer
   GeneratedColumnWithTypeConverter<TradeAction, String> get action =>
       $composableBuilder(column: $table.action, builder: (column) => column);
 
-  GeneratedColumn<int> get categoryId => $composableBuilder(
-    column: $table.categoryId,
+  GeneratedColumn<String> get marketCode => $composableBuilder(
+    column: $table.marketCode,
     builder: (column) => column,
   );
 
   GeneratedColumnWithTypeConverter<TradeType, String> get tradeType =>
       $composableBuilder(column: $table.tradeType, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
 
   GeneratedColumn<String> get code =>
       $composableBuilder(column: $table.code, builder: (column) => column);
@@ -2759,9 +3219,8 @@ class $$TradeRecordsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<DateTime> tradeDate = const Value.absent(),
                 Value<TradeAction> action = const Value.absent(),
-                Value<int> categoryId = const Value.absent(),
+                Value<String> marketCode = const Value.absent(),
                 Value<TradeType> tradeType = const Value.absent(),
-                Value<String> name = const Value.absent(),
                 Value<String> code = const Value.absent(),
                 Value<double> quantity = const Value.absent(),
                 Value<Currency> currency = const Value.absent(),
@@ -2773,9 +3232,8 @@ class $$TradeRecordsTableTableManager
                 id: id,
                 tradeDate: tradeDate,
                 action: action,
-                categoryId: categoryId,
+                marketCode: marketCode,
                 tradeType: tradeType,
-                name: name,
                 code: code,
                 quantity: quantity,
                 currency: currency,
@@ -2789,9 +3247,8 @@ class $$TradeRecordsTableTableManager
                 Value<int> id = const Value.absent(),
                 required DateTime tradeDate,
                 required TradeAction action,
-                required int categoryId,
+                required String marketCode,
                 required TradeType tradeType,
-                required String name,
                 required String code,
                 required double quantity,
                 required Currency currency,
@@ -2803,9 +3260,8 @@ class $$TradeRecordsTableTableManager
                 id: id,
                 tradeDate: tradeDate,
                 action: action,
-                categoryId: categoryId,
+                marketCode: marketCode,
                 tradeType: tradeType,
-                name: name,
                 code: code,
                 quantity: quantity,
                 currency: currency,
@@ -3628,34 +4084,36 @@ typedef $$CashBalanceHistoriesTableProcessedTableManager =
       CashBalanceHistory,
       PrefetchHooks Function()
     >;
-typedef $$TradeCategoriesTableCreateCompanionBuilder =
-    TradeCategoriesCompanion Function({
-      Value<int> id,
+typedef $$MarketDataTableCreateCompanionBuilder =
+    MarketDataCompanion Function({
+      required String code,
       required String name,
       Value<int?> colorHex,
       Value<int> sortOrder,
       Value<bool> isActive,
+      Value<int> rowid,
     });
-typedef $$TradeCategoriesTableUpdateCompanionBuilder =
-    TradeCategoriesCompanion Function({
-      Value<int> id,
+typedef $$MarketDataTableUpdateCompanionBuilder =
+    MarketDataCompanion Function({
+      Value<String> code,
       Value<String> name,
       Value<int?> colorHex,
       Value<int> sortOrder,
       Value<bool> isActive,
+      Value<int> rowid,
     });
 
-class $$TradeCategoriesTableFilterComposer
-    extends Composer<_$AppDatabase, $TradeCategoriesTable> {
-  $$TradeCategoriesTableFilterComposer({
+class $$MarketDataTableFilterComposer
+    extends Composer<_$AppDatabase, $MarketDataTable> {
+  $$MarketDataTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
+  ColumnFilters<String> get code => $composableBuilder(
+    column: $table.code,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3680,17 +4138,17 @@ class $$TradeCategoriesTableFilterComposer
   );
 }
 
-class $$TradeCategoriesTableOrderingComposer
-    extends Composer<_$AppDatabase, $TradeCategoriesTable> {
-  $$TradeCategoriesTableOrderingComposer({
+class $$MarketDataTableOrderingComposer
+    extends Composer<_$AppDatabase, $MarketDataTable> {
+  $$MarketDataTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
+  ColumnOrderings<String> get code => $composableBuilder(
+    column: $table.code,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3715,17 +4173,17 @@ class $$TradeCategoriesTableOrderingComposer
   );
 }
 
-class $$TradeCategoriesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $TradeCategoriesTable> {
-  $$TradeCategoriesTableAnnotationComposer({
+class $$MarketDataTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MarketDataTable> {
+  $$MarketDataTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get code =>
+      $composableBuilder(column: $table.code, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -3740,64 +4198,66 @@ class $$TradeCategoriesTableAnnotationComposer
       $composableBuilder(column: $table.isActive, builder: (column) => column);
 }
 
-class $$TradeCategoriesTableTableManager
+class $$MarketDataTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $TradeCategoriesTable,
-          TradeCategory,
-          $$TradeCategoriesTableFilterComposer,
-          $$TradeCategoriesTableOrderingComposer,
-          $$TradeCategoriesTableAnnotationComposer,
-          $$TradeCategoriesTableCreateCompanionBuilder,
-          $$TradeCategoriesTableUpdateCompanionBuilder,
+          $MarketDataTable,
+          MarketDataData,
+          $$MarketDataTableFilterComposer,
+          $$MarketDataTableOrderingComposer,
+          $$MarketDataTableAnnotationComposer,
+          $$MarketDataTableCreateCompanionBuilder,
+          $$MarketDataTableUpdateCompanionBuilder,
           (
-            TradeCategory,
-            BaseReferences<_$AppDatabase, $TradeCategoriesTable, TradeCategory>,
+            MarketDataData,
+            BaseReferences<_$AppDatabase, $MarketDataTable, MarketDataData>,
           ),
-          TradeCategory,
+          MarketDataData,
           PrefetchHooks Function()
         > {
-  $$TradeCategoriesTableTableManager(
-    _$AppDatabase db,
-    $TradeCategoriesTable table,
-  ) : super(
+  $$MarketDataTableTableManager(_$AppDatabase db, $MarketDataTable table)
+    : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$TradeCategoriesTableFilterComposer($db: db, $table: table),
+              $$MarketDataTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$TradeCategoriesTableOrderingComposer($db: db, $table: table),
+              $$MarketDataTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$TradeCategoriesTableAnnotationComposer($db: db, $table: table),
+              $$MarketDataTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                Value<String> code = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int?> colorHex = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
-              }) => TradeCategoriesCompanion(
-                id: id,
+                Value<int> rowid = const Value.absent(),
+              }) => MarketDataCompanion(
+                code: code,
                 name: name,
                 colorHex: colorHex,
                 sortOrder: sortOrder,
                 isActive: isActive,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
+                required String code,
                 required String name,
                 Value<int?> colorHex = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
-              }) => TradeCategoriesCompanion.insert(
-                id: id,
+                Value<int> rowid = const Value.absent(),
+              }) => MarketDataCompanion.insert(
+                code: code,
                 name: name,
                 colorHex: colorHex,
                 sortOrder: sortOrder,
                 isActive: isActive,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -3807,21 +4267,259 @@ class $$TradeCategoriesTableTableManager
       );
 }
 
-typedef $$TradeCategoriesTableProcessedTableManager =
+typedef $$MarketDataTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $TradeCategoriesTable,
-      TradeCategory,
-      $$TradeCategoriesTableFilterComposer,
-      $$TradeCategoriesTableOrderingComposer,
-      $$TradeCategoriesTableAnnotationComposer,
-      $$TradeCategoriesTableCreateCompanionBuilder,
-      $$TradeCategoriesTableUpdateCompanionBuilder,
+      $MarketDataTable,
+      MarketDataData,
+      $$MarketDataTableFilterComposer,
+      $$MarketDataTableOrderingComposer,
+      $$MarketDataTableAnnotationComposer,
+      $$MarketDataTableCreateCompanionBuilder,
+      $$MarketDataTableUpdateCompanionBuilder,
       (
-        TradeCategory,
-        BaseReferences<_$AppDatabase, $TradeCategoriesTable, TradeCategory>,
+        MarketDataData,
+        BaseReferences<_$AppDatabase, $MarketDataTable, MarketDataData>,
       ),
-      TradeCategory,
+      MarketDataData,
+      PrefetchHooks Function()
+    >;
+typedef $$StocksTableCreateCompanionBuilder =
+    StocksCompanion Function({
+      required String code,
+      required String name,
+      required String marketCode,
+      required String currency,
+      Value<double?> currentPrice,
+      Value<DateTime?> priceUpdatedAt,
+      Value<String?> remark,
+      Value<int> rowid,
+    });
+typedef $$StocksTableUpdateCompanionBuilder =
+    StocksCompanion Function({
+      Value<String> code,
+      Value<String> name,
+      Value<String> marketCode,
+      Value<String> currency,
+      Value<double?> currentPrice,
+      Value<DateTime?> priceUpdatedAt,
+      Value<String?> remark,
+      Value<int> rowid,
+    });
+
+class $$StocksTableFilterComposer
+    extends Composer<_$AppDatabase, $StocksTable> {
+  $$StocksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get marketCode => $composableBuilder(
+    column: $table.marketCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get currentPrice => $composableBuilder(
+    column: $table.currentPrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get priceUpdatedAt => $composableBuilder(
+    column: $table.priceUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remark => $composableBuilder(
+    column: $table.remark,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StocksTableOrderingComposer
+    extends Composer<_$AppDatabase, $StocksTable> {
+  $$StocksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get marketCode => $composableBuilder(
+    column: $table.marketCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get currentPrice => $composableBuilder(
+    column: $table.currentPrice,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get priceUpdatedAt => $composableBuilder(
+    column: $table.priceUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remark => $composableBuilder(
+    column: $table.remark,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StocksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StocksTable> {
+  $$StocksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get code =>
+      $composableBuilder(column: $table.code, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get marketCode => $composableBuilder(
+    column: $table.marketCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<double> get currentPrice => $composableBuilder(
+    column: $table.currentPrice,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get priceUpdatedAt => $composableBuilder(
+    column: $table.priceUpdatedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remark =>
+      $composableBuilder(column: $table.remark, builder: (column) => column);
+}
+
+class $$StocksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StocksTable,
+          Stock,
+          $$StocksTableFilterComposer,
+          $$StocksTableOrderingComposer,
+          $$StocksTableAnnotationComposer,
+          $$StocksTableCreateCompanionBuilder,
+          $$StocksTableUpdateCompanionBuilder,
+          (Stock, BaseReferences<_$AppDatabase, $StocksTable, Stock>),
+          Stock,
+          PrefetchHooks Function()
+        > {
+  $$StocksTableTableManager(_$AppDatabase db, $StocksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StocksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StocksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StocksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> code = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> marketCode = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<double?> currentPrice = const Value.absent(),
+                Value<DateTime?> priceUpdatedAt = const Value.absent(),
+                Value<String?> remark = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StocksCompanion(
+                code: code,
+                name: name,
+                marketCode: marketCode,
+                currency: currency,
+                currentPrice: currentPrice,
+                priceUpdatedAt: priceUpdatedAt,
+                remark: remark,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String code,
+                required String name,
+                required String marketCode,
+                required String currency,
+                Value<double?> currentPrice = const Value.absent(),
+                Value<DateTime?> priceUpdatedAt = const Value.absent(),
+                Value<String?> remark = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StocksCompanion.insert(
+                code: code,
+                name: name,
+                marketCode: marketCode,
+                currency: currency,
+                currentPrice: currentPrice,
+                priceUpdatedAt: priceUpdatedAt,
+                remark: remark,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StocksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StocksTable,
+      Stock,
+      $$StocksTableFilterComposer,
+      $$StocksTableOrderingComposer,
+      $$StocksTableAnnotationComposer,
+      $$StocksTableCreateCompanionBuilder,
+      $$StocksTableUpdateCompanionBuilder,
+      (Stock, BaseReferences<_$AppDatabase, $StocksTable, Stock>),
+      Stock,
       PrefetchHooks Function()
     >;
 
@@ -3838,6 +4536,8 @@ class $AppDatabaseManager {
       $$CashBalancesTableTableManager(_db, _db.cashBalances);
   $$CashBalanceHistoriesTableTableManager get cashBalanceHistories =>
       $$CashBalanceHistoriesTableTableManager(_db, _db.cashBalanceHistories);
-  $$TradeCategoriesTableTableManager get tradeCategories =>
-      $$TradeCategoriesTableTableManager(_db, _db.tradeCategories);
+  $$MarketDataTableTableManager get marketData =>
+      $$MarketDataTableTableManager(_db, _db.marketData);
+  $$StocksTableTableManager get stocks =>
+      $$StocksTableTableManager(_db, _db.stocks);
 }

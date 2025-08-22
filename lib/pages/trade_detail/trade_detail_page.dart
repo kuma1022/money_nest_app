@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
-import 'package:money_nest_app/util/provider/category_provider.dart';
+import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
@@ -163,7 +163,7 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
   void initState() {
     super.initState();
     _quantityController = TextEditingController(
-      text: widget.record.quantity?.toInt().toString() ?? '',
+      text: widget.record.quantity.toInt().toString(),
     );
     _quantityFocusNode = FocusNode();
     _quantityFocusNode.addListener(
@@ -204,7 +204,7 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tradeCategoryList = context.watch<CategoryProvider>().categories;
+    final marketDataList = context.watch<MarketDataProvider>().marketData;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -298,12 +298,12 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                             context,
                           )!.tradeDetailPageCategoryLabel,
                           'text',
-                          value: tradeCategoryList
+                          value: marketDataList
                               .firstWhere(
-                                (category) =>
-                                    category.id == widget.record.categoryId,
-                                orElse: () => TradeCategory(
-                                  id: 0,
+                                (market) =>
+                                    market.code == widget.record.marketCode,
+                                orElse: () => MarketDataData(
+                                  code: '',
                                   name: '',
                                   sortOrder: 0,
                                   isActive: false,
@@ -316,14 +316,29 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
 
                         const Divider(height: 1, color: Color(0xFFE0E0E0)),
                         // 名称
-                        _buildRow(
-                          AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageNameLabel,
-                          'text',
-                          value: widget.record.name,
-                          editable: false,
-                          icon: Icons.business,
+                        FutureBuilder<MarketDataData?>(
+                          future: widget.db.getMarketDataByCode(
+                            widget.record.marketCode,
+                          ),
+                          builder: (context, snapshot) {
+                            String name = '';
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              name = '...';
+                            } else if (snapshot.hasData &&
+                                snapshot.data != null) {
+                              name = snapshot.data!.name;
+                            }
+                            return _buildRow(
+                              AppLocalizations.of(
+                                context,
+                              )!.tradeDetailPageNameLabel,
+                              'text',
+                              value: name,
+                              editable: false,
+                              icon: Icons.business,
+                            );
+                          },
                         ),
 
                         const Divider(height: 1, color: Color(0xFFE0E0E0)),
@@ -643,9 +658,8 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
       id: Value(widget.record.id),
       tradeDate: Value(widget.record.tradeDate),
       action: Value(widget.record.action),
-      categoryId: Value(widget.record.categoryId),
+      marketCode: Value(widget.record.marketCode),
       tradeType: Value(widget.record.tradeType),
-      name: Value(widget.record.name),
       code: Value(widget.record.code),
       quantity: Value(quantity.toDouble()),
       currency: Value(currency!),

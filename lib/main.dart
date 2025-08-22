@@ -1,10 +1,12 @@
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
-import 'package:money_nest_app/util/provider/category_provider.dart';
+import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/pages/main_page.dart';
+import 'package:money_nest_app/util/provider/stocks_provider.dart';
 import 'package:provider/provider.dart';
 
 final db = AppDatabase();
@@ -12,22 +14,147 @@ final db = AppDatabase();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final db = AppDatabase();
-  final categoryProvider = CategoryProvider(db);
+
+  // 这里提前初始化 marketData
+  await _initDefaultCategories(db);
+
+  final marketDataProvider = MarketDataProvider(db);
   final buyRecordsProvider = BuyRecordsProvider(db);
-  await categoryProvider.loadCategories();
+  final stocksProvider = StocksProvider(db);
+  await marketDataProvider.loadMarketData();
   await buyRecordsProvider.loadRecords();
+  await stocksProvider.loadStocks();
   runApp(
     MultiProvider(
       providers: [
         Provider<AppDatabase>.value(value: db),
-        ChangeNotifierProvider<CategoryProvider>.value(value: categoryProvider),
+        ChangeNotifierProvider<MarketDataProvider>.value(
+          value: marketDataProvider,
+        ),
         ChangeNotifierProvider<BuyRecordsProvider>.value(
           value: buyRecordsProvider,
         ),
+        ChangeNotifierProvider<StocksProvider>.value(value: stocksProvider),
       ],
       child: MyApp(db: db),
     ),
   );
+}
+
+Future<void> _initDefaultCategories(AppDatabase db) async {
+  final count = await db.select(db.marketData).get();
+  if (count.isEmpty) {
+    await db
+        .into(db.marketData)
+        .insert(
+          MarketDataCompanion.insert(
+            code: 'JP',
+            name: 'marketDataJpLabel',
+            colorHex: Value(0xFF21CBF3),
+            sortOrder: Value(1),
+            isActive: Value(true),
+          ),
+        );
+    await db
+        .into(db.marketData)
+        .insert(
+          MarketDataCompanion.insert(
+            code: 'US',
+            name: 'marketDataUsLabel',
+            colorHex: Value(0xFF21F3B2),
+            sortOrder: Value(2),
+            isActive: Value(true),
+          ),
+        );
+    await db
+        .into(db.marketData)
+        .insert(
+          MarketDataCompanion.insert(
+            code: 'FUND',
+            name: 'marketDataFundLabel',
+            colorHex: Value(0xFFB221F3),
+            sortOrder: Value(3),
+            isActive: Value(true),
+          ),
+        );
+    await db
+        .into(db.marketData)
+        .insert(
+          MarketDataCompanion.insert(
+            code: 'ETF',
+            name: 'marketDataEtfLabel',
+            colorHex: Value(0xFFF3B221),
+            sortOrder: Value(4),
+            isActive: Value(true),
+          ),
+        );
+    await db
+        .into(db.marketData)
+        .insert(
+          MarketDataCompanion.insert(
+            code: 'OPTION',
+            name: 'marketDataOptionLabel',
+            colorHex: Value(0xFFF3E721),
+            sortOrder: Value(5),
+            isActive: Value(true),
+          ),
+        );
+    await db
+        .into(db.marketData)
+        .insert(
+          MarketDataCompanion.insert(
+            code: 'CRYPTO',
+            name: 'marketDataCryptoLabel',
+            colorHex: Value(0xFF7E21F3),
+            sortOrder: Value(6),
+            isActive: Value(true),
+          ),
+        );
+    await db
+        .into(db.marketData)
+        .insert(
+          MarketDataCompanion.insert(
+            code: 'FOREX',
+            name: 'marketDataForexLabel',
+            colorHex: Value(0xFF96F321),
+            sortOrder: Value(7),
+            isActive: Value(true),
+          ),
+        );
+    await db
+        .into(db.marketData)
+        .insert(
+          MarketDataCompanion.insert(
+            code: 'HK',
+            name: 'marketDataHkLabel',
+            colorHex: Value(0xFFBFBFBF),
+            sortOrder: Value(8),
+            isActive: Value(true),
+          ),
+        );
+    await db
+        .into(db.marketData)
+        .insert(
+          MarketDataCompanion.insert(
+            code: 'SHSZ',
+            name: 'marketDataShszLabel',
+            colorHex: Value(0xFFC4C0CE),
+            sortOrder: Value(9),
+            isActive: Value(true),
+          ),
+        );
+    await db
+        .into(db.marketData)
+        .insert(
+          MarketDataCompanion.insert(
+            code: 'OTHER',
+            name: 'marketDataOtherLabel',
+            colorHex: Value(0xFFD1BFD1),
+            sortOrder: Value(10),
+            isActive: Value(true),
+          ),
+        );
+  }
 }
 
 class MyApp extends StatelessWidget {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
-import 'package:money_nest_app/util/provider/category_provider.dart';
+import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:provider/provider.dart';
 
@@ -18,7 +18,7 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tradeCategoryList = context.watch<CategoryProvider>().categories;
+    final marketDataList = context.watch<MarketDataProvider>().marketData;
     final buyRecordsList = context.watch<BuyRecordsProvider>().records;
     final double chartSize = MediaQuery.of(context).size.width / 2;
     double total = buyRecordsList.fold<double>(
@@ -58,7 +58,7 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                   centerSpaceRadius: 40,
                   sections: showingSections(
                     total,
-                    tradeCategoryList,
+                    marketDataList,
                     buyRecordsList,
                   ),
                 ),
@@ -74,17 +74,17 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
 
   List<PieChartSectionData> showingSections(
     double total,
-    List<TradeCategory> tradeCategoryList,
+    List<MarketDataData> marketDataList,
     List<TradeRecord> buyRecordsList,
   ) {
     // 只保留有资产的类别
     final sections = <PieChartSectionData>[];
     int visibleIndex = 0;
     final formatter = NumberFormat('#,##0');
-    for (int i = 0; i < tradeCategoryList.length; i++) {
-      final asset = tradeCategoryList[i];
+    for (int i = 0; i < marketDataList.length; i++) {
+      final asset = marketDataList[i];
       double sumForCategory = buyRecordsList
-          .where((record) => record.categoryId == asset.id)
+          .where((record) => record.marketCode == asset.code)
           .fold<double>(0, (sum, record) => sum + record.moneyUsed);
       if (sumForCategory == 0) continue; // 跳过无资产类别
 

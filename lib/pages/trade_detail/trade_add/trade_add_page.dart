@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:money_nest_app/l10n/l10n_util.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
-import 'package:money_nest_app/util/provider/category_provider.dart';
+import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/select_buy_record.dart';
@@ -12,6 +13,7 @@ import 'package:money_nest_app/models/trade_action.dart';
 import 'package:money_nest_app/models/trade_type.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/pages/trade_detail/trade_add/buy_position_selector_page.dart';
+import 'package:money_nest_app/util/provider/stocks_provider.dart';
 import 'package:provider/provider.dart';
 
 class TradeRecordAddPage extends StatefulWidget {
@@ -30,10 +32,11 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
 
   // 买入tab的输入内容
   DateTime? _buyTradeDate;
-  TradeCategory? _buyCategory;
+  MarketDataData? _buyCategory;
   TradeType _buyTradeType = TradeType.values.first;
   Currency _buyCurrency = Currency.values.first;
   Currency _buyCurrencyUsed = Currency.values.first;
+  List<MarketDataData> marketDataList = [];
   final _buyNameController = TextEditingController();
   final _buyCodeController = TextEditingController();
   final _buyQuantityController = TextEditingController();
@@ -41,10 +44,11 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
   final _buyCurrencyUsedController = TextEditingController();
   final _buyMoneyUsedController = TextEditingController();
   final _buyRemarkController = TextEditingController();
+  bool _buyNameEnabled = true;
 
   // 卖出tab的输入内容
   DateTime? _sellTradeDate;
-  TradeCategory? _sellCategory;
+  MarketDataData? _sellCategory;
   TradeType _sellTradeType = TradeType.values.first;
   Currency _sellCurrency = Currency.values.first;
   Currency _sellCurrencyUsed = Currency.values.first;
@@ -66,6 +70,21 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
     _tabController = TabController(length: 2, vsync: this, initialIndex: 0);
     _buyTradeDate = DateTime.now();
     _sellTradeDate = DateTime.now();
+
+    // 延迟到第一帧后再赋值，确保 Provider 已经有数据
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final marketDataListRaw = context.read<MarketDataProvider>().marketData;
+      setState(() {
+        marketDataList = marketDataListRaw
+            .map(
+              (data) => data.copyWith(name: getL10nString(context, data.name)),
+            )
+            .toList();
+        if (_buyCategory == null && marketDataList.isNotEmpty) {
+          _buyCategory = marketDataList.first;
+        }
+      });
+    });
   }
 
   @override
@@ -196,6 +215,10 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
     required T? selected,
     required String Function(T) display,
   }) async {
+    if (options.isEmpty) {
+      // 直接 return null
+      return null;
+    }
     int initialIndex = selected != null ? options.indexOf(selected) : 0;
     T? picked = selected ?? options.first;
     return await showModalBottomSheet<T>(
@@ -259,14 +282,41 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
     formKey.currentState!.save();
 
     if (isBuy) {
-      // 买入逻辑不变
+      // 买入逻辑
+      // 先判断stocks表是否有该code
+      final code = _buyCodeController.text.trim();
+      final name = _buyNameController.text.trim();
+      final marketCode = _buyCategory?.code ?? '';
+      final currency = _buyCurrency.name;
+
+      final stockExists = await (widget.db.select(
+        widget.db.stocks,
+      )..where((tbl) => tbl.code.equals(code))).getSingleOrNull();
+
+      if (stockExists == null) {
+        // 不存在则插入
+        await widget.db
+            .into(widget.db.stocks)
+            .insert(
+              StocksCompanion.insert(
+                code: code,
+                name: name,
+                marketCode: marketCode,
+                currency: currency,
+              ),
+            );
+        // 插入后刷新 Provider
+        if (mounted) {
+          await context.read<StocksProvider>().loadStocks();
+        }
+      }
+
       final newRecord = TradeRecordsCompanion(
         tradeDate: Value(_buyTradeDate!),
         action: Value(TradeAction.buy),
-        categoryId: Value(_buyCategory!.id),
+        marketCode: Value(marketCode),
         tradeType: Value(_buyTradeType),
         currency: Value(_buyCurrency),
-        name: Value(_buyNameController.text),
         code: Value(_buyCodeController.text),
         quantity: Value(double.tryParse(_buyQuantityController.text) ?? 0.0),
         price: Value(double.tryParse(_buyPriceController.text) ?? 0.0),
@@ -281,10 +331,9 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
         final sellRecord = TradeRecordsCompanion(
           tradeDate: Value(_sellTradeDate!),
           action: Value(TradeAction.sell),
-          categoryId: Value(buy.record.categoryId), // 用买入记录的类别
+          marketCode: Value(buy.record.marketCode), // 用买入记录的市场
           tradeType: Value(buy.record.tradeType), // 用买入记录的类型
           currency: Value(_sellCurrency), // 卖出币种用表单设定
-          name: Value(buy.record.name), // 用买入记录的名称
           code: Value(buy.record.code), // 用买入记录的代码
           quantity: Value(buy.quantity), // 卖出数量
           price: Value(double.tryParse(_sellPriceController.text) ?? 0.0),
@@ -383,7 +432,12 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
     final remarkController = isBuy
         ? _buyRemarkController
         : _sellRemarkController;
-    final tradeCategoryList = context.watch<CategoryProvider>().categories;
+    /*final marketDataList = context
+        .watch<MarketDataProvider>()
+        .marketData
+        .map((data) => data.copyWith(name: getL10nString(context, data.name)))
+        .toList();*/
+    final stocks = context.watch<StocksProvider>().stocks;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -475,12 +529,20 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '${r.record.name}  ${r.record.code}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
+                            FutureBuilder<MarketDataData?>(
+                              future: widget.db.getMarketDataByCode(
+                                r.record.code,
                               ),
+                              builder: (context, snapshot) {
+                                final name = snapshot.data?.name ?? '';
+                                return Text(
+                                  '$name  ${r.record.code}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                );
+                              },
                             ),
                             const SizedBox(height: 2),
                             Row(
@@ -706,16 +768,32 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                       Expanded(
                         child: GestureDetector(
                           onTap: () async {
-                            final picked = await showPickerSheet<TradeCategory>(
-                              context: context,
-                              options: tradeCategoryList,
-                              selected: category,
-                              display: (c) => c.name,
-                            );
+                            final picked =
+                                await showPickerSheet<MarketDataData>(
+                                  context: context,
+                                  options: marketDataList,
+                                  selected: category,
+                                  display: (c) => c.name,
+                                );
                             if (picked != null) {
+                              // code值变化之后，从stocks数据库中查找对应的股票
+                              final stock = stocks.firstWhere(
+                                (s) =>
+                                    s.code == codeController.text.trim() &&
+                                    s.marketCode == _buyCategory?.code,
+                                orElse: () => Stock(
+                                  code: codeController.text.trim(),
+                                  name: '',
+                                  marketCode: '',
+                                  currency: '',
+                                ),
+                              );
+                              // 找到对应的股票，更新名称和类别
+                              nameController.text = stock.name;
                               setState(() {
                                 if (isBuy) {
                                   _buyCategory = picked;
+                                  _buyNameEnabled = stock.name.isEmpty;
                                 } else {
                                   _sellCategory = picked;
                                 }
@@ -758,61 +836,8 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     ],
                   ),
                 ),
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 名称
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.business,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageNameLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: TextFormField(
-                          controller: nameController,
-                          style: const TextStyle(fontSize: 15),
-                          decoration: InputDecoration(
-                            hintText: AppLocalizations.of(
-                              context,
-                            )!.tradeAddPageNamePlaceholder,
-                            hintStyle: const TextStyle(fontSize: 15),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
-                          ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageNameError
-                              : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              ],
+              if (isBuy) ...[
                 const Divider(height: 1, color: Color(0xFFE0E0E0)),
                 // 代码
                 Padding(
@@ -858,6 +883,81 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                               horizontal: 12,
                             ),
                           ),
+                          onChanged: (value) {
+                            // code值变化之后，从stocks数据库中查找对应的股票
+                            final stock = stocks.firstWhere(
+                              (s) =>
+                                  s.code == value.trim() &&
+                                  s.marketCode == _buyCategory?.code,
+                              orElse: () => Stock(
+                                code: value.trim(),
+                                name: '',
+                                marketCode: '',
+                                currency: '',
+                              ),
+                            );
+                            // 找到对应的股票，更新名称和类别
+                            nameController.text = stock.name;
+                            setState(() {
+                              _buyNameEnabled = stock.name.isEmpty;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                // 名称
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 100,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.business,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.tradeAddPageNameLabel,
+                                style: const TextStyle(fontSize: 15),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: TextFormField(
+                          controller: nameController,
+                          enabled: _buyNameEnabled,
+                          style: const TextStyle(fontSize: 15),
+                          decoration: InputDecoration(
+                            hintText: AppLocalizations.of(
+                              context,
+                            )!.tradeAddPageNamePlaceholder,
+                            hintStyle: const TextStyle(fontSize: 15),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10,
+                              horizontal: 12,
+                            ),
+                          ),
+                          validator: (v) => v == null || v.isEmpty
+                              ? AppLocalizations.of(
+                                  context,
+                                )!.tradeAddPageNameError
+                              : null,
                         ),
                       ),
                     ],

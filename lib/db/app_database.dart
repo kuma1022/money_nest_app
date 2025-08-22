@@ -11,50 +11,67 @@ part 'app_database.g.dart';
 // 交易记录表
 class TradeRecords extends Table {
   IntColumn get id => integer().autoIncrement()();
-  DateTimeColumn get tradeDate => dateTime()(); // 交易日期
-  TextColumn get action =>
-      text().map(const TradeActionConverter())(); // 交易类型（买入 / 卖出）
-  IntColumn get categoryId => integer()(); // 交易市场ID
-  TextColumn get tradeType =>
-      text().map(const TradeTypeConverter())(); // 类别（一般 / 特定 / NISA 等）
-  TextColumn get name => text()(); // 名称
-  TextColumn get code => text()(); // 代码
-  RealColumn get quantity => real()(); // 交易数量
-  TextColumn get currency =>
-      text().map(const CurrencyConverter())(); // 交易货币（USD / JPY / HKD 等）
-  RealColumn get price => real()(); // 交易单价（每股成交价，交易货币计）
-  TextColumn get currencyUsed =>
-      text().map(const CurrencyConverter())(); // 资金货币（买入时=结算货币，卖出时=到账货币）
-  RealColumn get moneyUsed => real()(); // 资金金额（买入时=结算金额，卖出时=到账金额）
-  TextColumn get remark => text().nullable()(); // 备注
+  // 日期
+  DateTimeColumn get tradeDate => dateTime()();
+  // 交易类型（买入 / 卖出）
+  TextColumn get action => text().map(const TradeActionConverter())();
+  // 市场code
+  TextColumn get marketCode => text().withLength(min: 1, max: 32)();
+  // 类别（一般 / 特定 / NISA 等）
+  TextColumn get tradeType => text().map(const TradeTypeConverter())();
+  // 代码
+  TextColumn get code => text().withLength(min: 1, max: 32)();
+  // 交易数量
+  RealColumn get quantity => real()();
+  // 交易货币（USD / JPY / HKD 等）
+  TextColumn get currency => text().map(const CurrencyConverter())();
+  // 交易单价（每股成交价，交易货币计）
+  RealColumn get price => real()();
+  // 资金货币（买入时=结算货币，卖出时=到账货币）
+  TextColumn get currencyUsed => text().map(const CurrencyConverter())();
+  // 资金金额（买入时=结算金额，卖出时=到账金额）
+  RealColumn get moneyUsed => real()();
+  // 备注
+  TextColumn get remark => text().nullable()();
 }
 
 // 卖出配对表
 class TradeSellMappings extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get sellId => integer()(); // 卖出的交易ID
-  IntColumn get buyId => integer()(); // 对应买入的交易ID
-  RealColumn get quantity => real()(); // 卖出对应的买入数量
+  // 卖出的交易ID
+  IntColumn get sellId => integer()();
+  // 对应买入的交易ID
+  IntColumn get buyId => integer()();
+  // 卖出对应的买入数量
+  RealColumn get quantity => real()();
 }
 
 // 现金流表
 class CashFlows extends Table {
   IntColumn get id => integer().autoIncrement()();
+  // 日期
   DateTimeColumn get date => dateTime()();
-  TextColumn get type => text()(); // 入金 / 出金
-  TextColumn get currency =>
-      text().map(const CurrencyConverter())(); // 货币（JPY / USD 等）
-  RealColumn get amount => real()(); // 金额
+  // 入金 / 出金
+  TextColumn get type => text()();
+  // 货币（JPY / USD 等）
+  TextColumn get currency => text().map(const CurrencyConverter())();
+  // 金额
+  RealColumn get amount => real()();
+  // 备注
   TextColumn get remark => text().nullable()();
 }
 
 // 当前余额快照表
 class CashBalances extends Table {
-  TextColumn get currency => text().map(const CurrencyConverter())(); // 货币代码，主键
-  RealColumn get balance => real()(); // 当前余额
-  DateTimeColumn get updatedAt =>
-      dateTime().nullable()(); // 最近更新时间（现金流表的入金/出金时间）
-  TextColumn get remark => text().nullable()(); // 备注
+  // 货币代码，主键
+  TextColumn get currency => text().map(const CurrencyConverter())();
+  // 当前余额
+  RealColumn get balance => real()();
+  // 最近更新时间（现金流表的入金/出金时间）
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  // 备注
+  TextColumn get remark => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {currency}; // 以货币代码作为主键
 }
@@ -72,13 +89,34 @@ class CashBalanceHistories extends Table {
 }
 
 // 交易市场表
-class TradeCategories extends Table {
-  IntColumn get id => integer().autoIncrement()();
+class MarketData extends Table {
+  TextColumn get code => text().withLength(min: 1, max: 32)();
   TextColumn get name => text().withLength(min: 1, max: 32)(); // 显示名称
   IntColumn get colorHex => integer().nullable()(); // 颜色（如0xFF2196F3），可空
   IntColumn get sortOrder => integer().withDefault(const Constant(0))(); // 排序
   BoolColumn get isActive =>
       boolean().withDefault(const Constant(true))(); // 是否有效
+
+  @override
+  Set<Column> get primaryKey => {code}; // 以股票代码作为主键
+}
+
+// 资产标的表
+class Stocks extends Table {
+  // 代码
+  TextColumn get code => text().withLength(min: 1, max: 32)();
+  // 名称
+  TextColumn get name => text().withLength(min: 1, max: 64)();
+  // 市场（如JP, US, HK等）
+  TextColumn get marketCode => text().withLength(min: 1, max: 32)();
+  TextColumn get currency => text().withLength(min: 1, max: 8)(); // 货币
+  RealColumn get currentPrice => real().nullable()(); // 当前股价
+  DateTimeColumn get priceUpdatedAt => dateTime().nullable()(); // 股价更新时间
+  TextColumn get remark => text().nullable()(); // 备注，可选
+  // 你可以根据需要添加更多字段，如行业、logo等
+
+  @override
+  Set<Column> get primaryKey => {code}; // 以股票代码作为主键
 }
 
 // 数据库类
@@ -89,7 +127,8 @@ class TradeCategories extends Table {
     CashFlows,
     CashBalances,
     CashBalanceHistories,
-    TradeCategories,
+    MarketData,
+    Stocks,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -103,116 +142,41 @@ class AppDatabase extends _$AppDatabase {
     onCreate: (m) async {
       await m.createAll();
     },
-    beforeOpen: (details) async {
-      await _initDefaultCategories();
-    },
   );
 
-  Future<void> _initDefaultCategories() async {
-    // 检查表是否为空
-    final count = await (select(tradeCategories)..limit(1)).get();
-    if (count.isEmpty) {
-      // 插入初始数据
-      into(tradeCategories).insert(
-        TradeCategoriesCompanion.insert(
-          name: '美股',
-          colorHex: Value(0xFF21CBF3),
-          sortOrder: Value(1),
-          isActive: Value(true),
-        ),
-      );
-      into(tradeCategories).insert(
-        TradeCategoriesCompanion.insert(
-          name: '美股ETF',
-          colorHex: Value(0xFF21F3B2),
-          sortOrder: Value(2),
-          isActive: Value(true),
-        ),
-      );
-      into(tradeCategories).insert(
-        TradeCategoriesCompanion.insert(
-          name: '日股',
-          colorHex: Value(0xFFB221F3),
-          sortOrder: Value(3),
-          isActive: Value(true),
-        ),
-      );
-      into(tradeCategories).insert(
-        TradeCategoriesCompanion.insert(
-          name: '日股ETF',
-          colorHex: Value(0xFFF3B221),
-          sortOrder: Value(4),
-          isActive: Value(true),
-        ),
-      );
-      into(tradeCategories).insert(
-        TradeCategoriesCompanion.insert(
-          name: '港股',
-          colorHex: Value(0xFFF3E721),
-          sortOrder: Value(5),
-          isActive: Value(true),
-        ),
-      );
-      into(tradeCategories).insert(
-        TradeCategoriesCompanion.insert(
-          name: '期权',
-          colorHex: Value(0xFF7E21F3),
-          sortOrder: Value(6),
-          isActive: Value(true),
-        ),
-      );
-      into(tradeCategories).insert(
-        TradeCategoriesCompanion.insert(
-          name: '基金',
-          colorHex: Value(0xFF96F321),
-          sortOrder: Value(7),
-          isActive: Value(true),
-        ),
-      );
-      into(tradeCategories).insert(
-        TradeCategoriesCompanion.insert(
-          name: '黄金（ETF）',
-          colorHex: Value(0xFFBFBFBF),
-          sortOrder: Value(8),
-          isActive: Value(true),
-        ),
-      );
-      into(tradeCategories).insert(
-        TradeCategoriesCompanion.insert(
-          name: '不动产信托（J-REIT）',
-          colorHex: Value(0xFFC4C0CE),
-          sortOrder: Value(9),
-          isActive: Value(true),
-        ),
-      );
-      into(tradeCategories).insert(
-        TradeCategoriesCompanion.insert(
-          name: 'FX',
-          colorHex: Value(0xFFD1BFD1),
-          sortOrder: Value(10),
-          isActive: Value(true),
-        ),
-      );
-      into(tradeCategories).insert(
-        TradeCategoriesCompanion.insert(
-          name: '其他',
-          colorHex: Value(0xFFD1D1BF),
-          sortOrder: Value(11),
-          isActive: Value(true),
-        ),
-      );
+  Future<List<MarketDataData>> getAllMarketDataRecords() async {
+    return await select(marketData).get();
+  }
+
+  Future<List<Stock>> getAllStocksRecords() async {
+    return await select(stocks).get();
+  }
+
+  Future<MarketDataData?> getMarketDataByCode(String code) async {
+    final market = await (select(
+      marketData,
+    )..where((tbl) => tbl.code.equals(code))).getSingleOrNull();
+    return market;
+  }
+
+  Future<List<TradeRecord>> searchTradeRecords(String keyword) async {
+    // 1. 在Stocks表中检索code或name
+    final stockCodes =
+        await (select(stocks)..where(
+              (tbl) => tbl.code.contains(keyword) | tbl.name.contains(keyword),
+            ))
+            .map((s) => s.code)
+            .get();
+
+    if (stockCodes.isEmpty) {
+      // 没有匹配的股票，直接返回空
+      return [];
     }
-  }
 
-  Future<List<TradeCategory>> getAllTradeCategoryRecords() async {
-    return await select(tradeCategories).get();
-  }
-
-  Future<List<TradeRecord>> searchTradeRecords(String keyword) {
-    return (select(tradeRecords)..where(
-          (tbl) => tbl.name.contains(keyword) | tbl.code.contains(keyword),
-        ))
-        .get();
+    // 2. 用所有匹配的code去TradeRecords表中查找
+    return (select(
+      tradeRecords,
+    )..where((tbl) => tbl.code.isIn(stockCodes))).get();
   }
 
   Future<List<TradeRecord>> getAllAvailableBuyRecords() async {
