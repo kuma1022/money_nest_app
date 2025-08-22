@@ -141,12 +141,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tradeAddPageMoneyUsedSellError => '请输入到账金额';
 
   @override
-  String get tradeAddPageRateLabel => '汇率';
-
-  @override
-  String get tradeAddPageRateError => '请输入汇率';
-
-  @override
   String get tradeAddPageRemarkLabel => '备注';
 
   @override
@@ -346,4 +340,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get tradeAddPageRemarkPlaceholder => '（任意）输入备注';
+
+  @override
+  String get totalCapitalTabPageTotalTitle => '总资产额';
+
+  @override
+  String get totalCapitalTabPageCashExcluedLabel => '现金除外';
+
+  @override
+  String get totalCapitalTabPageCurrentProfitAndLossLabel => '当前盈亏';
+
+  @override
+  String get totalCapitalTabPageTotalRateTitle => '资产构成比率';
 }

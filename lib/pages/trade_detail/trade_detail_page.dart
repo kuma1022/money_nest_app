@@ -163,7 +163,7 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
   void initState() {
     super.initState();
     _quantityController = TextEditingController(
-      text: widget.record.quantity?.toInt().toString() ?? '',
+      text: widget.record.quantity.toInt().toString(),
     );
     _quantityFocusNode = FocusNode();
     _quantityFocusNode.addListener(

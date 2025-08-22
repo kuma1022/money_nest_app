@@ -69,11 +69,7 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
   void _onSearchChanged(String value) {
     setState(() {
       _searchResults = uniqueByCode(_allRecords, (r) => r.code)
-          .where(
-            (r) =>
-                (r.name?.contains(value) ?? false) ||
-                (r.code?.contains(value) ?? false),
-          )
+          .where((r) => (r.name.contains(value)) || (r.code.contains(value)))
           .toList();
     });
   }
@@ -171,7 +167,7 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                       if (dateComparison != 0) return dateComparison;
 
                       // 代码升序
-                      return (a.code ?? '').compareTo(b.code ?? '');
+                      return a.code.compareTo(b.code);
                     });
 
                     // 按日期（不含时分秒）分组
@@ -239,7 +235,7 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                                 setState(() {
                                   if (v == true) {
                                     _selectedBuyQuantities[buy.id] =
-                                        buy.quantity ?? 0;
+                                        buy.quantity;
                                   } else {
                                     _selectedBuyQuantities.remove(buy.id);
                                   }
@@ -253,8 +249,8 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                             ),
                             subtitle: Text(
                               // 数量和价格，靠右显示
-                              '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${buy.quantity == null ? "-" : NumberFormat.decimalPattern().format(buy.quantity)}   '
-                              '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${buy.price == null ? "-" : NumberFormat.simpleCurrency(name: buy.currency.displayName(context)).format(buy.price)}',
+                              '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${NumberFormat.decimalPattern().format(buy.quantity)}   '
+                              '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${NumberFormat.simpleCurrency(name: buy.currency.displayName(context)).format(buy.price)}',
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: Colors.black54,
@@ -311,7 +307,7 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                                               (_selectedBuyQuantities[buy.id]
                                                           ?.toInt() ??
                                                       1) >=
-                                                  (buy.quantity?.toInt() ?? 1)
+                                                  (buy.quantity.toInt())
                                               ? null
                                               : () {
                                                   setState(() {
@@ -319,9 +315,8 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                                                         _selectedBuyQuantities[buy
                                                             .id] ??
                                                         1;
-                                                    final max =
-                                                        buy.quantity?.toInt() ??
-                                                        1;
+                                                    final max = buy.quantity
+                                                        .toInt();
                                                     if (current < max) {
                                                       _selectedBuyQuantities[buy
                                                               .id] =

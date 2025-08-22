@@ -361,18 +361,6 @@ abstract class AppLocalizations {
   /// **'请输入到账金额'**
   String get tradeAddPageMoneyUsedSellError;
 
-  /// No description provided for @tradeAddPageRateLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'汇率'**
-  String get tradeAddPageRateLabel;
-
-  /// No description provided for @tradeAddPageRateError.
-  ///
-  /// In en, this message translates to:
-  /// **'请输入汇率'**
-  String get tradeAddPageRateError;
-
   /// No description provided for @tradeAddPageRemarkLabel.
   ///
   /// In en, this message translates to:
@@ -774,6 +762,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'（任意）输入备注'**
   String get tradeAddPageRemarkPlaceholder;
+
+  /// No description provided for @totalCapitalTabPageTotalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'总资产额'**
+  String get totalCapitalTabPageTotalTitle;
+
+  /// No description provided for @totalCapitalTabPageCashExcluedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'现金除外'**
+  String get totalCapitalTabPageCashExcluedLabel;
+
+  /// No description provided for @totalCapitalTabPageCurrentProfitAndLossLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'当前盈亏'**
+  String get totalCapitalTabPageCurrentProfitAndLossLabel;
+
+  /// No description provided for @totalCapitalTabPageTotalRateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'资产构成比率'**
+  String get totalCapitalTabPageTotalRateTitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

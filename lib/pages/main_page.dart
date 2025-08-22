@@ -24,9 +24,9 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
   late final List<Widget> _pages = [
     Center(child: Text(AppLocalizations.of(context)!.mainPageTopTitle)),
     TradeTabPage(db: widget.db), // 交易明细tab
+    TotalCapitalTabPage(db: widget.db), // 总资产tab
     Center(child: Text(AppLocalizations.of(context)!.mainPageCashTitle)),
     Center(child: Text(AppLocalizations.of(context)!.mainPageBookTitle)),
-    TotalCapitalTabPage(db: widget.db), // 总资产tab
     Center(child: Text(AppLocalizations.of(context)!.mainPageMoreTitle)),
   ];
 
@@ -36,9 +36,9 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
     final titles = [
       AppLocalizations.of(context)!.mainPageTopTitle,
       AppLocalizations.of(context)!.mainPageTradeTitle,
+      AppLocalizations.of(context)!.mainPageWalletTitle,
       AppLocalizations.of(context)!.mainPageCashTitle,
       AppLocalizations.of(context)!.mainPageBookTitle,
-      AppLocalizations.of(context)!.mainPageWalletTitle,
       AppLocalizations.of(context)!.mainPageMoreTitle,
     ];
 
@@ -208,6 +208,11 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                 label: AppLocalizations.of(context)!.mainPageTradeTitle,
               ),
               BottomNavigationBarItem(
+                icon: Icon(Icons.pie_chart_outline, color: Colors.grey[700]),
+                activeIcon: Icon(Icons.pie_chart, color: Color(0xFF34B363)),
+                label: AppLocalizations.of(context)!.mainPageWalletTitle,
+              ),
+              BottomNavigationBarItem(
                 icon: Icon(
                   Icons.monetization_on_outlined,
                   color: Colors.grey[700],
@@ -229,11 +234,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                 ),
                 label: AppLocalizations.of(context)!.mainPageBookTitle,
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.pie_chart_outline, color: Colors.grey[700]),
-                activeIcon: Icon(Icons.pie_chart, color: Color(0xFF34B363)),
-                label: AppLocalizations.of(context)!.mainPageWalletTitle,
-              ),
+
               BottomNavigationBarItem(
                 icon: Icon(Icons.menu, color: Colors.grey[700]),
                 activeIcon: Icon(Icons.menu, color: Color(0xFF34B363)),
