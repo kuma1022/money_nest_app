@@ -55,17 +55,17 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                       style: TextStyle(fontSize: 14),
                     ),
                     const SizedBox(width: 8),
-                    Switch(
-                      value: isCashExcluded,
-                      activeThumbColor: AppColors.appGreen,
-                      inactiveThumbColor: Colors.white,
-                      inactiveTrackColor: Colors.grey[300],
-                      onChanged: (v) {
-                        setState(() {
-                          isCashExcluded = v;
-                        });
-                      },
-                    ),
+                      Switch(
+                        value: isCashExcluded,
+                        activeThumbColor: AppColors.appGreen,
+                        inactiveThumbColor: Colors.white,
+                        inactiveTrackColor: Colors.grey[300],
+                        onChanged: (v) {
+                          setState(() {
+                            isCashExcluded = v;
+                          });
+                        },
+                      ),
                   ],
                 ),
                 const SizedBox(height: 18),
