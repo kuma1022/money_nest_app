@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/l10n/l10n_util.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
@@ -287,7 +288,6 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
       final code = _buyCodeController.text.trim();
       final name = _buyNameController.text.trim();
       final marketCode = _buyCategory?.code ?? '';
-      final currency = _buyCurrency.name;
 
       final stockExists = await (widget.db.select(
         widget.db.stocks,
@@ -302,7 +302,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                 code: code,
                 name: name,
                 marketCode: marketCode,
-                currency: currency,
+                currency: _buyCurrency.name,
               ),
             );
         // 插入后刷新 Provider
@@ -397,10 +397,10 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
             Tab(text: AppLocalizations.of(context)!.tradeAddPageBuyTab),
             Tab(text: AppLocalizations.of(context)!.tradeAddPageSellTab),
           ],
-          labelColor: const Color(0xFF34B363),
+          labelColor: AppColors.appGreen,
           unselectedLabelColor: Colors.grey,
           indicator: const UnderlineTabIndicator(
-            borderSide: BorderSide(width: 3.0, color: Color(0xFF34B363)),
+            borderSide: BorderSide(width: 3.0, color: AppColors.appGreen),
             insets: EdgeInsets.zero,
           ),
           indicatorSize: TabBarIndicatorSize.tab,
@@ -432,11 +432,6 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
     final remarkController = isBuy
         ? _buyRemarkController
         : _sellRemarkController;
-    /*final marketDataList = context
-        .watch<MarketDataProvider>()
-        .marketData
-        .map((data) => data.copyWith(name: getL10nString(context, data.name)))
-        .toList();*/
     final stocks = context.watch<StocksProvider>().stocks;
 
     return GestureDetector(
@@ -456,7 +451,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     child: ElevatedButton(
                       style: ButtonStyle(
                         backgroundColor: WidgetStatePropertyAll(
-                          Color(0xFF34B363),
+                          AppColors.appGreen,
                         ),
                         shape: WidgetStatePropertyAll(
                           RoundedRectangleBorder(
@@ -505,7 +500,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                           icon: const Icon(
                             Icons.edit,
                             size: 20,
-                            color: Color(0xFF34B363),
+                            color: AppColors.appGreen,
                           ),
                           tooltip: AppLocalizations.of(
                             context,
@@ -788,16 +783,21 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                                   currency: '',
                                 ),
                               );
-                              // 找到对应的股票，更新名称和类别
                               nameController.text = stock.name;
                               setState(() {
                                 if (isBuy) {
                                   _buyCategory = picked;
                                   _buyNameEnabled = stock.name.isEmpty;
+                                  _buyCurrency = Currency.values.firstWhere(
+                                    (c) => c.name == picked.currency,
+                                    orElse: () => Currency.values.first,
+                                  );
                                 } else {
                                   _sellCategory = picked;
                                 }
                               });
+                              // 再次确保没有输入框获得焦点
+                              FocusScope.of(context).requestFocus(FocusNode());
                             }
                           },
                           child: Container(
@@ -1448,7 +1448,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     child: ElevatedButton(
                       style: ButtonStyle(
                         backgroundColor: WidgetStatePropertyAll(
-                          Color(0xFF34B363),
+                          AppColors.appGreen,
                         ),
                         shape: WidgetStatePropertyAll(
                           RoundedRectangleBorder(

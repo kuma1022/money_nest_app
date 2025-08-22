@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
@@ -10,6 +11,7 @@ import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/trade_action.dart';
 import 'package:money_nest_app/models/trade_type.dart';
+import 'package:money_nest_app/util/provider/stocks_provider.dart';
 import 'package:provider/provider.dart';
 
 class TradeRecordDetailPage extends StatefulWidget {
@@ -205,6 +207,7 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
   @override
   Widget build(BuildContext context) {
     final marketDataList = context.watch<MarketDataProvider>().marketData;
+    final stocks = context.watch<StocksProvider>().stocks;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -307,6 +310,7 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                                   name: '',
                                   sortOrder: 0,
                                   isActive: false,
+                                  currency: '',
                                 ),
                               )
                               .name,
@@ -443,7 +447,7 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                             child: ElevatedButton(
                               style: ButtonStyle(
                                 backgroundColor: WidgetStatePropertyAll(
-                                  Color(0xFF34B363),
+                                  AppColors.appGreen,
                                 ),
                                 shape: WidgetStatePropertyAll(
                                   RoundedRectangleBorder(

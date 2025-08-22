@@ -2097,6 +2097,17 @@ class $MarketDataTable extends MarketData
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _colorHexMeta = const VerificationMeta(
     'colorHex',
   );
@@ -2139,6 +2150,7 @@ class $MarketDataTable extends MarketData
   List<GeneratedColumn> get $columns => [
     code,
     name,
+    currency,
     colorHex,
     sortOrder,
     isActive,
@@ -2170,6 +2182,12 @@ class $MarketDataTable extends MarketData
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
     }
     if (data.containsKey('color_hex')) {
       context.handle(
@@ -2206,6 +2224,10 @@ class $MarketDataTable extends MarketData
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      ),
       colorHex: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}color_hex'],
@@ -2230,12 +2252,14 @@ class $MarketDataTable extends MarketData
 class MarketDataData extends DataClass implements Insertable<MarketDataData> {
   final String code;
   final String name;
+  final String? currency;
   final int? colorHex;
   final int sortOrder;
   final bool isActive;
   const MarketDataData({
     required this.code,
     required this.name,
+    this.currency,
     this.colorHex,
     required this.sortOrder,
     required this.isActive,
@@ -2245,6 +2269,9 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
     final map = <String, Expression>{};
     map['code'] = Variable<String>(code);
     map['name'] = Variable<String>(name);
+    if (!nullToAbsent || currency != null) {
+      map['currency'] = Variable<String>(currency);
+    }
     if (!nullToAbsent || colorHex != null) {
       map['color_hex'] = Variable<int>(colorHex);
     }
@@ -2257,6 +2284,9 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
     return MarketDataCompanion(
       code: Value(code),
       name: Value(name),
+      currency: currency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currency),
       colorHex: colorHex == null && nullToAbsent
           ? const Value.absent()
           : Value(colorHex),
@@ -2273,6 +2303,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
     return MarketDataData(
       code: serializer.fromJson<String>(json['code']),
       name: serializer.fromJson<String>(json['name']),
+      currency: serializer.fromJson<String?>(json['currency']),
       colorHex: serializer.fromJson<int?>(json['colorHex']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       isActive: serializer.fromJson<bool>(json['isActive']),
@@ -2284,6 +2315,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
     return <String, dynamic>{
       'code': serializer.toJson<String>(code),
       'name': serializer.toJson<String>(name),
+      'currency': serializer.toJson<String?>(currency),
       'colorHex': serializer.toJson<int?>(colorHex),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'isActive': serializer.toJson<bool>(isActive),
@@ -2293,12 +2325,14 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
   MarketDataData copyWith({
     String? code,
     String? name,
+    Value<String?> currency = const Value.absent(),
     Value<int?> colorHex = const Value.absent(),
     int? sortOrder,
     bool? isActive,
   }) => MarketDataData(
     code: code ?? this.code,
     name: name ?? this.name,
+    currency: currency.present ? currency.value : this.currency,
     colorHex: colorHex.present ? colorHex.value : this.colorHex,
     sortOrder: sortOrder ?? this.sortOrder,
     isActive: isActive ?? this.isActive,
@@ -2307,6 +2341,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
     return MarketDataData(
       code: data.code.present ? data.code.value : this.code,
       name: data.name.present ? data.name.value : this.name,
+      currency: data.currency.present ? data.currency.value : this.currency,
       colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
@@ -2318,6 +2353,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
     return (StringBuffer('MarketDataData(')
           ..write('code: $code, ')
           ..write('name: $name, ')
+          ..write('currency: $currency, ')
           ..write('colorHex: $colorHex, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('isActive: $isActive')
@@ -2326,13 +2362,15 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
   }
 
   @override
-  int get hashCode => Object.hash(code, name, colorHex, sortOrder, isActive);
+  int get hashCode =>
+      Object.hash(code, name, currency, colorHex, sortOrder, isActive);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is MarketDataData &&
           other.code == this.code &&
           other.name == this.name &&
+          other.currency == this.currency &&
           other.colorHex == this.colorHex &&
           other.sortOrder == this.sortOrder &&
           other.isActive == this.isActive);
@@ -2341,6 +2379,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
 class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
   final Value<String> code;
   final Value<String> name;
+  final Value<String?> currency;
   final Value<int?> colorHex;
   final Value<int> sortOrder;
   final Value<bool> isActive;
@@ -2348,6 +2387,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
   const MarketDataCompanion({
     this.code = const Value.absent(),
     this.name = const Value.absent(),
+    this.currency = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.isActive = const Value.absent(),
@@ -2356,6 +2396,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
   MarketDataCompanion.insert({
     required String code,
     required String name,
+    this.currency = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.isActive = const Value.absent(),
@@ -2365,6 +2406,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
   static Insertable<MarketDataData> custom({
     Expression<String>? code,
     Expression<String>? name,
+    Expression<String>? currency,
     Expression<int>? colorHex,
     Expression<int>? sortOrder,
     Expression<bool>? isActive,
@@ -2373,6 +2415,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
     return RawValuesInsertable({
       if (code != null) 'code': code,
       if (name != null) 'name': name,
+      if (currency != null) 'currency': currency,
       if (colorHex != null) 'color_hex': colorHex,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (isActive != null) 'is_active': isActive,
@@ -2383,6 +2426,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
   MarketDataCompanion copyWith({
     Value<String>? code,
     Value<String>? name,
+    Value<String?>? currency,
     Value<int?>? colorHex,
     Value<int>? sortOrder,
     Value<bool>? isActive,
@@ -2391,6 +2435,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
     return MarketDataCompanion(
       code: code ?? this.code,
       name: name ?? this.name,
+      currency: currency ?? this.currency,
       colorHex: colorHex ?? this.colorHex,
       sortOrder: sortOrder ?? this.sortOrder,
       isActive: isActive ?? this.isActive,
@@ -2406,6 +2451,9 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
     }
     if (colorHex.present) {
       map['color_hex'] = Variable<int>(colorHex.value);
@@ -2427,6 +2475,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
     return (StringBuffer('MarketDataCompanion(')
           ..write('code: $code, ')
           ..write('name: $name, ')
+          ..write('currency: $currency, ')
           ..write('colorHex: $colorHex, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('isActive: $isActive, ')
@@ -4088,6 +4137,7 @@ typedef $$MarketDataTableCreateCompanionBuilder =
     MarketDataCompanion Function({
       required String code,
       required String name,
+      Value<String?> currency,
       Value<int?> colorHex,
       Value<int> sortOrder,
       Value<bool> isActive,
@@ -4097,6 +4147,7 @@ typedef $$MarketDataTableUpdateCompanionBuilder =
     MarketDataCompanion Function({
       Value<String> code,
       Value<String> name,
+      Value<String?> currency,
       Value<int?> colorHex,
       Value<int> sortOrder,
       Value<bool> isActive,
@@ -4119,6 +4170,11 @@ class $$MarketDataTableFilterComposer
 
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4157,6 +4213,11 @@ class $$MarketDataTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get colorHex => $composableBuilder(
     column: $table.colorHex,
     builder: (column) => ColumnOrderings(column),
@@ -4187,6 +4248,9 @@ class $$MarketDataTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
 
   GeneratedColumn<int> get colorHex =>
       $composableBuilder(column: $table.colorHex, builder: (column) => column);
@@ -4231,6 +4295,7 @@ class $$MarketDataTableTableManager
               ({
                 Value<String> code = const Value.absent(),
                 Value<String> name = const Value.absent(),
+                Value<String?> currency = const Value.absent(),
                 Value<int?> colorHex = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
@@ -4238,6 +4303,7 @@ class $$MarketDataTableTableManager
               }) => MarketDataCompanion(
                 code: code,
                 name: name,
+                currency: currency,
                 colorHex: colorHex,
                 sortOrder: sortOrder,
                 isActive: isActive,
@@ -4247,6 +4313,7 @@ class $$MarketDataTableTableManager
               ({
                 required String code,
                 required String name,
+                Value<String?> currency = const Value.absent(),
                 Value<int?> colorHex = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
@@ -4254,6 +4321,7 @@ class $$MarketDataTableTableManager
               }) => MarketDataCompanion.insert(
                 code: code,
                 name: name,
+                currency: currency,
                 colorHex: colorHex,
                 sortOrder: sortOrder,
                 isActive: isActive,

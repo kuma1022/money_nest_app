@@ -7,6 +7,7 @@ import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/main.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/select_buy_record.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 
 class BuyPositionSelector extends StatefulWidget {
   final AppDatabase db;
@@ -378,7 +379,7 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                   child: ElevatedButton(
                     style: ButtonStyle(
                       backgroundColor: WidgetStatePropertyAll(
-                        Color(0xFF34B363),
+                        AppColors.appGreen,
                       ),
                       shape: WidgetStatePropertyAll(
                         RoundedRectangleBorder(
@@ -438,7 +439,7 @@ class _BuyPositionSelectorState extends State<BuyPositionSelector> {
                         )!.buyPositionSelectionPageBackToSearch,
                         style: const TextStyle(
                           fontSize: 16,
-                          color: Color(0xFF34B363),
+                          color: AppColors.appGreen,
                         ),
                       ),
                     ),

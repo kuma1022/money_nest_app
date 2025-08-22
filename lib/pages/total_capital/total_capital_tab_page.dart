@@ -62,7 +62,7 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                       height: 24,
                       toggleSize: 20,
                       borderRadius: 16.0,
-                      activeColor: Color(0xFF34B363),
+                      activeColor: AppColors.appGreen,
                       inactiveColor: Colors.grey[300]!,
                       toggleColor: Colors.white,
                       padding: 2,
@@ -276,7 +276,7 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
       text: text,
       isSquare: false,
       size: isTouched ? 18 : 16,
-      textColor: isTouched ? Color(0xFF34B363) : Colors.black,
+      textColor: isTouched ? AppColors.appGreen : Colors.black,
     );
   }
 }

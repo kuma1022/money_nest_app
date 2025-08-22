@@ -92,6 +92,7 @@ class CashBalanceHistories extends Table {
 class MarketData extends Table {
   TextColumn get code => text().withLength(min: 1, max: 32)();
   TextColumn get name => text().withLength(min: 1, max: 32)(); // 显示名称
+  TextColumn get currency => text().nullable()(); // 货币
   IntColumn get colorHex => integer().nullable()(); // 颜色（如0xFF2196F3），可空
   IntColumn get sortOrder => integer().withDefault(const Constant(0))(); // 排序
   BoolColumn get isActive =>

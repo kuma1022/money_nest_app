@@ -6,6 +6,7 @@ import 'package:money_nest_app/pages/account/account_tab_page.dart';
 import 'package:money_nest_app/pages/total_capital/total_capital_tab_page.dart';
 import 'package:money_nest_app/pages/trade_detail/trade_tab_page.dart';
 import 'package:money_nest_app/pages/search_result/search_result_list.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 
 class TradeRecordListPage extends StatefulWidget {
   final AppDatabase db;
@@ -86,7 +87,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                             controller: _searchController,
                             focusNode: _searchFocusNode,
                             style: const TextStyle(fontSize: 14),
-                            cursorColor: Color(0xFF34B363),
+                            cursorColor: AppColors.appGreen,
                             decoration: InputDecoration(
                               isDense: true,
                               prefixIcon: const Icon(
@@ -161,7 +162,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                                   context,
                                 )!.mainPageSearchCancel,
                                 style: const TextStyle(
-                                  color: Color(0xFF34B363),
+                                  color: AppColors.appGreen,
                                   fontSize: 14,
                                 ),
                               ),
@@ -199,17 +200,17 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
             items: [
               BottomNavigationBarItem(
                 icon: Icon(Icons.home_outlined, color: Colors.grey[700]),
-                activeIcon: Icon(Icons.home, color: Color(0xFF34B363)),
+                activeIcon: Icon(Icons.home, color: AppColors.appGreen),
                 label: AppLocalizations.of(context)!.mainPageTopTitle,
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.list_alt_outlined, color: Colors.grey[700]),
-                activeIcon: Icon(Icons.list_alt, color: Color(0xFF34B363)),
+                activeIcon: Icon(Icons.list_alt, color: AppColors.appGreen),
                 label: AppLocalizations.of(context)!.mainPageTradeTitle,
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.pie_chart_outline, color: Colors.grey[700]),
-                activeIcon: Icon(Icons.pie_chart, color: Color(0xFF34B363)),
+                activeIcon: Icon(Icons.pie_chart, color: AppColors.appGreen),
                 label: AppLocalizations.of(context)!.mainPageWalletTitle,
               ),
               BottomNavigationBarItem(
@@ -219,7 +220,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                 ),
                 activeIcon: Icon(
                   Icons.account_balance_wallet,
-                  color: Color(0xFF34B363),
+                  color: AppColors.appGreen,
                 ),
                 label: AppLocalizations.of(context)!.mainPageAccountTitle,
               ),
@@ -230,20 +231,20 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                 ),
                 activeIcon: Icon(
                   Icons.monetization_on,
-                  color: Color(0xFF34B363),
+                  color: AppColors.appGreen,
                 ),
                 label: AppLocalizations.of(context)!.mainPageBookTitle,
               ),
 
               BottomNavigationBarItem(
                 icon: Icon(Icons.menu, color: Colors.grey[700]),
-                activeIcon: Icon(Icons.menu, color: Color(0xFF34B363)),
+                activeIcon: Icon(Icons.menu, color: AppColors.appGreen),
                 label: AppLocalizations.of(context)!.mainPageMoreTitle,
               ),
             ],
             currentIndex: _currentIndex,
             type: BottomNavigationBarType.fixed,
-            selectedItemColor: Color(0xFF34B363),
+            selectedItemColor: AppColors.appGreen,
             unselectedItemColor: Colors.grey[700],
             showUnselectedLabels: true,
             selectedLabelStyle: const TextStyle(

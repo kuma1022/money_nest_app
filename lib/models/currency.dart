@@ -3,22 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 
 enum Currency {
-  jpy, // 日元
-  usd, // 美元
-  cny, // 人民币
-  hkd, // 港币
+  JPY, // 日元
+  USD, // 美元
+  CNY, // 人民币
+  HKD, // 港币
 }
 
 extension CurrencyExtension on Currency {
   String displayName(BuildContext context) {
     switch (this) {
-      case Currency.jpy:
+      case Currency.JPY:
         return AppLocalizations.of(context)!.currencyJpyLabel;
-      case Currency.usd:
+      case Currency.USD:
         return AppLocalizations.of(context)!.currencyUsdLabel;
-      case Currency.cny:
+      case Currency.CNY:
         return AppLocalizations.of(context)!.currencyCnyLabel;
-      case Currency.hkd:
+      case Currency.HKD:
         return AppLocalizations.of(context)!.currencyHkdLabel;
     }
   }

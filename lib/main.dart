@@ -50,6 +50,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
           MarketDataCompanion.insert(
             code: 'JP',
             name: 'marketDataJpLabel',
+            currency: Value('JPY'),
             colorHex: Value(0xFF21CBF3),
             sortOrder: Value(1),
             isActive: Value(true),
@@ -61,6 +62,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
           MarketDataCompanion.insert(
             code: 'US',
             name: 'marketDataUsLabel',
+            currency: Value('USD'),
             colorHex: Value(0xFF21F3B2),
             sortOrder: Value(2),
             isActive: Value(true),
@@ -72,6 +74,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
           MarketDataCompanion.insert(
             code: 'FUND',
             name: 'marketDataFundLabel',
+            currency: Value(''),
             colorHex: Value(0xFFB221F3),
             sortOrder: Value(3),
             isActive: Value(true),
@@ -83,6 +86,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
           MarketDataCompanion.insert(
             code: 'ETF',
             name: 'marketDataEtfLabel',
+            currency: Value(''),
             colorHex: Value(0xFFF3B221),
             sortOrder: Value(4),
             isActive: Value(true),
@@ -94,6 +98,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
           MarketDataCompanion.insert(
             code: 'OPTION',
             name: 'marketDataOptionLabel',
+            currency: Value(''),
             colorHex: Value(0xFFF3E721),
             sortOrder: Value(5),
             isActive: Value(true),
@@ -105,6 +110,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
           MarketDataCompanion.insert(
             code: 'CRYPTO',
             name: 'marketDataCryptoLabel',
+            currency: Value(''),
             colorHex: Value(0xFF7E21F3),
             sortOrder: Value(6),
             isActive: Value(true),
@@ -116,6 +122,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
           MarketDataCompanion.insert(
             code: 'FOREX',
             name: 'marketDataForexLabel',
+            currency: Value(''),
             colorHex: Value(0xFF96F321),
             sortOrder: Value(7),
             isActive: Value(true),
@@ -127,6 +134,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
           MarketDataCompanion.insert(
             code: 'HK',
             name: 'marketDataHkLabel',
+            currency: Value('HKD'),
             colorHex: Value(0xFFBFBFBF),
             sortOrder: Value(8),
             isActive: Value(true),
@@ -138,6 +146,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
           MarketDataCompanion.insert(
             code: 'SHSZ',
             name: 'marketDataShszLabel',
+            currency: Value('CNY'),
             colorHex: Value(0xFFC4C0CE),
             sortOrder: Value(9),
             isActive: Value(true),
@@ -149,6 +158,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
           MarketDataCompanion.insert(
             code: 'OTHER',
             name: 'marketDataOtherLabel',
+            currency: Value(''),
             colorHex: Value(0xFFD1BFD1),
             sortOrder: Value(10),
             isActive: Value(true),
