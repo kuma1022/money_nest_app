@@ -2108,6 +2108,15 @@ class $MarketDataTable extends MarketData
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _surfixMeta = const VerificationMeta('surfix');
+  @override
+  late final GeneratedColumn<String> surfix = GeneratedColumn<String>(
+    'surfix',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _colorHexMeta = const VerificationMeta(
     'colorHex',
   );
@@ -2151,6 +2160,7 @@ class $MarketDataTable extends MarketData
     code,
     name,
     currency,
+    surfix,
     colorHex,
     sortOrder,
     isActive,
@@ -2187,6 +2197,12 @@ class $MarketDataTable extends MarketData
       context.handle(
         _currencyMeta,
         currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    }
+    if (data.containsKey('surfix')) {
+      context.handle(
+        _surfixMeta,
+        surfix.isAcceptableOrUnknown(data['surfix']!, _surfixMeta),
       );
     }
     if (data.containsKey('color_hex')) {
@@ -2228,6 +2244,10 @@ class $MarketDataTable extends MarketData
         DriftSqlType.string,
         data['${effectivePrefix}currency'],
       ),
+      surfix: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}surfix'],
+      ),
       colorHex: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}color_hex'],
@@ -2253,6 +2273,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
   final String code;
   final String name;
   final String? currency;
+  final String? surfix;
   final int? colorHex;
   final int sortOrder;
   final bool isActive;
@@ -2260,6 +2281,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
     required this.code,
     required this.name,
     this.currency,
+    this.surfix,
     this.colorHex,
     required this.sortOrder,
     required this.isActive,
@@ -2271,6 +2293,9 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || currency != null) {
       map['currency'] = Variable<String>(currency);
+    }
+    if (!nullToAbsent || surfix != null) {
+      map['surfix'] = Variable<String>(surfix);
     }
     if (!nullToAbsent || colorHex != null) {
       map['color_hex'] = Variable<int>(colorHex);
@@ -2287,6 +2312,9 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
       currency: currency == null && nullToAbsent
           ? const Value.absent()
           : Value(currency),
+      surfix: surfix == null && nullToAbsent
+          ? const Value.absent()
+          : Value(surfix),
       colorHex: colorHex == null && nullToAbsent
           ? const Value.absent()
           : Value(colorHex),
@@ -2304,6 +2332,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
       code: serializer.fromJson<String>(json['code']),
       name: serializer.fromJson<String>(json['name']),
       currency: serializer.fromJson<String?>(json['currency']),
+      surfix: serializer.fromJson<String?>(json['surfix']),
       colorHex: serializer.fromJson<int?>(json['colorHex']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       isActive: serializer.fromJson<bool>(json['isActive']),
@@ -2316,6 +2345,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
       'code': serializer.toJson<String>(code),
       'name': serializer.toJson<String>(name),
       'currency': serializer.toJson<String?>(currency),
+      'surfix': serializer.toJson<String?>(surfix),
       'colorHex': serializer.toJson<int?>(colorHex),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'isActive': serializer.toJson<bool>(isActive),
@@ -2326,6 +2356,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
     String? code,
     String? name,
     Value<String?> currency = const Value.absent(),
+    Value<String?> surfix = const Value.absent(),
     Value<int?> colorHex = const Value.absent(),
     int? sortOrder,
     bool? isActive,
@@ -2333,6 +2364,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
     code: code ?? this.code,
     name: name ?? this.name,
     currency: currency.present ? currency.value : this.currency,
+    surfix: surfix.present ? surfix.value : this.surfix,
     colorHex: colorHex.present ? colorHex.value : this.colorHex,
     sortOrder: sortOrder ?? this.sortOrder,
     isActive: isActive ?? this.isActive,
@@ -2342,6 +2374,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
       code: data.code.present ? data.code.value : this.code,
       name: data.name.present ? data.name.value : this.name,
       currency: data.currency.present ? data.currency.value : this.currency,
+      surfix: data.surfix.present ? data.surfix.value : this.surfix,
       colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
@@ -2354,6 +2387,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
           ..write('code: $code, ')
           ..write('name: $name, ')
           ..write('currency: $currency, ')
+          ..write('surfix: $surfix, ')
           ..write('colorHex: $colorHex, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('isActive: $isActive')
@@ -2363,7 +2397,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
 
   @override
   int get hashCode =>
-      Object.hash(code, name, currency, colorHex, sortOrder, isActive);
+      Object.hash(code, name, currency, surfix, colorHex, sortOrder, isActive);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2371,6 +2405,7 @@ class MarketDataData extends DataClass implements Insertable<MarketDataData> {
           other.code == this.code &&
           other.name == this.name &&
           other.currency == this.currency &&
+          other.surfix == this.surfix &&
           other.colorHex == this.colorHex &&
           other.sortOrder == this.sortOrder &&
           other.isActive == this.isActive);
@@ -2380,6 +2415,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
   final Value<String> code;
   final Value<String> name;
   final Value<String?> currency;
+  final Value<String?> surfix;
   final Value<int?> colorHex;
   final Value<int> sortOrder;
   final Value<bool> isActive;
@@ -2388,6 +2424,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
     this.code = const Value.absent(),
     this.name = const Value.absent(),
     this.currency = const Value.absent(),
+    this.surfix = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.isActive = const Value.absent(),
@@ -2397,6 +2434,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
     required String code,
     required String name,
     this.currency = const Value.absent(),
+    this.surfix = const Value.absent(),
     this.colorHex = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.isActive = const Value.absent(),
@@ -2407,6 +2445,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
     Expression<String>? code,
     Expression<String>? name,
     Expression<String>? currency,
+    Expression<String>? surfix,
     Expression<int>? colorHex,
     Expression<int>? sortOrder,
     Expression<bool>? isActive,
@@ -2416,6 +2455,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
       if (code != null) 'code': code,
       if (name != null) 'name': name,
       if (currency != null) 'currency': currency,
+      if (surfix != null) 'surfix': surfix,
       if (colorHex != null) 'color_hex': colorHex,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (isActive != null) 'is_active': isActive,
@@ -2427,6 +2467,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
     Value<String>? code,
     Value<String>? name,
     Value<String?>? currency,
+    Value<String?>? surfix,
     Value<int?>? colorHex,
     Value<int>? sortOrder,
     Value<bool>? isActive,
@@ -2436,6 +2477,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
       code: code ?? this.code,
       name: name ?? this.name,
       currency: currency ?? this.currency,
+      surfix: surfix ?? this.surfix,
       colorHex: colorHex ?? this.colorHex,
       sortOrder: sortOrder ?? this.sortOrder,
       isActive: isActive ?? this.isActive,
@@ -2454,6 +2496,9 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
     }
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
+    }
+    if (surfix.present) {
+      map['surfix'] = Variable<String>(surfix.value);
     }
     if (colorHex.present) {
       map['color_hex'] = Variable<int>(colorHex.value);
@@ -2476,6 +2521,7 @@ class MarketDataCompanion extends UpdateCompanion<MarketDataData> {
           ..write('code: $code, ')
           ..write('name: $name, ')
           ..write('currency: $currency, ')
+          ..write('surfix: $surfix, ')
           ..write('colorHex: $colorHex, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('isActive: $isActive, ')
@@ -4138,6 +4184,7 @@ typedef $$MarketDataTableCreateCompanionBuilder =
       required String code,
       required String name,
       Value<String?> currency,
+      Value<String?> surfix,
       Value<int?> colorHex,
       Value<int> sortOrder,
       Value<bool> isActive,
@@ -4148,6 +4195,7 @@ typedef $$MarketDataTableUpdateCompanionBuilder =
       Value<String> code,
       Value<String> name,
       Value<String?> currency,
+      Value<String?> surfix,
       Value<int?> colorHex,
       Value<int> sortOrder,
       Value<bool> isActive,
@@ -4175,6 +4223,11 @@ class $$MarketDataTableFilterComposer
 
   ColumnFilters<String> get currency => $composableBuilder(
     column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get surfix => $composableBuilder(
+    column: $table.surfix,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4218,6 +4271,11 @@ class $$MarketDataTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get surfix => $composableBuilder(
+    column: $table.surfix,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get colorHex => $composableBuilder(
     column: $table.colorHex,
     builder: (column) => ColumnOrderings(column),
@@ -4251,6 +4309,9 @@ class $$MarketDataTableAnnotationComposer
 
   GeneratedColumn<String> get currency =>
       $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<String> get surfix =>
+      $composableBuilder(column: $table.surfix, builder: (column) => column);
 
   GeneratedColumn<int> get colorHex =>
       $composableBuilder(column: $table.colorHex, builder: (column) => column);
@@ -4296,6 +4357,7 @@ class $$MarketDataTableTableManager
                 Value<String> code = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> currency = const Value.absent(),
+                Value<String?> surfix = const Value.absent(),
                 Value<int?> colorHex = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
@@ -4304,6 +4366,7 @@ class $$MarketDataTableTableManager
                 code: code,
                 name: name,
                 currency: currency,
+                surfix: surfix,
                 colorHex: colorHex,
                 sortOrder: sortOrder,
                 isActive: isActive,
@@ -4314,6 +4377,7 @@ class $$MarketDataTableTableManager
                 required String code,
                 required String name,
                 Value<String?> currency = const Value.absent(),
+                Value<String?> surfix = const Value.absent(),
                 Value<int?> colorHex = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
@@ -4322,6 +4386,7 @@ class $$MarketDataTableTableManager
                 code: code,
                 name: name,
                 currency: currency,
+                surfix: surfix,
                 colorHex: colorHex,
                 sortOrder: sortOrder,
                 isActive: isActive,

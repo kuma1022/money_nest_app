@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:money_nest_app/l10n/l10n_util.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
+import 'package:money_nest_app/presentation/resources/app_resources.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
@@ -41,7 +42,7 @@ class _TradeTabPageState extends State<TradeTabPage> {
       backgroundColor: Colors.transparent,
       topControl: Container(), // 不显示顶部控制条
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.9,
+        height: MediaQuery.of(context).size.height * 0.75,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -58,7 +59,7 @@ class _TradeTabPageState extends State<TradeTabPage> {
       backgroundColor: Colors.transparent,
       topControl: Container(), // 不显示顶部控制条
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.9,
+        height: MediaQuery.of(context).size.height * 0.75,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -162,12 +163,16 @@ class _TradeTabPageState extends State<TradeTabPage> {
                     horizontal: 16,
                   ),
                   child: Text(
-                    // 按当前手机时区格式，带星期
-                    '${DateFormat.yMMMd().format(DateTime.parse(item.date!).toLocal())} '
-                    '(${DateFormat.E().format(DateTime.parse(item.date!).toLocal())})',
+                    () {
+                      final date = DateTime.parse(item.date!).toLocal();
+                      final locale = Localizations.localeOf(context).toString();
+                      final dateStr = DateFormat.yMMMd(locale).format(date);
+                      final weekdayStr = DateFormat.E(locale).format(date);
+                      return '$dateStr（$weekdayStr）';
+                    }(), // 按当前手机时区格式，带星期（加括号）
                     style: const TextStyle(
                       fontWeight: FontWeight.normal,
-                      fontSize: 13,
+                      fontSize: AppTexts.fontSizeSmall,
                       color: Colors.black,
                     ),
                   ),
@@ -243,7 +248,9 @@ class _TradeTabPageState extends State<TradeTabPage> {
                             '${r.action.displayName(context)}  '
                             '${stocks.firstWhere((s) => s.code == r.code).name}'
                             '(${getL10nString(context, marketDataList.firstWhere((m) => m.code == r.marketCode).name)})',
-                            style: const TextStyle(fontSize: 16),
+                            style: const TextStyle(
+                              fontSize: AppTexts.fontSizeLarge,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -252,7 +259,7 @@ class _TradeTabPageState extends State<TradeTabPage> {
                           '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${NumberFormat.decimalPattern().format(r.quantity)}   '
                           '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: AppTexts.fontSizeSmall,
                             color: Colors.black54,
                           ),
                           textAlign: TextAlign.right,

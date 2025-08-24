@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   static const Color appGreen = Color(0xFF34B363);
+  static const Color appLightGrey = Color.fromRGBO(224, 224, 224, 1);
+  static const Color appDarkGrey = Color.fromRGBO(55, 55, 55, 1);
+  static const Color appGrey = Colors.grey;
 
   static const Color primary = contentColorCyan;
   static const Color menuBackground = Color(0xFF090912);

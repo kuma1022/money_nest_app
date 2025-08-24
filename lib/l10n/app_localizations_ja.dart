@@ -9,22 +9,19 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
-  String get tradeRecords => '取引記録';
+  String get tradeRecords => '交易记录';
 
   @override
-  String get confirmDeleteDialogTitle => '削除確認';
+  String get confirmDeleteDialogTitle => '确认删除';
 
   @override
-  String get confirmDeleteDialogContent => 'この記録を削除しますか？';
+  String get confirmDeleteDialogContent => '确定要删除这条记录吗？';
 
   @override
-  String get confirmDeleteDialogDelete => '削除';
+  String get confirmDeleteDialogDelete => '删除';
 
   @override
-  String get confirmDeleteDialogCancel => 'キャンセル';
-
-  @override
-  String get error => '发生错误';
+  String get confirmDeleteDialogCancel => '取消';
 
   @override
   String get marketDataJpLabel => '日股';
@@ -57,6 +54,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get marketDataOtherLabel => '其他';
 
   @override
+  String get error => '发生错误';
+
+  @override
   String get noTradeRecords => '暂无交易记录';
 
   @override
@@ -69,16 +69,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mainPageTopTitle => 'TOP';
 
   @override
-  String get mainPageTradeTitle => '交易记录';
-
-  @override
   String get mainPageAccountTitle => '账户';
 
   @override
-  String get mainPageBookTitle => '我的账本';
+  String get mainPageTradeTitle => '交易记录';
 
   @override
-  String get mainPageWalletTitle => '总资产';
+  String get mainPageMarketTitle => '市场';
 
   @override
   String get mainPageMoreTitle => '更多';
@@ -382,4 +379,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get totalCapitalTabPageTotalRateTitle => '资产构成比率';
+
+  @override
+  String get accountTabPageTotalMoneyTitle => '总资产  ·  ';
+
+  @override
+  String get accountTabPageAccountAnalyseLabel => '资产分析 >';
 }

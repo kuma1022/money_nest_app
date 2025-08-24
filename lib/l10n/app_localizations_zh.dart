@@ -24,9 +24,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirmDeleteDialogCancel => '取消';
 
   @override
-  String get error => '发生错误';
-
-  @override
   String get marketDataJpLabel => '日股';
 
   @override
@@ -57,6 +54,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get marketDataOtherLabel => '其他';
 
   @override
+  String get error => '发生错误';
+
+  @override
   String get noTradeRecords => '暂无交易记录';
 
   @override
@@ -69,16 +69,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainPageTopTitle => 'TOP';
 
   @override
-  String get mainPageTradeTitle => '交易记录';
-
-  @override
   String get mainPageAccountTitle => '账户';
 
   @override
-  String get mainPageBookTitle => '我的账本';
+  String get mainPageTradeTitle => '交易记录';
 
   @override
-  String get mainPageWalletTitle => '总资产';
+  String get mainPageMarketTitle => '市场';
 
   @override
   String get mainPageMoreTitle => '更多';
@@ -382,4 +379,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get totalCapitalTabPageTotalRateTitle => '资产构成比率';
+
+  @override
+  String get accountTabPageTotalMoneyTitle => '总资产  ·  ';
+
+  @override
+  String get accountTabPageAccountAnalyseLabel => '资产分析 >';
 }

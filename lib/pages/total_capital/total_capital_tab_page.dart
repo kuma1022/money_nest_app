@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
+import 'package:money_nest_app/presentation/resources/app_resources.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
@@ -43,7 +44,10 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
               children: [
                 Text(
                   AppLocalizations.of(context)!.totalCapitalTabPageTotalTitle,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: AppTexts.fontSizeLarge,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Row(
                   children: [
@@ -52,14 +56,14 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                       AppLocalizations.of(
                         context,
                       )!.totalCapitalTabPageCashExcluedLabel,
-                      style: TextStyle(fontSize: 14),
+                      style: TextStyle(fontSize: AppTexts.fontSizeLarge),
                     ),
                     const SizedBox(width: 8),
                     Switch(
                       value: isCashExcluded,
-                      //activeThumbColor: AppColors.appGreen,
+                      activeThumbColor: AppColors.appGreen,
                       inactiveThumbColor: Colors.white,
-                      inactiveTrackColor: Colors.grey[300],
+                      inactiveTrackColor: AppColors.appLightGrey,
                       onChanged: (v) {
                         setState(() {
                           isCashExcluded = v;
@@ -76,12 +80,15 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                       DateFormat(
                         'yyyy-MM-dd HH:mm',
                       ).format(DateTime.now()), // 更新时间
-                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                      style: const TextStyle(
+                        fontSize: AppTexts.fontSizeLarge,
+                        color: AppColors.appGrey,
+                      ),
                     ),
                     Text(
                       '¥${NumberFormat('#,##0').format(total)}', // 当前总资产金额
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: AppTexts.fontSizeLarge,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -97,7 +104,7 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                       AppLocalizations.of(
                         context,
                       )!.totalCapitalTabPageCurrentProfitAndLossLabel,
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: AppTexts.fontSizeLarge),
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -105,7 +112,7 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                         Text(
                           '+¥12,345', // 这里填你的盈亏金额
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: AppTexts.fontSizeLarge,
                             color: Colors.red, // 盈利红色，亏损绿色
                             fontWeight: FontWeight.bold,
                           ),
@@ -113,7 +120,7 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                         Text(
                           '+8.2%', // 这里填你的盈亏率
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: AppTexts.fontSizeSmall,
                             color: Colors.red,
                           ),
                         ),
@@ -129,7 +136,7 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                     context,
                   )!.totalCapitalTabPageTotalRateTitle,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: AppTexts.fontSizeLarge,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -223,13 +230,17 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
       if (sumForCategory == 0) continue; // 跳过无资产类别
 
       final isTouched = visibleIndex == touchedIndex;
-      final fontSize = isTouched ? 16.0 : 16.0;
+      final fontSize = isTouched
+          ? AppTexts.fontSizeLarge
+          : AppTexts.fontSizeLarge;
       final radius = isTouched ? 60.0 : 50.0;
       final percent = total == 0 ? 0 : (sumForCategory / total * 100);
 
       sections.add(
         PieChartSectionData(
-          color: asset.colorHex != null ? Color(asset.colorHex!) : Colors.grey,
+          color: asset.colorHex != null
+              ? Color(asset.colorHex!)
+              : AppColors.appGrey,
           value: sumForCategory,
           title: '', // 不用title
           badgeWidget: Column(
@@ -247,9 +258,9 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
               Text(
                 '¥${formatter.format(sumForCategory)}',
                 style: TextStyle(
-                  fontSize: fontSize - 2,
+                  fontSize: AppTexts.fontSizeSmall,
                   fontWeight: FontWeight.normal,
-                  color: Colors.grey,
+                  color: AppColors.appGrey,
                   height: 1,
                 ),
               ),

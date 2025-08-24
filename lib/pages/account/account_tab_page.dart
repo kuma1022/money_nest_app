@@ -1,7 +1,146 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
-class AccountTabPage extends StatelessWidget {
-  const AccountTabPage({super.key});
+import 'package:drift/drift.dart' hide Column;
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/l10n/app_localizations.dart';
+import 'package:money_nest_app/presentation/resources/app_resources.dart';
+import 'package:money_nest_app/models/currency.dart';
+import 'package:money_nest_app/util/app_utils.dart';
+
+class AccountTabPage extends StatefulWidget {
+  final AppDatabase db;
+
+  const AccountTabPage({super.key, required this.db});
+
+  @override
+  State<AccountTabPage> createState() => AccountTabPageState();
+}
+
+class AccountTabPageState extends State<AccountTabPage> {
+  // 获取总盈亏金额（请用实际业务逻辑替换）
+  double _getTotalProfit() {
+    return 12345.67; // 示例
+  }
+
+  // 获取总盈亏率（请用实际业务逻辑替换）
+  double _getTotalProfitRate() {
+    // TODO: 替换为实际盈亏率计算
+    return 0.0345; // 示例，3.45%
+  }
+
+  String _formatProfit(double profit) {
+    final symbol = profit > 0 ? '+' : (profit < 0 ? '-' : '');
+    return '$symbol${profit.abs().toStringAsFixed(2)}';
+  }
+
+  String _formatProfitRate(double rate) {
+    final symbol = rate > 0 ? '+' : (rate < 0 ? '-' : '');
+    return '$symbol${(rate.abs() * 100).toStringAsFixed(2)}%';
+  }
+
+  Currency _selectedCurrency = Currency.jpy;
+  DateTime _assetFetchedTime = DateTime.now();
+  String _lastAsset = '';
+  String _buyAsset = '';
+
+  // 模拟异步获取总资产和时间
+  Future<String> _fetchTotalAsset(AppDatabase db, Currency currency) async {
+    // 实际股票资产计算逻辑
+    double total = await _calculateAllStockValue(db, currency.code);
+    _assetFetchedTime = DateTime.now();
+    _lastAsset = NumberFormat.currency(
+      locale: currency.locale,
+      symbol: currency.symbol,
+    ).format(total);
+    return _lastAsset;
+  }
+
+  // 这里模拟股票总价值计算，实际应从你的数据源获取
+  Future<double> _calculateAllStockValue(
+    AppDatabase db,
+    String currencyCode,
+  ) async {
+    // 获取持仓股票的数据
+    final stockDataList = await db.getAllStocksRecords();
+
+    for (var stock in stockDataList) {
+      print(
+        'Stock: ${stock.code}, Price: ${stock.currentPrice}, UpdatedAt: ${stock.priceUpdatedAt}',
+      );
+    }
+
+    List<Stock> newStockDataList = List.from(stockDataList);
+    // 如果除了FX之外没有数据
+    if (stockDataList.isEmpty ||
+        newStockDataList.every((stock) => stock.marketCode == 'FOREX')) {
+      return 0;
+    }
+    final marketDataList = await db.getAllMarketDataRecords();
+    // 如果所有 priceUpdatedAt 都在周六或周日，则不更新
+    bool allWeekend =
+        stockDataList.isNotEmpty &&
+        stockDataList.every((stock) {
+          final dt = stock.priceUpdatedAt;
+          if (dt == null) return false;
+          return dt.weekday == DateTime.saturday ||
+              dt.weekday == DateTime.sunday;
+        });
+    if (!allWeekend &&
+        stockDataList.any(
+          (stock) =>
+              stock.priceUpdatedAt == null ||
+              stock.priceUpdatedAt!.isBefore(
+                DateTime.now().subtract(const Duration(hours: 1)),
+              ),
+        )) {
+      // 调用YH Finance API 获取实时股票价格
+      final stocks = await db.getAllStocks();
+      final appUtils = AppUtils();
+      final stockPrices = await appUtils.getStockPricesByYHFinanceAPI(
+        stocks,
+        marketDataList,
+      );
+      newStockDataList.clear();
+      for (var stock in stockDataList) {
+        newStockDataList.add(
+          stock.copyWith(
+            currentPrice: Value(
+              stockPrices['${stock.code}${marketDataList.firstWhere(
+                (m) => m.code == stock.marketCode,
+                orElse: () => MarketDataData(code: '', name: '', surfix: '', sortOrder: 0, isActive: true),
+              ).surfix}'],
+            ),
+          ),
+        );
+      }
+      // 更新数据库中的股票价格和更新时间
+      await db.updateStockPrices(newStockDataList);
+    }
+
+    Map<String, double> priceMap = {
+      for (var stock in newStockDataList)
+        if (stock.currentPrice != null) stock.code: stock.currentPrice!,
+    };
+
+    // 遍历持仓列表，累加每只股票的市值
+    final records = await db.getAllAvailableBuyRecords();
+    return records.fold<double>(
+      0,
+      (sum, r) =>
+          sum +
+          r.quantity *
+              priceMap[r.code]! *
+              (priceMap['${r.currency.code != 'USD' ? r.currency.code : ''}$currencyCode'] ??
+                  1.0),
+    );
+  }
+
+  String _formatTime(DateTime time) {
+    // 格式化为 HH:mm:ss 或 yyyy-MM-dd HH:mm
+    return '${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +153,7 @@ class AccountTabPage extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            elevation: 2,
+            elevation: 0,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -22,46 +161,116 @@ class AccountTabPage extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Text(
-                        '总资产 · JPY',
-                        style: TextStyle(fontSize: 15, color: Colors.grey),
+                      Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.accountTabPageTotalMoneyTitle,
+                        style: TextStyle(
+                          fontSize: AppTexts.fontSizeLarge,
+                          color: AppColors.appDarkGrey,
+                        ),
+                      ),
+                      DropdownMenu<Currency>(
+                        initialSelection: _selectedCurrency,
+                        onSelected: (v) {
+                          if (v != null) setState(() => _selectedCurrency = v);
+                        },
+                        dropdownMenuEntries: Currency.values
+                            .map(
+                              (c) => DropdownMenuEntry<Currency>(
+                                value: c,
+                                label: c.displayName(context),
+                              ),
+                            )
+                            .toList(),
+                        width: 90,
+                        textAlign: TextAlign.center,
+                        textStyle: const TextStyle(
+                          fontSize: AppTexts.fontSizeSmall,
+                          color: AppColors.appDarkGrey,
+                        ),
+                        inputDecorationTheme: const InputDecorationTheme(
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        menuStyle: MenuStyle(
+                          backgroundColor: WidgetStatePropertyAll(Colors.white),
+                          shadowColor: WidgetStatePropertyAll(
+                            Colors.transparent,
+                          ),
+                          surfaceTintColor: WidgetStatePropertyAll(
+                            Colors.transparent,
+                          ),
+                          elevation: WidgetStatePropertyAll(0),
+                          padding: WidgetStatePropertyAll(EdgeInsets.zero),
+                          shape: WidgetStatePropertyAll(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          side: WidgetStatePropertyAll(
+                            BorderSide(color: Colors.transparent),
+                          ),
+                        ),
                       ),
                       const Spacer(),
                       TextButton.icon(
                         onPressed: () {},
                         icon: const Icon(Icons.analytics, size: 18),
-                        label: const Text(
-                          '资产分析',
-                          style: TextStyle(fontSize: 13),
+                        label: Text(
+                          AppLocalizations.of(
+                            context,
+                          )!.accountTabPageAccountAnalyseLabel,
+                          style: TextStyle(fontSize: AppTexts.fontSizeSmall),
                         ),
                         style: TextButton.styleFrom(
-                          foregroundColor: Colors.orange,
+                          foregroundColor: AppColors.appGreen,
                           padding: EdgeInsets.zero,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    '2,441,290.33',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                  FutureBuilder<String>(
+                    future: _fetchTotalAsset(widget.db, _selectedCurrency),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (_lastAsset.isNotEmpty) {
+                          return buildTotalAssetDisplay(_lastAsset);
+                        }
+                        return const CircularProgressIndicator();
+                      }
+                      if (snapshot.hasError) {
+                        return Text('资产获取失败: ${snapshot.error}');
+                      }
+                      final totalAsset = snapshot.data ?? '0';
+                      return buildTotalAssetDisplay(totalAsset);
+                    },
                   ),
-                  const SizedBox(height: 8),
-                  // 资产走势图（用占位图）
-                  SizedBox(height: 40, child: Placeholder()),
-                  const SizedBox(height: 8),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _AccountActionButton(
-                        icon: Icons.account_balance_wallet,
-                        label: '存入资金',
-                      ),
-                      _AccountActionButton(
-                        icon: Icons.currency_exchange,
-                        label: '货币兑换',
-                      ),
-                      _AccountActionButton(icon: Icons.list, label: '全部'),
+                      const SizedBox(width: 8),
+                      if (_assetFetchedTime != null)
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              '获取时间',
+                              style: const TextStyle(
+                                fontSize: AppTexts.fontSizeMini,
+                                color: AppColors.appGrey,
+                              ),
+                            ),
+                            Text(
+                              _formatTime(_assetFetchedTime!),
+                              style: const TextStyle(
+                                fontSize: AppTexts.fontSizeMini,
+                                color: AppColors.appGrey,
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 ],
@@ -74,7 +283,7 @@ class AccountTabPage extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            elevation: 2,
+            elevation: 0,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -119,26 +328,55 @@ class AccountTabPage extends StatelessWidget {
       ),
     );
   }
-}
 
-class _AccountActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _AccountActionButton({required this.icon, required this.label});
-  @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget buildTotalAssetDisplay(String totalAsset) {
+    final profit = _getTotalProfit(); // double
+    final profitRate = _getTotalProfitRate(); // double，百分比
+    Color profitColor;
+    if (profit > 0) {
+      profitColor = Colors.green;
+    } else if (profit < 0) {
+      profitColor = Colors.red;
+    } else {
+      profitColor = Colors.black;
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        CircleAvatar(
-          backgroundColor: Colors.orange.shade50,
-          child: Icon(icon, color: Colors.orange),
+        Text(
+          totalAsset,
+          style: const TextStyle(
+            fontSize: AppTexts.fontSizeHuge,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        const Spacer(),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              _formatProfit(profit),
+              style: TextStyle(
+                fontSize: AppTexts.fontSizeSmall,
+                color: profitColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              _formatProfitRate(profitRate),
+              style: TextStyle(
+                fontSize: AppTexts.fontSizeSmall,
+                color: profitColor,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
 }
+
+// Move these widget classes outside of _AccountTabPageState
 
 class _AccountItem extends StatelessWidget {
   final String name;
@@ -173,12 +411,15 @@ class _AccountItem extends StatelessWidget {
               children: [
                 Text(
                   '总资产 · $currency',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: const TextStyle(
+                    fontSize: AppTexts.fontSizeSmall,
+                    color: AppColors.appGrey,
+                  ),
                 ),
                 Text(
                   total,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: AppTexts.fontSizeLarge,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -199,7 +440,7 @@ class _AccountItem extends StatelessWidget {
                           color: profit.startsWith('-')
                               ? Colors.red
                               : Colors.green,
-                          fontSize: 12,
+                          fontSize: AppTexts.fontSizeSmall,
                         ),
                       ),
                   ],
@@ -227,9 +468,15 @@ class _SubAccountItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Text(name, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+          Text(
+            name,
+            style: const TextStyle(
+              fontSize: AppTexts.fontSizeSmall,
+              color: AppColors.appGrey,
+            ),
+          ),
           const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 13)),
+          Text(value, style: const TextStyle(fontSize: AppTexts.fontSizeSmall)),
         ],
       ),
     );

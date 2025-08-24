@@ -93,6 +93,7 @@ class MarketData extends Table {
   TextColumn get code => text().withLength(min: 1, max: 32)();
   TextColumn get name => text().withLength(min: 1, max: 32)(); // 显示名称
   TextColumn get currency => text().nullable()(); // 货币
+  TextColumn get surfix => text().nullable()(); // 后缀
   IntColumn get colorHex => integer().nullable()(); // 颜色（如0xFF2196F3），可空
   IntColumn get sortOrder => integer().withDefault(const Constant(0))(); // 排序
   BoolColumn get isActive =>
@@ -241,6 +242,28 @@ class AppDatabase extends _$AppDatabase {
       }
     }
     return result;
+  }
+
+  Future<List<Stock>> getAllStocks() async {
+    return await (select(stocks)..where((tbl) => tbl.code.isNotNull())).get();
+  }
+
+  Future<void> updateStockPrices(List<Stock> stockList) async {
+    for (final stock in stockList) {
+      await (update(stocks)..where((tbl) => tbl.code.equals(stock.code))).write(
+        StocksCompanion(
+          currentPrice: Value(stock.currentPrice),
+          priceUpdatedAt: Value(DateTime.now()),
+        ),
+      );
+    }
+  }
+
+  Future<bool> isStockExists(String code) async {
+    final exists = await (select(
+      stocks,
+    )..where((tbl) => tbl.code.equals(code))).get();
+    return exists.isNotEmpty;
   }
 }
 

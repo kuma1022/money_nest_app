@@ -19,10 +19,9 @@
   "tradeTabPageNumber": "数量",
   "tradeTabPagePrice": "价格",
   "mainPageTopTitle": "TOP",
-  "mainPageTradeTitle": "交易记录",
   "mainPageAccountTitle": "账户",
-  "mainPageBookTitle": "我的账本",
-  "mainPageWalletTitle": "总资产",
+  "mainPageTradeTitle": "交易记录",
+  "mainPageMarketTitle": "市场",
   "mainPageMoreTitle": "更多",
   "mainPageSearchHint": "输入名称或代码搜索",
   "mainPageSearchCancel": "取消",
@@ -123,5 +122,7 @@
   "totalCapitalTabPageTotalTitle": "总资产额",
   "totalCapitalTabPageCashExcluedLabel": "现金除外",
   "totalCapitalTabPageCurrentProfitAndLossLabel": "当前盈亏",
-  "totalCapitalTabPageTotalRateTitle": "资产构成比率"
+  "totalCapitalTabPageTotalRateTitle": "资产构成比率",
+  "accountTabPageTotalMoneyTitle": "总资产  ·  ",
+  "accountTabPageAccountAnalyseLabel": "资产分析 >"
 }

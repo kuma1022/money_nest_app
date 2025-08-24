@@ -103,9 +103,17 @@ class SearchResultList extends StatelessWidget {
                       '${r.action.displayName}  ${marketData?.name ?? ''}(${r.marketCode})',
                     ),
                     subtitle: Text(
-                      '${DateFormat.yMMMd().format(r.tradeDate.toLocal())}   '
-                      '${AppLocalizations.of(context)!.tradeTabPageNumber}: ${NumberFormat.decimalPattern().format(r.quantity)}   '
-                      '${AppLocalizations.of(context)!.tradeTabPagePrice}: ${NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
+                      '${() {
+                        final date = r.tradeDate.toLocal();
+                        final locale = Localizations.localeOf(context).toString();
+                        final dateStr = DateFormat.yMMMd(locale).format(date);
+                        final weekdayStr = DateFormat.E(locale).format(date);
+                        return '$dateStr（$weekdayStr）';
+                      }()}   '
+                      '${AppLocalizations.of(context)!.tradeTabPageNumber}: '
+                      '${NumberFormat.decimalPattern().format(r.quantity)}   '
+                      '${AppLocalizations.of(context)!.tradeTabPagePrice}: '
+                      '${NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
                     ),
                     //onTap: () => _navigateToDetail(r),
                   ),

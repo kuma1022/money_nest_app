@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/l10n/l10n_util.dart';
-import 'package:money_nest_app/presentation/resources/app_colors.dart';
+import 'package:money_nest_app/presentation/resources/app_resources.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
@@ -190,7 +190,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) => FractionallySizedBox(
-        heightFactor: 0.7,
+        heightFactor: 0.6,
         child: BuyPositionSelector(
           db: widget.db,
           onCodeSelected: (code) {
@@ -359,7 +359,6 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
             );
       }
     }
-
     if (!mounted) return; // 添加mounted判断
     context.read<BuyRecordsProvider>().loadRecords();
     Navigator.pop(context, true);
@@ -383,7 +382,10 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
         automaticallyImplyLeading: false,
         title: Text(
           AppLocalizations.of(context)!.tradeAddPageTitle,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: AppTexts.fontSizeLarge,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: [
           IconButton(
@@ -398,7 +400,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
             Tab(text: AppLocalizations.of(context)!.tradeAddPageSellTab),
           ],
           labelColor: AppColors.appGreen,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: AppColors.appGrey,
           indicator: const UnderlineTabIndicator(
             borderSide: BorderSide(width: 3.0, color: AppColors.appGreen),
             insets: EdgeInsets.zero,
@@ -434,1014 +436,1102 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
         : _sellRemarkController;
     final stocks = context.watch<StocksProvider>().stocks;
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: formKey,
-          child: Column(
-            children: [
-              // 卖出tab新增选择持仓按钮
-              if (!isBuy && _selectedBuyRecords.isEmpty)
-                SizedBox(
-                  width: double.infinity,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: ElevatedButton(
-                      style: ButtonStyle(
-                        backgroundColor: WidgetStatePropertyAll(
-                          AppColors.appGreen,
-                        ),
-                        shape: WidgetStatePropertyAll(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(5)),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: formKey,
+            child: Column(
+              children: [
+                // 卖出tab新增选择持仓按钮
+                if (!isBuy && _selectedBuyRecords.isEmpty)
+                  SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: ElevatedButton(
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(
+                            AppColors.appGreen,
+                          ),
+                          shape: WidgetStatePropertyAll(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(5),
+                              ),
+                            ),
+                          ),
+                          padding: WidgetStatePropertyAll(
+                            EdgeInsets.symmetric(vertical: 8),
                           ),
                         ),
-                        padding: WidgetStatePropertyAll(
-                          EdgeInsets.symmetric(vertical: 8),
-                        ),
-                      ),
-                      onPressed: _selectBuyPositions,
-                      child: Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.tradeAddPageBuyPositionSelection,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          //fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                        onPressed: _selectBuyPositions,
+                        child: Text(
+                          AppLocalizations.of(
+                            context,
+                          )!.tradeAddPageBuyPositionSelection,
+                          style: const TextStyle(
+                            fontSize: AppTexts.fontSizeLarge,
+                            //fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-              // 卖出tab下，显示已选择的持仓信息
-              if (!isBuy && _selectedBuyRecords.isNotEmpty)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.tradeAddPageSelectedPositions,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                // 卖出tab下，显示已选择的持仓信息
+                if (!isBuy && _selectedBuyRecords.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.tradeAddPageSelectedPositions,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: AppTexts.fontSizeLarge,
+                              ),
                             ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.edit,
-                            size: 20,
-                            color: AppColors.appGreen,
+                          IconButton(
+                            icon: const Icon(
+                              Icons.edit,
+                              size: 20,
+                              color: AppColors.appGreen,
+                            ),
+                            tooltip: AppLocalizations.of(
+                              context,
+                            )!.tradeAddPageEditSelectedPositions, // 可在arb中添加多语言
+                            onPressed: _selectBuyPositions,
                           ),
-                          tooltip: AppLocalizations.of(
-                            context,
-                          )!.tradeAddPageEditSelectedPositions, // 可在arb中添加多语言
-                          onPressed: _selectBuyPositions,
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      ..._selectedBuyRecords.map(
+                        (r) => Container(
+                          margin: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 6,
+                            horizontal: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF2F2F2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FutureBuilder<MarketDataData?>(
+                                future: widget.db.getMarketDataByCode(
+                                  r.record.code,
+                                ),
+                                builder: (context, snapshot) {
+                                  final name = snapshot.data?.name ?? '';
+                                  return Text(
+                                    '$name  ${r.record.code}',
+                                    style: const TextStyle(
+                                      fontSize: AppTexts.fontSizeSmall,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Text(
+                                    () {
+                                      final date = r.record.tradeDate.toLocal();
+                                      final locale = Localizations.localeOf(
+                                        context,
+                                      ).toString();
+                                      final dateStr = DateFormat.yMMMd(
+                                        locale,
+                                      ).format(date);
+                                      final weekdayStr = DateFormat.E(
+                                        locale,
+                                      ).format(date);
+                                      return '$dateStr（$weekdayStr）';
+                                    }(),
+                                    style: const TextStyle(
+                                      fontSize: AppTexts.fontSizeSmall,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    NumberFormat.simpleCurrency(
+                                      name: r.record.currency.displayName(
+                                        context,
+                                      ),
+                                    ).format(r.record.price),
+                                    style: const TextStyle(
+                                      fontSize: AppTexts.fontSizeSmall,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    NumberFormat.decimalPattern().format(
+                                      r.quantity,
+                                    ),
+                                    style: const TextStyle(
+                                      fontSize: AppTexts.fontSizeSmall,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+
+                if (isBuy || _selectedBuyRecords.isNotEmpty)
+                  // 日期
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.calendar_today,
+                                size: 18,
+                                color: AppColors.appGrey,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageTradeDateLabel,
+                                  style: const TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => _pickDate(isBuy),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      tradeDate != null
+                                          ? () {
+                                              final date = tradeDate.toLocal();
+                                              final locale =
+                                                  Localizations.localeOf(
+                                                    context,
+                                                  ).toString();
+                                              final dateStr = DateFormat.yMMMd(
+                                                locale,
+                                              ).format(date);
+                                              final weekdayStr = DateFormat.E(
+                                                locale,
+                                              ).format(date);
+                                              return '$dateStr（$weekdayStr）';
+                                            }()
+                                          : AppLocalizations.of(
+                                              context,
+                                            )!.tradeAddPageTradeDatePlaceholder,
+                                      style: const TextStyle(
+                                        fontSize: AppTexts.fontSizeSmall,
+                                        color: Colors.black87,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_drop_down,
+                                    size: 22,
+                                    color: AppColors.appGrey,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    ..._selectedBuyRecords.map(
-                      (r) => Container(
-                        margin: const EdgeInsets.only(bottom: 4),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 6,
-                          horizontal: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF2F2F2),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            FutureBuilder<MarketDataData?>(
-                              future: widget.db.getMarketDataByCode(
-                                r.record.code,
+                  ),
+                if (isBuy) ...[
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                  // 类别
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.savings,
+                                size: 18,
+                                color: AppColors.appGrey,
                               ),
-                              builder: (context, snapshot) {
-                                final name = snapshot.data?.name ?? '';
-                                return Text(
-                                  '$name  ${r.record.code}',
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageTypeLabel,
                                   style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: AppTexts.fontSizeLarge,
                                   ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 2),
-                            Row(
-                              children: [
-                                Text(
-                                  '${DateFormat.yMMMd(Localizations.localeOf(context).toString()).add_E().format(r.record.tradeDate.toLocal())} ',
-                                  //'(${DateFormat.E().format(r.record.tradeDate.toLocal())})',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black54,
-                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  NumberFormat.simpleCurrency(
-                                    name: r.record.currency.displayName(
-                                      context,
-                                    ),
-                                  ).format(r.record.price),
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  NumberFormat.decimalPattern().format(
-                                    r.quantity,
-                                  ),
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () async {
+                              final picked = await showPickerSheet<TradeType>(
+                                context: context,
+                                options: TradeType.values,
+                                selected: tradeType,
+                                display: (t) => t.displayName,
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  if (isBuy) {
+                                    _buyTradeType = picked;
+                                  } else {
+                                    _sellTradeType = picked;
+                                  }
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      tradeType.displayName,
+                                      style: TextStyle(
+                                        fontSize: AppTexts.fontSizeLarge,
+                                        color: Colors.black,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_drop_down,
+                                    size: 22,
+                                    color: AppColors.appGrey,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-
-              if (isBuy || _selectedBuyRecords.isNotEmpty)
-                // 日期
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.calendar_today,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageTradeDateLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
+                  ),
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                  // 市场
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.public,
+                                size: 18,
+                                color: AppColors.appGrey,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => _pickDate(isBuy),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    tradeDate != null
-                                        ? DateFormat.yMMMd(
-                                            Localizations.localeOf(
-                                              context,
-                                            ).toString(),
-                                          ).add_E().format(tradeDate.toLocal())
-                                        : AppLocalizations.of(
-                                            context,
-                                          )!.tradeAddPageTradeDatePlaceholder,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.black87,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageCategoryLabel,
+                                  style: const TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const Icon(
-                                  Icons.arrow_drop_down,
-                                  size: 22,
-                                  color: Colors.grey,
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (isBuy) ...[
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 类别
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.savings,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageTypeLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final picked = await showPickerSheet<TradeType>(
-                              context: context,
-                              options: TradeType.values,
-                              selected: tradeType,
-                              display: (t) => t.displayName,
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                if (isBuy) {
-                                  _buyTradeType = picked;
-                                } else {
-                                  _sellTradeType = picked;
-                                }
-                              });
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    tradeType.displayName,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.black,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () async {
+                              final picked =
+                                  await showPickerSheet<MarketDataData>(
+                                    context: context,
+                                    options: marketDataList,
+                                    selected: category,
+                                    display: (c) => c.name,
+                                  );
+                              if (picked != null) {
+                                // code值变化之后，从stocks数据库中查找对应的股票
+                                final stock = stocks.firstWhere(
+                                  (s) =>
+                                      s.code == codeController.text.trim() &&
+                                      s.marketCode == _buyCategory?.code,
+                                  orElse: () => Stock(
+                                    code: codeController.text.trim(),
+                                    name: '',
+                                    marketCode: '',
+                                    currency: '',
                                   ),
-                                ),
-                                const Icon(
-                                  Icons.arrow_drop_down,
-                                  size: 22,
-                                  color: Colors.grey,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 市场
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.public,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageCategoryLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final picked =
-                                await showPickerSheet<MarketDataData>(
-                                  context: context,
-                                  options: marketDataList,
-                                  selected: category,
-                                  display: (c) => c.name,
                                 );
-                            if (picked != null) {
+                                nameController.text = stock.name;
+                                setState(() {
+                                  if (isBuy) {
+                                    _buyCategory = picked;
+                                    _buyNameEnabled = stock.name.isEmpty;
+                                    _buyCurrency = Currency.values.firstWhere(
+                                      (c) => c.name == picked.currency,
+                                      orElse: () => Currency.values.first,
+                                    );
+                                  } else {
+                                    _sellCategory = picked;
+                                  }
+                                });
+                                // 再次确保没有输入框获得焦点
+                                FocusScope.of(
+                                  context,
+                                ).requestFocus(FocusNode());
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      category != null
+                                          ? category.name
+                                          : AppLocalizations.of(
+                                              context,
+                                            )!.tradeAddPageCategoryPlaceholder,
+                                      style: TextStyle(
+                                        fontSize: AppTexts.fontSizeLarge,
+                                        color: category != null
+                                            ? Colors.black
+                                            : AppColors.appGrey,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_drop_down,
+                                    size: 22,
+                                    color: AppColors.appGrey,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (isBuy) ...[
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                  // 代码
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.confirmation_number,
+                                size: 18,
+                                color: AppColors.appGrey,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageCodeLabel,
+                                  style: const TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: TextFormField(
+                            style: const TextStyle(
+                              fontSize: AppTexts.fontSizeLarge,
+                            ),
+                            controller: codeController,
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(
+                                context,
+                              )!.tradeAddPageCodePlaceholder,
+                              hintStyle: const TextStyle(
+                                fontSize: AppTexts.fontSizeLarge,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 12,
+                              ),
+                            ),
+                            onChanged: (value) {
                               // code值变化之后，从stocks数据库中查找对应的股票
                               final stock = stocks.firstWhere(
                                 (s) =>
-                                    s.code == codeController.text.trim() &&
+                                    s.code == value.trim() &&
                                     s.marketCode == _buyCategory?.code,
                                 orElse: () => Stock(
-                                  code: codeController.text.trim(),
+                                  code: value.trim(),
                                   name: '',
                                   marketCode: '',
                                   currency: '',
                                 ),
                               );
+                              // 找到对应的股票，更新名称和类别
                               nameController.text = stock.name;
                               setState(() {
-                                if (isBuy) {
-                                  _buyCategory = picked;
-                                  _buyNameEnabled = stock.name.isEmpty;
-                                  _buyCurrency = Currency.values.firstWhere(
-                                    (c) => c.name == picked.currency,
-                                    orElse: () => Currency.values.first,
-                                  );
-                                } else {
-                                  _sellCategory = picked;
-                                }
+                                _buyNameEnabled = stock.name.isEmpty;
                               });
-                              // 再次确保没有输入框获得焦点
-                              FocusScope.of(context).requestFocus(FocusNode());
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    category != null
-                                        ? category.name
-                                        : AppLocalizations.of(
-                                            context,
-                                          )!.tradeAddPageCategoryPlaceholder,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: category != null
-                                          ? Colors.black
-                                          : Colors.grey,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                  // 名称
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.business,
+                                size: 18,
+                                color: AppColors.appGrey,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageNameLabel,
+                                  style: const TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const Icon(
-                                  Icons.arrow_drop_down,
-                                  size: 22,
-                                  color: Colors.grey,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              if (isBuy) ...[
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 代码
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.confirmation_number,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageCodeLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: TextFormField(
-                          style: const TextStyle(fontSize: 15),
-                          controller: codeController,
-                          decoration: InputDecoration(
-                            hintText: AppLocalizations.of(
-                              context,
-                            )!.tradeAddPageCodePlaceholder,
-                            hintStyle: const TextStyle(fontSize: 15),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
-                          ),
-                          onChanged: (value) {
-                            // code值变化之后，从stocks数据库中查找对应的股票
-                            final stock = stocks.firstWhere(
-                              (s) =>
-                                  s.code == value.trim() &&
-                                  s.marketCode == _buyCategory?.code,
-                              orElse: () => Stock(
-                                code: value.trim(),
-                                name: '',
-                                marketCode: '',
-                                currency: '',
-                              ),
-                            );
-                            // 找到对应的股票，更新名称和类别
-                            nameController.text = stock.name;
-                            setState(() {
-                              _buyNameEnabled = stock.name.isEmpty;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 名称
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.business,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageNameLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: TextFormField(
-                          controller: nameController,
-                          enabled: _buyNameEnabled,
-                          style: const TextStyle(fontSize: 15),
-                          decoration: InputDecoration(
-                            hintText: AppLocalizations.of(
-                              context,
-                            )!.tradeAddPageNamePlaceholder,
-                            hintStyle: const TextStyle(fontSize: 15),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
-                          ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageNameError
-                              : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              if (isBuy || _selectedBuyRecords.isNotEmpty) ...[
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 交易货币
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.monetization_on,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageCurrencyLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final picked = await showPickerSheet<Currency>(
-                              context: context,
-                              options: Currency.values,
-                              selected: currency,
-                              display: (c) => c.displayName(context),
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                if (isBuy) {
-                                  _buyCurrency = picked;
-                                } else {
-                                  _sellCurrency = picked;
-                                }
-                              });
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    currency.displayName(context),
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.black,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.arrow_drop_down,
-                                  size: 22,
-                                  color: Colors.grey,
-                                ),
-                              ],
-                            ),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 交易单价
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.attach_money,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPagePriceLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: TextFormField(
-                          controller: priceController,
-                          style: const TextStyle(fontSize: 15),
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^\d*\.?\d{0,6}'),
-                            ),
-                          ],
-                          decoration: InputDecoration(
-                            hintText: AppLocalizations.of(
-                              context,
-                            )!.tradeAddPagePricePlaceholder,
-                            hintStyle: const TextStyle(fontSize: 15),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
-                          ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPagePriceError
-                              : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              if (isBuy) ...[
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 交易数量
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.confirmation_number,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageQuantityLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: TextFormField(
-                          controller: quantityController,
-                          style: const TextStyle(fontSize: 15),
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          decoration: InputDecoration(
-                            hintText: AppLocalizations.of(
-                              context,
-                            )!.tradeAddPageQuantityPlaceholder,
-                            hintStyle: const TextStyle(fontSize: 15),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
-                          ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageQuantityError
-                              : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              if (isBuy || _selectedBuyRecords.isNotEmpty) ...[
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 交易总额（交易货币）（单价 × 数量）
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.confirmation_number,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageTotalLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 12,
-                          ),
-                          child: Text(
-                            isBuy
-                                ? ((int.tryParse(quantityController.text) ??
-                                              0) *
-                                          (double.tryParse(
-                                                priceController.text,
-                                              ) ??
-                                              0))
-                                      .toString()
-                                : ((_selectedBuyRecords.fold(
-                                            0.0,
-                                            (previousValue, element) =>
-                                                previousValue +
-                                                element.quantity,
-                                          )) *
-                                          (double.tryParse(
-                                                priceController.text,
-                                              ) ??
-                                              0))
-                                      .toString(),
+                        Expanded(
+                          child: TextFormField(
+                            controller: nameController,
+                            enabled: _buyNameEnabled,
                             style: const TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey,
+                              fontSize: AppTexts.fontSizeLarge,
                             ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 资金货币（买入时=结算货币，卖出时=到账货币）
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.monetization_on,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                isBuy
-                                    ? AppLocalizations.of(
-                                        context,
-                                      )!.tradeAddPageCurrencyUsedBuyLabel
-                                    : AppLocalizations.of(
-                                        context,
-                                      )!.tradeAddPageCurrencyUsedSellLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(
+                                context,
+                              )!.tradeAddPageNamePlaceholder,
+                              hintStyle: const TextStyle(
+                                fontSize: AppTexts.fontSizeLarge,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 12,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            final picked = await showPickerSheet<Currency>(
-                              context: context,
-                              options: Currency.values,
-                              selected: currencyUsed,
-                              display: (c) => c.displayName(context),
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                if (isBuy) {
-                                  _buyCurrencyUsed = picked;
-                                } else {
-                                  _sellCurrencyUsed = picked;
-                                }
-                              });
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    currencyUsed.displayName(context),
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: Colors.black,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.arrow_drop_down,
-                                  size: 22,
-                                  color: Colors.grey,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 资金金额（买入时=结算金额，卖出时=到账金额）
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.attach_money,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                isBuy
-                                    ? AppLocalizations.of(
-                                        context,
-                                      )!.tradeAddPageMoneyUsedBuyLabel
-                                    : AppLocalizations.of(
-                                        context,
-                                      )!.tradeAddPageMoneyUsedSellLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: TextFormField(
-                          controller: moneyUsedController,
-                          style: const TextStyle(fontSize: 15),
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^\d*\.?\d{0,6}'),
-                            ),
-                          ],
-                          decoration: InputDecoration(
-                            hintText: isBuy
+                            validator: (v) => v == null || v.isEmpty
                                 ? AppLocalizations.of(
                                     context,
-                                  )!.tradeAddPageMoneyUsedBuyPlaceholder
-                                : AppLocalizations.of(
-                                    context,
-                                  )!.tradeAddPageMoneyUsedSellPlaceholder,
-                            hintStyle: const TextStyle(fontSize: 15),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ),
+                                  )!.tradeAddPageNameError
+                                : null,
                           ),
-                          validator: (v) => v == null || v.isEmpty
-                              ? AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageMoneyUsedBuyError
-                              : null,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 备注
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.note,
-                              size: 18,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.tradeAddPageRemarkLabel,
-                                style: const TextStyle(fontSize: 15),
-                                overflow: TextOverflow.ellipsis,
+                ],
+                if (isBuy || _selectedBuyRecords.isNotEmpty) ...[
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                  // 交易货币
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.monetization_on,
+                                size: 18,
+                                color: AppColors.appGrey,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageCurrencyLabel,
+                                  style: const TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () async {
+                              final picked = await showPickerSheet<Currency>(
+                                context: context,
+                                options: Currency.values,
+                                selected: currency,
+                                display: (c) => c.displayName(context),
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  if (isBuy) {
+                                    _buyCurrency = picked;
+                                  } else {
+                                    _sellCurrency = picked;
+                                  }
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      currency.displayName(context),
+                                      style: TextStyle(
+                                        fontSize: AppTexts.fontSizeLarge,
+                                        color: Colors.black,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_drop_down,
+                                    size: 22,
+                                    color: AppColors.appGrey,
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                      Expanded(
-                        child: TextFormField(
-                          controller: remarkController,
-                          style: const TextStyle(fontSize: 15),
-                          maxLines: 1,
-                          decoration: InputDecoration(
-                            hintText: AppLocalizations.of(
-                              context,
-                            )!.tradeAddPageRemarkPlaceholder,
-                            hintStyle: const TextStyle(fontSize: 15),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                  // 交易单价
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.attach_money,
+                                size: 18,
+                                color: AppColors.appGrey,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPagePriceLabel,
+                                  style: const TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: TextFormField(
+                            controller: priceController,
+                            style: const TextStyle(
+                              fontSize: AppTexts.fontSizeLarge,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d{0,6}'),
+                              ),
+                            ],
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(
+                                context,
+                              )!.tradeAddPagePricePlaceholder,
+                              hintStyle: const TextStyle(
+                                fontSize: AppTexts.fontSizeLarge,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 12,
+                              ),
+                            ),
+                            validator: (v) => v == null || v.isEmpty
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPagePriceError
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (isBuy) ...[
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                  // 交易数量
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.confirmation_number,
+                                size: 18,
+                                color: AppColors.appGrey,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageQuantityLabel,
+                                  style: const TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: TextFormField(
+                            controller: quantityController,
+                            style: const TextStyle(
+                              fontSize: AppTexts.fontSizeLarge,
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(
+                                context,
+                              )!.tradeAddPageQuantityPlaceholder,
+                              hintStyle: const TextStyle(
+                                fontSize: AppTexts.fontSizeLarge,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 12,
+                              ),
+                            ),
+                            validator: (v) => v == null || v.isEmpty
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageQuantityError
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (isBuy || _selectedBuyRecords.isNotEmpty) ...[
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                  // 交易总额（交易货币）（单价 × 数量）
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.confirmation_number,
+                                size: 18,
+                                color: AppColors.appGrey,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageTotalLabel,
+                                  style: const TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
                               vertical: 10,
                               horizontal: 12,
                             ),
+                            child: Text(
+                              isBuy
+                                  ? ((int.tryParse(quantityController.text) ??
+                                                0) *
+                                            (double.tryParse(
+                                                  priceController.text,
+                                                ) ??
+                                                0))
+                                        .toString()
+                                  : ((_selectedBuyRecords.fold(
+                                              0.0,
+                                              (previousValue, element) =>
+                                                  previousValue +
+                                                  element.quantity,
+                                            )) *
+                                            (double.tryParse(
+                                                  priceController.text,
+                                                ) ??
+                                                0))
+                                        .toString(),
+                              style: const TextStyle(
+                                fontSize: AppTexts.fontSizeLarge,
+                                color: AppColors.appGrey,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                  // 资金货币（买入时=结算货币，卖出时=到账货币）
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.monetization_on,
+                                size: 18,
+                                color: AppColors.appGrey,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  isBuy
+                                      ? AppLocalizations.of(
+                                          context,
+                                        )!.tradeAddPageCurrencyUsedBuyLabel
+                                      : AppLocalizations.of(
+                                          context,
+                                        )!.tradeAddPageCurrencyUsedSellLabel,
+                                  style: const TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () async {
+                              final picked = await showPickerSheet<Currency>(
+                                context: context,
+                                options: Currency.values,
+                                selected: currencyUsed,
+                                display: (c) => c.displayName(context),
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  if (isBuy) {
+                                    _buyCurrencyUsed = picked;
+                                  } else {
+                                    _sellCurrencyUsed = picked;
+                                  }
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      currencyUsed.displayName(context),
+                                      style: TextStyle(
+                                        fontSize: AppTexts.fontSizeLarge,
+                                        color: Colors.black,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_drop_down,
+                                    size: 22,
+                                    color: AppColors.appGrey,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                  // 资金金额（买入时=结算金额，卖出时=到账金额）
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.attach_money,
+                                size: 18,
+                                color: AppColors.appGrey,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  isBuy
+                                      ? AppLocalizations.of(
+                                          context,
+                                        )!.tradeAddPageMoneyUsedBuyLabel
+                                      : AppLocalizations.of(
+                                          context,
+                                        )!.tradeAddPageMoneyUsedSellLabel,
+                                  style: const TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: TextFormField(
+                            controller: moneyUsedController,
+                            style: const TextStyle(
+                              fontSize: AppTexts.fontSizeLarge,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d{0,6}'),
+                              ),
+                            ],
+                            decoration: InputDecoration(
+                              hintText: isBuy
+                                  ? AppLocalizations.of(
+                                      context,
+                                    )!.tradeAddPageMoneyUsedBuyPlaceholder
+                                  : AppLocalizations.of(
+                                      context,
+                                    )!.tradeAddPageMoneyUsedSellPlaceholder,
+                              hintStyle: const TextStyle(
+                                fontSize: AppTexts.fontSizeLarge,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 12,
+                              ),
+                            ),
+                            validator: (v) => v == null || v.isEmpty
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageMoneyUsedBuyError
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                  // 备注
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.note,
+                                size: 18,
+                                color: AppColors.appGrey,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.tradeAddPageRemarkLabel,
+                                  style: const TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: TextFormField(
+                            controller: remarkController,
+                            style: const TextStyle(
+                              fontSize: AppTexts.fontSizeLarge,
+                            ),
+                            maxLines: 1,
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(
+                                context,
+                              )!.tradeAddPageRemarkPlaceholder,
+                              hintStyle: const TextStyle(
+                                fontSize: AppTexts.fontSizeLarge,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: isBuy || _selectedBuyRecords.isNotEmpty
+          ? SafeArea(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: const BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Color(0xFFE0E0E0), width: 1),
+                  ),
+                  color: Colors.white,
                 ),
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                const SizedBox(height: 20),
-                SizedBox(
+                child: SizedBox(
                   width: double.infinity,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1482,7 +1572,7 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                       child: Text(
                         AppLocalizations.of(context)!.tradeAddPageSaveLabel,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: AppTexts.fontSizeLarge,
                           //fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -1490,11 +1580,9 @@ class _TradeRecordAddPageState extends State<TradeRecordAddPage>
                     ),
                   ),
                 ),
-              ],
-            ],
-          ),
-        ),
-      ),
+              ),
+            )
+          : null,
     );
   }
 }

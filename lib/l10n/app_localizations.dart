@@ -100,38 +100,32 @@ abstract class AppLocalizations {
   /// No description provided for @tradeRecords.
   ///
   /// In en, this message translates to:
-  /// **'Trade Records'**
+  /// **'交易记录'**
   String get tradeRecords;
 
   /// No description provided for @confirmDeleteDialogTitle.
   ///
   /// In en, this message translates to:
-  /// **'Delete Confirmation'**
+  /// **'确认删除'**
   String get confirmDeleteDialogTitle;
 
   /// No description provided for @confirmDeleteDialogContent.
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to delete this record?'**
+  /// **'确定要删除这条记录吗？'**
   String get confirmDeleteDialogContent;
 
   /// No description provided for @confirmDeleteDialogDelete.
   ///
   /// In en, this message translates to:
-  /// **'Delete'**
+  /// **'删除'**
   String get confirmDeleteDialogDelete;
 
   /// No description provided for @confirmDeleteDialogCancel.
   ///
   /// In en, this message translates to:
-  /// **'Cancel'**
+  /// **'取消'**
   String get confirmDeleteDialogCancel;
-
-  /// No description provided for @error.
-  ///
-  /// In en, this message translates to:
-  /// **'发生错误'**
-  String get error;
 
   /// No description provided for @marketDataJpLabel.
   ///
@@ -193,6 +187,12 @@ abstract class AppLocalizations {
   /// **'其他'**
   String get marketDataOtherLabel;
 
+  /// No description provided for @error.
+  ///
+  /// In en, this message translates to:
+  /// **'发生错误'**
+  String get error;
+
   /// No description provided for @noTradeRecords.
   ///
   /// In en, this message translates to:
@@ -217,29 +217,23 @@ abstract class AppLocalizations {
   /// **'TOP'**
   String get mainPageTopTitle;
 
-  /// No description provided for @mainPageTradeTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'交易记录'**
-  String get mainPageTradeTitle;
-
   /// No description provided for @mainPageAccountTitle.
   ///
   /// In en, this message translates to:
   /// **'账户'**
   String get mainPageAccountTitle;
 
-  /// No description provided for @mainPageBookTitle.
+  /// No description provided for @mainPageTradeTitle.
   ///
   /// In en, this message translates to:
-  /// **'我的账本'**
-  String get mainPageBookTitle;
+  /// **'交易记录'**
+  String get mainPageTradeTitle;
 
-  /// No description provided for @mainPageWalletTitle.
+  /// No description provided for @mainPageMarketTitle.
   ///
   /// In en, this message translates to:
-  /// **'总资产'**
-  String get mainPageWalletTitle;
+  /// **'市场'**
+  String get mainPageMarketTitle;
 
   /// No description provided for @mainPageMoreTitle.
   ///
@@ -846,6 +840,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'资产构成比率'**
   String get totalCapitalTabPageTotalRateTitle;
+
+  /// No description provided for @accountTabPageTotalMoneyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'总资产  ·  '**
+  String get accountTabPageTotalMoneyTitle;
+
+  /// No description provided for @accountTabPageAccountAnalyseLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'资产分析 >'**
+  String get accountTabPageAccountAnalyseLabel;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

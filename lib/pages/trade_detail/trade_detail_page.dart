@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
+import 'package:money_nest_app/presentation/resources/app_resources.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
@@ -238,7 +239,7 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                         child: Text(
                           AppLocalizations.of(context)!.tradeDetailPageTitle,
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: AppTexts.fontSizeLarge,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -254,233 +255,244 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                       bottom: 16,
                       top: 0,
                     ),
-                    child: ListView(
-                      controller: widget.scrollController,
-                      children: [
-                        // 操作
-                        _buildRow(
-                          AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageActionLabel,
-                          'text',
-                          value: widget.record.action.displayName(context),
-                          editable: false,
-                          icon: Icons.swap_horiz,
-                        ),
-
-                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                        // 日期
-                        _buildRow(
-                          AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageTradeDateLabel,
-                          'text',
-                          value: DateFormat.yMMMd(
-                            Localizations.localeOf(context).toString(),
-                          ).add_E().format(widget.record.tradeDate.toLocal()),
-                          editable: false,
-                          icon: Icons.calendar_today,
-                        ),
-
-                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                        // 类别
-                        _buildRow(
-                          AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageTradeTypeLabel,
-                          'text',
-                          value: widget.record.tradeType.displayName,
-                          editable: false,
-                          icon: Icons.savings,
-                        ),
-
-                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                        // 市场
-                        _buildRow(
-                          AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageCategoryLabel,
-                          'text',
-                          value: marketDataList
-                              .firstWhere(
-                                (market) =>
-                                    market.code == widget.record.marketCode,
-                                orElse: () => MarketDataData(
-                                  code: '',
-                                  name: '',
-                                  sortOrder: 0,
-                                  isActive: false,
-                                  currency: '',
-                                ),
-                              )
-                              .name,
-                          editable: false,
-                          icon: Icons.public,
-                        ),
-
-                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                        // 名称
-                        FutureBuilder<MarketDataData?>(
-                          future: widget.db.getMarketDataByCode(
-                            widget.record.marketCode,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          // 操作
+                          _buildRow(
+                            AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPageActionLabel,
+                            'text',
+                            value: widget.record.action.displayName(context),
+                            editable: false,
+                            icon: Icons.swap_horiz,
                           ),
-                          builder: (context, snapshot) {
-                            String name = '';
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              name = '...';
-                            } else if (snapshot.hasData &&
-                                snapshot.data != null) {
-                              name = snapshot.data!.name;
-                            }
-                            return _buildRow(
-                              AppLocalizations.of(
+
+                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                          // 日期
+                          _buildRow(
+                            AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPageTradeDateLabel,
+                            'text',
+                            value: () {
+                              final date = widget.record.tradeDate.toLocal();
+                              final locale = Localizations.localeOf(
                                 context,
-                              )!.tradeDetailPageNameLabel,
-                              'text',
-                              value: name,
-                              editable: false,
-                              icon: Icons.business,
-                            );
-                          },
-                        ),
-
-                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                        // 代码
-                        _buildRow(
-                          AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageCodeLabel,
-                          'text',
-                          value: widget.record.code,
-                          editable: false,
-                          icon: Icons.confirmation_number,
-                        ),
-
-                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                        // 数量
-                        _buildRow(
-                          AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageNumberLabel,
-                          'text',
-                          controller: _quantityController,
-                          editable: true,
-                          icon: Icons.numbers,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          hintText: AppLocalizations.of(
-                            context,
-                          )!.tradeAddPageQuantityPlaceholder,
-                          validatorMessage: AppLocalizations.of(
-                            context,
-                          )!.tradeEditPageQuantityError,
-                          focusNode: _quantityFocusNode,
-                        ),
-
-                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                        // 币种
-                        _buildRow(
-                          AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageCurrencyLabel,
-                          'dropdown',
-                          controller: _currencyController,
-                          editable: true,
-                          icon: Icons.monetization_on,
-                          hintText: AppLocalizations.of(
-                            context,
-                          )!.tradeEditPageCurrencyPlaceholder,
-                        ),
-
-                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                        // 单价
-                        _buildRow(
-                          AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPagePriceLabel,
-                          'text',
-                          controller: _priceController,
-                          editable: true,
-                          icon: Icons.attach_money,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
+                              ).toString();
+                              final dateStr = DateFormat.yMMMd(
+                                locale,
+                              ).format(date);
+                              final weekdayStr = DateFormat.E(
+                                locale,
+                              ).format(date);
+                              return '$dateStr（$weekdayStr）';
+                            }(),
+                            editable: false,
+                            icon: Icons.calendar_today,
                           ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^\d*\.?\d{0,6}'),
-                            ),
-                          ],
-                          hintText: AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPagePriceLabel,
-                          validatorMessage: AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPagePriceError,
-                          focusNode: _priceFocusNode,
-                        ),
 
-                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                        // 备注
-                        _buildRow(
-                          AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageRemarkLabel,
-                          'text',
-                          controller: _remarkController,
-                          editable: true,
-                          icon: Icons.note,
-                          keyboardType: TextInputType.multiline,
-                          hintText: AppLocalizations.of(
-                            context,
-                          )!.tradeDetailPageRemarkPlaceholder,
-                        ),
+                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                          // 类别
+                          _buildRow(
+                            AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPageTradeTypeLabel,
+                            'text',
+                            value: widget.record.tradeType.displayName,
+                            editable: false,
+                            icon: Icons.savings,
+                          ),
 
-                        const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: ElevatedButton(
-                              style: ButtonStyle(
-                                backgroundColor: WidgetStatePropertyAll(
-                                  AppColors.appGreen,
-                                ),
-                                shape: WidgetStatePropertyAll(
-                                  RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(5),
-                                    ),
+                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                          // 市场
+                          _buildRow(
+                            AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPageCategoryLabel,
+                            'text',
+                            value: marketDataList
+                                .firstWhere(
+                                  (market) =>
+                                      market.code == widget.record.marketCode,
+                                  orElse: () => MarketDataData(
+                                    code: '',
+                                    name: '',
+                                    sortOrder: 0,
+                                    isActive: false,
+                                    currency: '',
                                   ),
-                                ),
-                                padding: WidgetStatePropertyAll(
-                                  EdgeInsets.symmetric(vertical: 8),
-                                ),
-                              ),
-                              onPressed: () {
-                                _save();
-                              },
-                              child: Text(
+                                )
+                                .name,
+                            editable: false,
+                            icon: Icons.public,
+                          ),
+
+                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                          // 名称
+                          FutureBuilder<MarketDataData?>(
+                            future: widget.db.getMarketDataByCode(
+                              widget.record.marketCode,
+                            ),
+                            builder: (context, snapshot) {
+                              String name = '';
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                name = '...';
+                              } else if (snapshot.hasData &&
+                                  snapshot.data != null) {
+                                name = snapshot.data!.name;
+                              }
+                              return _buildRow(
                                 AppLocalizations.of(
                                   context,
-                                )!.tradeEditPageUpdateButton,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  //fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
+                                )!.tradeDetailPageNameLabel,
+                                'text',
+                                value: name,
+                                editable: false,
+                                icon: Icons.business,
+                              );
+                            },
                           ),
-                        ),
-                      ],
+
+                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                          // 代码
+                          _buildRow(
+                            AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPageCodeLabel,
+                            'text',
+                            value: widget.record.code,
+                            editable: false,
+                            icon: Icons.confirmation_number,
+                          ),
+
+                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                          // 数量
+                          _buildRow(
+                            AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPageNumberLabel,
+                            'text',
+                            controller: _quantityController,
+                            editable: true,
+                            icon: Icons.numbers,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            hintText: AppLocalizations.of(
+                              context,
+                            )!.tradeAddPageQuantityPlaceholder,
+                            validatorMessage: AppLocalizations.of(
+                              context,
+                            )!.tradeEditPageQuantityError,
+                            focusNode: _quantityFocusNode,
+                          ),
+
+                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                          // 币种
+                          _buildRow(
+                            AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPageCurrencyLabel,
+                            'dropdown',
+                            controller: _currencyController,
+                            editable: true,
+                            icon: Icons.monetization_on,
+                            hintText: AppLocalizations.of(
+                              context,
+                            )!.tradeEditPageCurrencyPlaceholder,
+                          ),
+
+                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                          // 单价
+                          _buildRow(
+                            AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPagePriceLabel,
+                            'text',
+                            controller: _priceController,
+                            editable: true,
+                            icon: Icons.attach_money,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d{0,6}'),
+                              ),
+                            ],
+                            hintText: AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPagePriceLabel,
+                            validatorMessage: AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPagePriceError,
+                            focusNode: _priceFocusNode,
+                          ),
+
+                          const Divider(height: 1, color: Color(0xFFE0E0E0)),
+                          // 备注
+                          _buildRow(
+                            AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPageRemarkLabel,
+                            'text',
+                            controller: _remarkController,
+                            editable: true,
+                            icon: Icons.note,
+                            keyboardType: TextInputType.multiline,
+                            hintText: AppLocalizations.of(
+                              context,
+                            )!.tradeDetailPageRemarkPlaceholder,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: const BoxDecoration(
+            border: Border(top: BorderSide(color: Color(0xFFE0E0E0), width: 1)),
+            color: Colors.white,
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor: WidgetStatePropertyAll(AppColors.appGreen),
+                  shape: WidgetStatePropertyAll(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(5)),
+                    ),
+                  ),
+                  padding: WidgetStatePropertyAll(
+                    EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+                onPressed: () {
+                  _save();
+                },
+                child: Text(
+                  AppLocalizations.of(context)!.tradeEditPageUpdateButton,
+                  style: const TextStyle(
+                    fontSize: AppTexts.fontSizeLarge,
+                    //fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -510,12 +522,12 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
             width: 80,
             child: Row(
               children: [
-                Icon(icon, size: 18, color: Colors.grey),
+                Icon(icon, size: 18, color: AppColors.appGrey),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
                     label,
-                    style: const TextStyle(fontSize: 15),
+                    style: const TextStyle(fontSize: AppTexts.fontSizeLarge),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -529,7 +541,7 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                           controller: controller,
                           focusNode: focusNode ?? FocusNode(),
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: AppTexts.fontSizeLarge,
                             //color: Colors.black
                           ),
                           keyboardType: keyboardType,
@@ -537,7 +549,9 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                           enabled: editable, // 只读时禁用
                           decoration: InputDecoration(
                             hintText: hintText,
-                            hintStyle: const TextStyle(fontSize: 15),
+                            hintStyle: const TextStyle(
+                              fontSize: AppTexts.fontSizeLarge,
+                            ),
                             border: InputBorder.none,
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(
@@ -559,8 +573,8 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                           child: Text(
                             value ?? '',
                             style: const TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey,
+                              fontSize: AppTexts.fontSizeLarge,
+                              color: AppColors.appGrey,
                             ),
                           ),
                         ))
@@ -596,10 +610,10 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                                       context,
                                     )!.tradeEditPageCurrencyPlaceholder,
                               style: TextStyle(
-                                fontSize: 15,
+                                fontSize: AppTexts.fontSizeLarge,
                                 color: controller?.text != null
                                     ? Colors.black
-                                    : Colors.grey,
+                                    : AppColors.appGrey,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -607,7 +621,7 @@ class _TradeRecordDetailPageState extends State<TradeRecordDetailPage> {
                           const Icon(
                             Icons.arrow_drop_down,
                             size: 22,
-                            color: Colors.grey,
+                            color: AppColors.appGrey,
                           ),
                         ],
                       ),

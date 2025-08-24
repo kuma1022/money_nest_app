@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:money_nest_app/presentation/resources/app_resources.dart';
 
 class Indicator extends StatelessWidget {
   const Indicator({
@@ -31,7 +32,7 @@ class Indicator extends StatelessWidget {
         Text(
           text,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: AppTexts.fontSizeLarge,
             fontWeight: FontWeight.bold,
             color: textColor,
           ),

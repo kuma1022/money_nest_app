@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:money_nest_app/models/currency.dart';
+import 'package:money_nest_app/presentation/resources/app_resources.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
@@ -9,14 +11,14 @@ import 'package:money_nest_app/pages/main_page.dart';
 import 'package:money_nest_app/util/provider/stocks_provider.dart';
 import 'package:provider/provider.dart';
 
-final db = AppDatabase();
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final db = AppDatabase();
 
   // 这里提前初始化 marketData
   await _initDefaultCategories(db);
+  // 这里提前初始化 stocks
+  await _initDefaultStocks(db);
 
   final marketDataProvider = MarketDataProvider(db);
   final buyRecordsProvider = BuyRecordsProvider(db);
@@ -51,6 +53,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
             code: 'JP',
             name: 'marketDataJpLabel',
             currency: Value('JPY'),
+            surfix: Value('.T'),
             colorHex: Value(0xFF21CBF3),
             sortOrder: Value(1),
             isActive: Value(true),
@@ -63,6 +66,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
             code: 'US',
             name: 'marketDataUsLabel',
             currency: Value('USD'),
+            surfix: Value(''),
             colorHex: Value(0xFF21F3B2),
             sortOrder: Value(2),
             isActive: Value(true),
@@ -75,6 +79,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
             code: 'FUND',
             name: 'marketDataFundLabel',
             currency: Value(''),
+            surfix: Value(''),
             colorHex: Value(0xFFB221F3),
             sortOrder: Value(3),
             isActive: Value(true),
@@ -87,6 +92,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
             code: 'ETF',
             name: 'marketDataEtfLabel',
             currency: Value(''),
+            surfix: Value(''),
             colorHex: Value(0xFFF3B221),
             sortOrder: Value(4),
             isActive: Value(true),
@@ -99,6 +105,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
             code: 'OPTION',
             name: 'marketDataOptionLabel',
             currency: Value(''),
+            surfix: Value(''),
             colorHex: Value(0xFFF3E721),
             sortOrder: Value(5),
             isActive: Value(true),
@@ -111,6 +118,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
             code: 'CRYPTO',
             name: 'marketDataCryptoLabel',
             currency: Value(''),
+            surfix: Value('-USD'),
             colorHex: Value(0xFF7E21F3),
             sortOrder: Value(6),
             isActive: Value(true),
@@ -123,6 +131,7 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
             code: 'FOREX',
             name: 'marketDataForexLabel',
             currency: Value(''),
+            surfix: Value('=X'),
             colorHex: Value(0xFF96F321),
             sortOrder: Value(7),
             isActive: Value(true),
@@ -135,20 +144,9 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
             code: 'HK',
             name: 'marketDataHkLabel',
             currency: Value('HKD'),
+            surfix: Value('.HK'),
             colorHex: Value(0xFFBFBFBF),
             sortOrder: Value(8),
-            isActive: Value(true),
-          ),
-        );
-    await db
-        .into(db.marketData)
-        .insert(
-          MarketDataCompanion.insert(
-            code: 'SHSZ',
-            name: 'marketDataShszLabel',
-            currency: Value('CNY'),
-            colorHex: Value(0xFFC4C0CE),
-            sortOrder: Value(9),
             isActive: Value(true),
           ),
         );
@@ -167,6 +165,31 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
   }
 }
 
+Future<void> _initDefaultStocks(AppDatabase db) async {
+  for (final fromCurrency in Currency.values) {
+    for (final toCurrency in Currency.values) {
+      if (fromCurrency == toCurrency) continue;
+      // 这里提前初始化 stocks（fromCurrency, toCurrency）
+      final code = fromCurrency.code == Currency.usd.code
+          ? toCurrency.code
+          : '${fromCurrency.code}${toCurrency.code}';
+      // 判断是否已经存在数据
+      final isExists = await db.isStockExists(code);
+      if (isExists) continue;
+      await db
+          .into(db.stocks)
+          .insert(
+            StocksCompanion.insert(
+              code: code,
+              name: code,
+              marketCode: 'FOREX',
+              currency: toCurrency.code,
+            ),
+          );
+    }
+  }
+}
+
 class MyApp extends StatelessWidget {
   final AppDatabase db;
   const MyApp({super.key, required this.db});
@@ -176,7 +199,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'MoneyGrow',
+      title: AppTexts.appName,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
