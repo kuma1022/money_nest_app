@@ -852,6 +852,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'资产分析 >'**
   String get accountTabPageAccountAnalyseLabel;
+
+  /// No description provided for @accountTabPageRefreshStatusIdleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'下拉刷新'**
+  String get accountTabPageRefreshStatusIdleLabel;
+
+  /// No description provided for @accountTabPageRefreshStatusCanRefreshLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'释放立即刷新'**
+  String get accountTabPageRefreshStatusCanRefreshLabel;
+
+  /// No description provided for @accountTabPageRefreshStatusRefreshingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'刷新中...'**
+  String get accountTabPageRefreshStatusRefreshingLabel;
+
+  /// No description provided for @accountTabPageRefreshStatusCompletedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'刷新完成'**
+  String get accountTabPageRefreshStatusCompletedLabel;
+
+  /// No description provided for @accountTabPageUpadateAtTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'更新时间'**
+  String get accountTabPageUpadateAtTimeLabel;
+
+  /// No description provided for @accountTabPageStockWalletTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'持仓'**
+  String get accountTabPageStockWalletTitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

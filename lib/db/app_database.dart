@@ -206,7 +206,12 @@ class AppDatabase extends _$AppDatabase {
       final sold = soldMap[b.id] ?? 0;
       final remain = b.quantity - sold;
       if (remain > 0) {
-        result.add(b.copyWith(quantity: remain));
+        result.add(
+          b.copyWith(
+            quantity: remain,
+            moneyUsed: b.moneyUsed * (remain / b.quantity),
+          ),
+        );
       }
     }
     return result;

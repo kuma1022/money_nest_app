@@ -124,5 +124,11 @@
   "totalCapitalTabPageCurrentProfitAndLossLabel": "当前盈亏",
   "totalCapitalTabPageTotalRateTitle": "资产构成比率",
   "accountTabPageTotalMoneyTitle": "总资产  ·  ",
-  "accountTabPageAccountAnalyseLabel": "资产分析 >"
+  "accountTabPageAccountAnalyseLabel": "资产分析 >",
+  "accountTabPageRefreshStatusIdleLabel": "下拉刷新",
+  "accountTabPageRefreshStatusCanRefreshLabel": "释放立即刷新",
+  "accountTabPageRefreshStatusRefreshingLabel": "刷新中...",
+  "accountTabPageRefreshStatusCompletedLabel": "刷新完成",
+  "accountTabPageUpadateAtTimeLabel": "更新时间",
+  "accountTabPageStockWalletTitle": "持仓"
 }

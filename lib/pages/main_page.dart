@@ -280,7 +280,8 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                   }
                   if (index == 1) {
                     // 1为账户tab的索引
-                    accountTabPageKey.currentState?.setState(() {});
+                    accountTabPageKey.currentState?.refreshController
+                        .requestRefresh();
                   }
                 });
               },

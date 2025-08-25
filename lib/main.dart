@@ -2,6 +2,8 @@ import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
+import 'package:money_nest_app/models/trade_action.dart';
+import 'package:money_nest_app/models/trade_type.dart';
 import 'package:money_nest_app/presentation/resources/app_resources.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
@@ -19,6 +21,8 @@ void main() async {
   await _initDefaultCategories(db);
   // 这里提前初始化 stocks
   await _initDefaultStocks(db);
+  // 这里提前初始化 buyRecords（为了测试）
+  await _initDefaultBuyRecords(db);
 
   final marketDataProvider = MarketDataProvider(db);
   final buyRecordsProvider = BuyRecordsProvider(db);
@@ -188,6 +192,143 @@ Future<void> _initDefaultStocks(AppDatabase db) async {
           );
     }
   }
+}
+
+Future<void> _initDefaultBuyRecords(AppDatabase db) async {
+  if ((await db.select(db.tradeRecords).get()).isNotEmpty) {
+    return;
+  }
+  await db
+      .into(db.stocks)
+      .insert(
+        StocksCompanion.insert(
+          code: '7453',
+          name: '良品计划',
+          marketCode: 'JP',
+          currency: Currency.jpy.code,
+        ),
+      );
+  await db
+      .into(db.stocks)
+      .insert(
+        StocksCompanion.insert(
+          code: 'KO',
+          name: '可口可乐',
+          marketCode: 'US',
+          currency: Currency.usd.code,
+        ),
+      );
+  await db
+      .into(db.stocks)
+      .insert(
+        StocksCompanion.insert(
+          code: 'UNH',
+          name: '联合健康',
+          marketCode: 'US',
+          currency: Currency.usd.code,
+        ),
+      );
+  await db
+      .into(db.tradeRecords)
+      .insert(
+        TradeRecordsCompanion.insert(
+          tradeDate: DateTime(2025, 7, 23),
+          action: TradeAction.buy,
+          tradeType: TradeType.normal,
+          code: '7453',
+          quantity: 100,
+          price: 6800,
+          currency: Currency.jpy,
+          currencyUsed: Currency.jpy,
+          moneyUsed: 680000,
+          marketCode: 'JP',
+        ),
+      );
+  await db
+      .into(db.tradeRecords)
+      .insert(
+        TradeRecordsCompanion.insert(
+          tradeDate: DateTime(2025, 7, 28),
+          action: TradeAction.sell,
+          tradeType: TradeType.normal,
+          code: '7453',
+          quantity: 100,
+          price: 7200,
+          currency: Currency.jpy,
+          currencyUsed: Currency.jpy,
+          moneyUsed: 720000,
+          marketCode: 'JP',
+        ),
+      );
+  await db
+      .into(db.tradeSellMappings)
+      .insert(
+        TradeSellMappingsCompanion.insert(buyId: 1, sellId: 2, quantity: 100),
+      );
+  await db
+      .into(db.tradeRecords)
+      .insert(
+        TradeRecordsCompanion.insert(
+          tradeDate: DateTime(2025, 8, 4),
+          action: TradeAction.buy,
+          tradeType: TradeType.normal,
+          code: 'KO',
+          quantity: 3,
+          price: 68.55,
+          currency: Currency.usd,
+          currencyUsed: Currency.usd,
+          moneyUsed: 205.65,
+          marketCode: 'US',
+        ),
+      );
+  await db
+      .into(db.tradeRecords)
+      .insert(
+        TradeRecordsCompanion.insert(
+          tradeDate: DateTime(2025, 8, 18),
+          action: TradeAction.buy,
+          tradeType: TradeType.normal,
+          code: 'UNH',
+          quantity: 2,
+          price: 309.5,
+          currency: Currency.usd,
+          currencyUsed: Currency.usd,
+          moneyUsed: 619,
+          marketCode: 'US',
+        ),
+      );
+  await db
+      .into(db.tradeRecords)
+      .insert(
+        TradeRecordsCompanion.insert(
+          tradeDate: DateTime(2025, 8, 18),
+          action: TradeAction.buy,
+          tradeType: TradeType.normal,
+          code: 'UNH',
+          quantity: 2,
+          price: 311,
+          currency: Currency.usd,
+          currencyUsed: Currency.usd,
+          moneyUsed: 622,
+          marketCode: 'US',
+        ),
+      );
+  await db
+      .into(db.tradeRecords)
+      .insert(
+        TradeRecordsCompanion.insert(
+          tradeDate: DateTime(2025, 8, 21),
+          action: TradeAction.buy,
+          tradeType: TradeType.normal,
+          code: '7453',
+          quantity: 100,
+          price: 6985,
+          currency: Currency.jpy,
+          currencyUsed: Currency.jpy,
+          moneyUsed: 698500,
+          marketCode: 'JP',
+        ),
+      );
 }
 
 class MyApp extends StatelessWidget {

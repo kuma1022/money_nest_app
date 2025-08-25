@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
-import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_resources.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
@@ -61,7 +60,7 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                     const SizedBox(width: 8),
                     Switch(
                       value: isCashExcluded,
-                      activeThumbColor: AppColors.appGreen,
+                      //activeThumbColor: AppColors.appGreen,
                       inactiveThumbColor: Colors.white,
                       inactiveTrackColor: AppColors.appLightGrey,
                       onChanged: (v) {

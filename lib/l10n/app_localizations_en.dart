@@ -385,4 +385,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountTabPageAccountAnalyseLabel => '资产分析 >';
+
+  @override
+  String get accountTabPageRefreshStatusIdleLabel => '下拉刷新';
+
+  @override
+  String get accountTabPageRefreshStatusCanRefreshLabel => '释放立即刷新';
+
+  @override
+  String get accountTabPageRefreshStatusRefreshingLabel => '刷新中...';
+
+  @override
+  String get accountTabPageRefreshStatusCompletedLabel => '刷新完成';
+
+  @override
+  String get accountTabPageUpadateAtTimeLabel => '更新时间';
+
+  @override
+  String get accountTabPageStockWalletTitle => '持仓';
 }

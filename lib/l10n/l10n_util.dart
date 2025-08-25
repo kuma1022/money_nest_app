@@ -3,6 +3,10 @@ import 'package:money_nest_app/l10n/app_localizations.dart';
 
 String getL10nString(BuildContext context, String key) {
   final l10n = AppLocalizations.of(context)!;
+  return getL10nStringFromL10n(l10n, key);
+}
+
+String getL10nStringFromL10n(AppLocalizations l10n, String key) {
   final map = <String, String>{
     'marketDataJpLabel': l10n.marketDataJpLabel,
     'marketDataUsLabel': l10n.marketDataUsLabel,
