@@ -208,6 +208,7 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
               endIndent: 0,
             ),
             BottomNavigationBar(
+              backgroundColor: Colors.grey[100],
               items: [
                 BottomNavigationBarItem(
                   icon: Icon(Icons.home_outlined, color: AppColors.appDarkGrey),

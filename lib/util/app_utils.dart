@@ -55,6 +55,7 @@ class AppUtils {
     );
 
     final data = jsonDecode(response.body);
+    print(data);
     // 解析返回的股票价格数据
     return {
       for (var stock in data['body'])
