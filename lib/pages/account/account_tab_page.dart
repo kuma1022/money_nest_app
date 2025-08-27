@@ -155,25 +155,37 @@ class AccountTabPageState extends State<AccountTabPage> {
     final stockMap = {for (var stock in stocks) stock.code: stock};
 
     setState(
-      () => _totalProfit = records.fold<double>(
-        0,
-        (sum, r) =>
-            sum +
-            (r.quantity *
-                        (stockMap[r.code]?.currentPrice ?? 0) *
-                        (r.currency.code != 'USD'
-                            ? stockMap['${r.currency.code}${r.currencyUsed.code}']
-                                      ?.currentPrice ??
-                                  1
-                            : stockMap[r.currencyUsed.code]?.currentPrice ??
-                                  1) -
-                    r.moneyUsed) *
-                (r.currencyUsed.code != 'USD'
-                    ? (stockMap['${r.currencyUsed.code}${_selectedCurrency.code}']
-                              ?.currentPrice ??
-                          1)
-                    : (stockMap[_selectedCurrency.code]?.currentPrice ?? 1)),
-      ),
+      () => _totalProfit = records.fold<double>(0, (sum, r) {
+        final stock = stockMap[r.code];
+        final currentPrice = stock?.currentPrice ?? r.price;
+        final stockCurrency = stock?.currency ?? r.currencyUsed.code;
+
+        // 1. 当前市值换算成 moneyUsed 币种
+        double fxToMoneyUsed = 1.0;
+        if (stockCurrency != r.currencyUsed.code) {
+          final fxCode = stockCurrency != 'USD'
+              ? '$stockCurrency${r.currencyUsed.code}'
+              : r.currencyUsed.code;
+          fxToMoneyUsed = stockMap[fxCode]?.currentPrice ?? 1.0;
+        }
+        final marketValueInMoneyUsed =
+            r.quantity * currentPrice * fxToMoneyUsed;
+
+        // 2. 盈亏（moneyUsed币种）
+        final profitInMoneyUsed = marketValueInMoneyUsed - r.moneyUsed;
+
+        // 3. 盈亏换算成当前选中币种
+        double fxToSelected = 1.0;
+        if (r.currencyUsed.code != _selectedCurrency.code) {
+          final fxCode = r.currencyUsed.code != 'USD'
+              ? '${r.currencyUsed.code}${_selectedCurrency.code}'
+              : _selectedCurrency.code;
+          fxToSelected = stockMap[fxCode]?.currentPrice ?? 1.0;
+        }
+        final profitInSelected = profitInMoneyUsed * fxToSelected;
+
+        return sum + profitInSelected;
+      }),
     );
 
     // 计算总盈亏
@@ -848,190 +860,247 @@ class _AccountItem extends StatelessWidget {
               color: Colors.transparent,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Column(
-              children: [
-                // 表头
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 4,
-                    horizontal: 4,
-                  ),
-                  child: Row(
-                    children: const [
-                      Expanded(
-                        flex: 35,
-                        child: Text(
-                          '名称代码',
-                          style: TextStyle(
-                            fontSize: AppTexts.fontSizeSmall,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 25,
-                        child: Text(
-                          '市值/数量',
-                          style: TextStyle(
-                            fontSize: AppTexts.fontSizeSmall,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 20,
-                        child: Text(
-                          '现价/成本',
-                          style: TextStyle(
-                            fontSize: AppTexts.fontSizeSmall,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 20,
-                        child: Text(
-                          '持仓占比',
-                          style: TextStyle(
-                            fontSize: AppTexts.fontSizeSmall,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1, color: Color(0xFFE0E0E0)),
-                // 数据行
-                ...data.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final row = entry.value;
-                  return Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 6,
-                          horizontal: 4,
-                        ),
-                        child: Row(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.vertical,
+              child: SizedBox(
+                height: data.length * 48.0 + 40, // 估算高度
+                child: Stack(
+                  children: [
+                    // 右侧可滑动部分
+                    Padding(
+                      padding: const EdgeInsets.only(left: 90),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Column(
                           children: [
-                            Expanded(
-                              flex: 35,
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 0,
-                                ), // 左边留点空
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      assetVisible ? row['name']! : '*****',
-                                      style: const TextStyle(
-                                        fontSize: AppTexts.fontSizeSmall,
-                                      ),
+                            // 表头
+                            Row(
+                              children: const [
+                                SizedBox(
+                                  width: 110,
+                                  child: Text(
+                                    '市值/数量',
+                                    style: TextStyle(
+                                      fontSize: AppTexts.fontSizeSmall,
+                                      color: Colors.black54,
                                     ),
-                                    Text(
-                                      assetVisible ? row['code']! : '***',
-                                      style: const TextStyle(
-                                        fontSize: AppTexts.fontSizeMini,
-                                        color: Colors.black54,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
+                                SizedBox(
+                                  width: 90,
+                                  child: Text(
+                                    '现价/成本',
+                                    style: TextStyle(
+                                      fontSize: AppTexts.fontSizeSmall,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 80,
+                                  child: Text(
+                                    '持仓占比',
+                                    style: TextStyle(
+                                      fontSize: AppTexts.fontSizeSmall,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 90,
+                                  child: Text(
+                                    '当前盈亏',
+                                    style: TextStyle(
+                                      fontSize: AppTexts.fontSizeSmall,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            // 右侧表头下方也加 Divider
+                            SizedBox(
+                              width: 370, // 110+90+80+90
+                              child: Divider(
+                                thickness: 1,
+                                color: Color(0xFFE0E0E0),
                               ),
                             ),
-                            Expanded(
-                              flex: 25,
-                              child: Padding(
+                            // 数据行
+                            ...data.asMap().entries.map((entry) {
+                              final row = entry.value;
+                              final double marketValue =
+                                  double.tryParse(
+                                    row['marketValue']!.replaceAll(',', ''),
+                                  ) ??
+                                  0;
+                              final double cost =
+                                  double.tryParse(
+                                    row['cost']!.replaceAll(',', ''),
+                                  ) ??
+                                  0;
+                              final double profit = marketValue - cost;
+                              final profitStr =
+                                  (profit > 0
+                                      ? '+'
+                                      : profit < 0
+                                      ? '-'
+                                      : '') +
+                                  NumberFormat('#,##0.00').format(profit.abs());
+                              return Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ), // 左右都留点空
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  vertical: 6,
+                                ), // 行高
+                                child: Row(
                                   children: [
-                                    Text(
-                                      assetVisible
-                                          ? row['marketValue']!
-                                          : '***',
-                                      style: const TextStyle(
-                                        fontSize: AppTexts.fontSizeSmall,
+                                    SizedBox(
+                                      width: 110,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            assetVisible
+                                                ? row['marketValue']!
+                                                : '***',
+                                            style: const TextStyle(
+                                              fontSize: AppTexts.fontSizeSmall,
+                                            ),
+                                          ),
+                                          Text(
+                                            assetVisible
+                                                ? row['quantity']!
+                                                : '***',
+                                            style: const TextStyle(
+                                              fontSize: AppTexts.fontSizeMini,
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    Text(
-                                      assetVisible ? row['quantity']! : '***',
-                                      style: const TextStyle(
-                                        fontSize: AppTexts.fontSizeMini,
-                                        color: Colors.black54,
+                                    SizedBox(
+                                      width: 90,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            assetVisible
+                                                ? row['marketPrice']!
+                                                : '***',
+                                            style: const TextStyle(
+                                              fontSize: AppTexts.fontSizeSmall,
+                                            ),
+                                          ),
+                                          Text(
+                                            assetVisible
+                                                ? row['costPrice']!
+                                                : '***',
+                                            style: const TextStyle(
+                                              fontSize: AppTexts.fontSizeMini,
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 80,
+                                      child: Text(
+                                        assetVisible ? row['position']! : '***',
+                                        style: const TextStyle(
+                                          fontSize: AppTexts.fontSizeSmall,
+                                        ),
+                                        textAlign: TextAlign.end,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 90,
+                                      child: Text(
+                                        assetVisible ? profitStr : '***',
+                                        style: TextStyle(
+                                          fontSize: AppTexts.fontSizeSmall,
+                                          color: profit > 0
+                                              ? AppColors.appUpGreen
+                                              : profit < 0
+                                              ? AppColors.appDownRed
+                                              : Colors.black,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.end,
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 20,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      assetVisible
-                                          ? row['marketPrice']!
-                                          : '***',
-                                      style: const TextStyle(
-                                        fontSize: AppTexts.fontSizeSmall,
-                                      ),
-                                    ),
-                                    Text(
-                                      assetVisible ? row['costPrice']! : '***',
-                                      style: const TextStyle(
-                                        fontSize: AppTexts.fontSizeMini,
-                                        color: Colors.black54,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 20,
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                  right: 0,
-                                ), // 右边留点空
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      assetVisible ? row['position']! : '***',
-                                      style: const TextStyle(
-                                        fontSize: AppTexts.fontSizeSmall,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                              );
+                            }),
                           ],
                         ),
                       ),
-                      // 除最后一行外，每行下方加分割线
-                      if (idx != data.length - 1)
-                        const Divider(
-                          color: AppColors.appLightGrey,
-                          height: 1,
-                          thickness: 1,
-                          indent: 0,
-                          endIndent: 0,
+                    ),
+                    // 左侧固定列
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: SizedBox(
+                        width: 90,
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 左侧表头
+                              Container(
+                                height: 21, // 与右侧表头一致
+                                alignment: Alignment.centerLeft,
+                                child: const Text(
+                                  '名称代码',
+                                  style: TextStyle(
+                                    fontSize: AppTexts.fontSizeSmall,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ),
+                              // 左侧表头下方也加 Divider
+                              const Divider(
+                                thickness: 1,
+                                color: Color(0xFFE0E0E0),
+                              ),
+                              ...data.map(
+                                (row) => Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                  ), // 行高
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        assetVisible ? row['name']! : '*****',
+                                        style: const TextStyle(
+                                          fontSize: AppTexts.fontSizeSmall,
+                                        ),
+                                      ),
+                                      Text(
+                                        assetVisible ? row['code']! : '***',
+                                        style: const TextStyle(
+                                          fontSize: AppTexts.fontSizeMini,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                    ],
-                  );
-                }),
-              ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

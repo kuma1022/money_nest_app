@@ -713,11 +713,11 @@ Future<void> _initDefaultBuyRecords(AppDatabase db) async {
       'tradeType': TradeType.normal,
       'marketCode': 'JP',
       'code': '8963',
-      'quantity': 1,
+      'quantity': 2,
       'price': 58490,
       'currency': Currency.jpy,
       'currencyUsed': Currency.jpy,
-      'moneyUsed': 58490,
+      'moneyUsed': 116980,
     },
   ];
 
