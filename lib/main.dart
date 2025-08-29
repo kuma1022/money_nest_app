@@ -761,12 +761,13 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.appWhite, // 整体背景颜色
+        fontFamily: 'NotoSansJP', // 日文
         fontFamilyFallback: [
-          'PingFang SC', // 中文
-          'Hiragino Sans', // 日文
-          'San Francisco', // 英文
-          'Helvetica Neue',
-          'Arial',
+          'NotoSansSC', // 简体中文
+          'NotoSansTC', // 繁体中文
+          'NotoSans', // 英文
+          'Roboto',
+          'sans-serif',
         ],
       ),
       localizationsDelegates: const [

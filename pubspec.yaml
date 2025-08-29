@@ -117,3 +117,24 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  fonts:
+    - family: NotoSansJP
+      fonts:
+        - asset: assets/fonts/NotoSansCJKjp-Regular.otf
+        - asset: assets/fonts/NotoSansCJKjp-Bold.otf
+          weight: 700
+    - family: NotoSansSC
+      fonts:
+        - asset: assets/fonts/NotoSansCJKsc-Regular.otf
+        - asset: assets/fonts/NotoSansCJKsc-Bold.otf
+          weight: 700
+    - family: NotoSansTC
+      fonts:
+        - asset: assets/fonts/NotoSansCJKtc-Regular.otf
+        - asset: assets/fonts/NotoSansCJKtc-Bold.otf
+          weight: 700
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+        - asset: assets/fonts/NotoSans-Bold.ttf
+          weight: 700

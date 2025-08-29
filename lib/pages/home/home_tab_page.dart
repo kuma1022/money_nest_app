@@ -11,8 +11,9 @@ import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class HomeTabPage extends StatefulWidget {
   final AppDatabase db;
+  final VoidCallback? onPortfolioTap;
 
-  const HomeTabPage({super.key, required this.db});
+  const HomeTabPage({super.key, required this.db, this.onPortfolioTap});
 
   @override
   State<HomeTabPage> createState() => HomeTabPageState();
@@ -488,9 +489,9 @@ class HomeTabPageState extends State<HomeTabPage> {
                                 setState(() => showAddTransaction = true),
                           ),
                           _QuickActionButton(
-                            icon: Icons.remove_red_eye,
+                            icon: Icons.pie_chart_outline,
                             label: 'ポートフォリオ',
-                            onTap: () {},
+                            onTap: () => widget.onPortfolioTap?.call(),
                           ),
                           _QuickActionButton(
                             icon: Icons.download,

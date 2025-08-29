@@ -28,7 +28,15 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
   String _searchKeyword = '';
 
   late final List<Widget> _pages = [
-    HomeTabPage(key: homeTabPageKey, db: widget.db),
+    HomeTabPage(
+      key: homeTabPageKey,
+      db: widget.db,
+      onPortfolioTap: () {
+        setState(() {
+          _currentIndex = 1; // 1为ポートフォリオTab的index
+        });
+      },
+    ),
     AccountTabPage(key: accountTabPageKey, db: widget.db), // 账户tab
     TradeTabPage(db: widget.db), // 交易明细tab
     //TotalCapitalTabPage(db: widget.db), // 资产总览tab
