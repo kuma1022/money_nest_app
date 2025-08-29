@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/pages/account/account_tab_page.dart';
+import 'package:money_nest_app/pages/home/home_tab_page.dart';
 import 'package:money_nest_app/pages/trade_detail/trade_tab_page.dart';
 import 'package:money_nest_app/pages/search_result/search_result_list.dart';
 import 'package:money_nest_app/presentation/resources/app_resources.dart';
@@ -21,11 +22,13 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
   final FocusNode _searchFocusNode = FocusNode();
   final GlobalKey<AccountTabPageState> accountTabPageKey =
       GlobalKey<AccountTabPageState>();
+  final GlobalKey<HomeTabPageState> homeTabPageKey =
+      GlobalKey<HomeTabPageState>();
 
   String _searchKeyword = '';
 
   late final List<Widget> _pages = [
-    Center(child: Text(AppLocalizations.of(context)!.mainPageTopTitle)),
+    HomeTabPage(key: homeTabPageKey, db: widget.db),
     AccountTabPage(key: accountTabPageKey, db: widget.db), // 账户tab
     TradeTabPage(db: widget.db), // 交易明细tab
     //TotalCapitalTabPage(db: widget.db), // 资产总览tab
@@ -217,13 +220,10 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(
-                    Icons.account_balance_wallet_outlined,
+                    Icons.pie_chart_outline,
                     color: AppColors.appDarkGrey,
                   ),
-                  activeIcon: Icon(
-                    Icons.account_balance_wallet,
-                    color: AppColors.appGreen,
-                  ),
+                  activeIcon: Icon(Icons.pie_chart, color: AppColors.appGreen),
                   label: AppLocalizations.of(context)!.mainPageAccountTitle,
                 ),
                 BottomNavigationBarItem(
@@ -264,11 +264,11 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
               showUnselectedLabels: true,
               selectedLabelStyle: const TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: AppTexts.fontSizeSmall,
+                fontSize: AppTexts.fontSizeMini,
               ),
               unselectedLabelStyle: const TextStyle(
                 fontWeight: FontWeight.normal,
-                fontSize: AppTexts.fontSizeSmall,
+                fontSize: AppTexts.fontSizeMini,
               ),
               onTap: (index) {
                 setState(() {
@@ -279,10 +279,19 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                     _searchController.clear();
                     _searchFocusNode.unfocus();
                   }
+                  if (index == 0) {
+                    // 0为Home tab的索引
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      homeTabPageKey.currentState?.refreshController
+                          .requestRefresh();
+                    });
+                  }
                   if (index == 1) {
                     // 1为账户tab的索引
-                    accountTabPageKey.currentState?.refreshController
-                        .requestRefresh();
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      accountTabPageKey.currentState?.refreshController
+                          .requestRefresh();
+                    });
                   }
                 });
               },

@@ -69,16 +69,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainPageTopTitle => 'TOP';
 
   @override
-  String get mainPageAccountTitle => '账户';
+  String get mainPageAccountTitle => 'ポートフォリオ';
 
   @override
-  String get mainPageTradeTitle => '交易记录';
+  String get mainPageTradeTitle => '取引履歴';
 
   @override
   String get mainPageMarketTitle => '市场';
 
   @override
-  String get mainPageMoreTitle => '更多';
+  String get mainPageMoreTitle => '設定';
 
   @override
   String get mainPageSearchHint => '输入名称或代码搜索';
@@ -403,4 +403,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get accountTabPageStockWalletTitle => '持仓';
+
+  @override
+  String get homeTabPageTotalAssetLabel => '資産総額';
 }

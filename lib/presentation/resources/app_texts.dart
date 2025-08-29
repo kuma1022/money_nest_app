@@ -6,6 +6,6 @@ class AppTexts {
   static const fontSizeSmall = 14.0;
   static const fontSizeMedium = 16.0;
   static const fontSizeLarge = 17.0;
-  static const fontSizeExtraLarge = 20.0;
+  static const fontSizeExtraLarge = 22.0;
   static const fontSizeHuge = 32.0;
 }

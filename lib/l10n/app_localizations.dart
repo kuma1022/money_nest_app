@@ -220,13 +220,13 @@ abstract class AppLocalizations {
   /// No description provided for @mainPageAccountTitle.
   ///
   /// In en, this message translates to:
-  /// **'账户'**
+  /// **'ポートフォリオ'**
   String get mainPageAccountTitle;
 
   /// No description provided for @mainPageTradeTitle.
   ///
   /// In en, this message translates to:
-  /// **'交易记录'**
+  /// **'取引履歴'**
   String get mainPageTradeTitle;
 
   /// No description provided for @mainPageMarketTitle.
@@ -238,7 +238,7 @@ abstract class AppLocalizations {
   /// No description provided for @mainPageMoreTitle.
   ///
   /// In en, this message translates to:
-  /// **'更多'**
+  /// **'設定'**
   String get mainPageMoreTitle;
 
   /// No description provided for @mainPageSearchHint.
@@ -888,6 +888,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'持仓'**
   String get accountTabPageStockWalletTitle;
+
+  /// No description provided for @homeTabPageTotalAssetLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'資産総額'**
+  String get homeTabPageTotalAssetLabel;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

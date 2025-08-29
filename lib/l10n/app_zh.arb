@@ -19,10 +19,10 @@
   "tradeTabPageNumber": "数量",
   "tradeTabPagePrice": "价格",
   "mainPageTopTitle": "TOP",
-  "mainPageAccountTitle": "账户",
-  "mainPageTradeTitle": "交易记录",
+  "mainPageAccountTitle": "ポートフォリオ",
+  "mainPageTradeTitle": "取引履歴",
   "mainPageMarketTitle": "市场",
-  "mainPageMoreTitle": "更多",
+  "mainPageMoreTitle": "設定",
   "mainPageSearchHint": "输入名称或代码搜索",
   "mainPageSearchCancel": "取消",
   "tradeAddPageTitle": "添加交易记录",
@@ -130,5 +130,6 @@
   "accountTabPageRefreshStatusRefreshingLabel": "刷新中...",
   "accountTabPageRefreshStatusCompletedLabel": "刷新完成",
   "accountTabPageUpadateAtTimeLabel": "更新时间",
-  "accountTabPageStockWalletTitle": "持仓"
+  "accountTabPageStockWalletTitle": "持仓",
+  "homeTabPageTotalAssetLabel": "資産総額"
 }
