@@ -418,7 +418,7 @@ class HomeTabPageState extends State<HomeTabPage> {
                                 width: 24,
                                 height: 20 + (height > 0 ? height : 0),
                                 decoration: BoxDecoration(
-                                  color: Colors.blue[700],
+                                  color: AppColors.appBlue,
                                   borderRadius: const BorderRadius.vertical(
                                     top: Radius.circular(6),
                                   ),
@@ -487,21 +487,25 @@ class HomeTabPageState extends State<HomeTabPage> {
                             label: '取引追加',
                             onTap: () =>
                                 setState(() => showAddTransaction = true),
+                            iconColor: AppColors.appGreen,
                           ),
                           _QuickActionButton(
                             icon: Icons.pie_chart_outline,
                             label: 'ポートフォリオ',
                             onTap: () => widget.onPortfolioTap?.call(),
+                            iconColor: AppColors.appPurple,
                           ),
                           _QuickActionButton(
                             icon: Icons.download,
                             label: 'レポート',
                             onTap: () {},
+                            iconColor: AppColors.appBlue,
                           ),
                           _QuickActionButton(
                             icon: Icons.calculate,
                             label: '損益計算',
                             onTap: () {},
+                            iconColor: AppColors.appOrange,
                           ),
                         ],
                       ),
@@ -578,10 +582,12 @@ class _QuickActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color iconColor;
   const _QuickActionButton({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.iconColor = Colors.black,
     super.key,
   });
   @override
@@ -598,7 +604,7 @@ class _QuickActionButton extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 28),
+          Icon(icon, size: 28, color: iconColor),
           const SizedBox(height: 4),
           Text(label),
         ],
