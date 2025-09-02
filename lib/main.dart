@@ -10,6 +10,7 @@ import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/pages/main_page.dart';
+import 'package:money_nest_app/util/provider/portfolio_provider.dart';
 import 'package:money_nest_app/util/provider/stocks_provider.dart';
 import 'package:money_nest_app/util/provider/total_asset_provider.dart';
 import 'package:provider/provider.dart';
@@ -43,6 +44,7 @@ void main() async {
         ),
         ChangeNotifierProvider<StocksProvider>.value(value: stocksProvider),
         ChangeNotifierProvider(create: (_) => TotalAssetProvider()),
+        ChangeNotifierProvider(create: (_) => PortfolioProvider()),
       ],
       child: MyApp(db: db),
     ),
@@ -367,8 +369,8 @@ Future<void> _initDefaultBuyRecords(AppDatabase db) async {
       'tradeType': TradeType.normal,
       'marketCode': 'JP',
       'code': '7453',
-      'quantity': 100,
-      'price': 6985,
+      'quantity': 200,
+      'price': 3493,
       'currency': Currency.jpy,
       'currencyUsed': Currency.jpy,
       'moneyUsed': 698500,

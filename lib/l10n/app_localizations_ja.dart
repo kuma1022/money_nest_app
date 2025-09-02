@@ -24,34 +24,34 @@ class AppLocalizationsJa extends AppLocalizations {
   String get confirmDeleteDialogCancel => '取消';
 
   @override
-  String get marketDataJpLabel => '日股';
+  String get marketDataJpLabel => '日本株';
 
   @override
-  String get marketDataUsLabel => '美股';
+  String get marketDataUsLabel => '米国株';
 
   @override
-  String get marketDataFundLabel => '基金';
+  String get marketDataFundLabel => '投資信託';
 
   @override
   String get marketDataEtfLabel => 'ETF';
 
   @override
-  String get marketDataOptionLabel => '期权';
+  String get marketDataOptionLabel => 'オプション';
 
   @override
-  String get marketDataCryptoLabel => '加密货币';
+  String get marketDataCryptoLabel => '暗号資産';
 
   @override
-  String get marketDataForexLabel => '外汇';
+  String get marketDataForexLabel => 'FX';
 
   @override
-  String get marketDataShszLabel => '沪深';
+  String get marketDataShszLabel => '中国A株';
 
   @override
-  String get marketDataHkLabel => '港股';
+  String get marketDataHkLabel => '香港株';
 
   @override
-  String get marketDataOtherLabel => '其他';
+  String get marketDataOtherLabel => 'その他';
 
   @override
   String get error => '发生错误';

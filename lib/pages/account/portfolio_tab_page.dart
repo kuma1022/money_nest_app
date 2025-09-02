@@ -9,6 +9,7 @@ import 'package:money_nest_app/pages/main_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
 import 'package:money_nest_app/util/app_utils.dart';
+import 'package:money_nest_app/util/provider/portfolio_provider.dart';
 import 'package:money_nest_app/util/provider/total_asset_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
@@ -218,6 +219,10 @@ class PortfolioTabState extends State<PortfolioTab>
   @override
   Widget build(BuildContext context) {
     final totalAsset = context.watch<TotalAssetProvider>().totalAsset;
+    final portfolioCategories = context
+        .watch<PortfolioProvider>()
+        .portfolioCategories;
+    final appUtils = AppUtils();
 
     if (selectedStock != null) {
       return StockDetail(
@@ -412,6 +417,7 @@ class PortfolioTabState extends State<PortfolioTab>
 
             TabBar(
               controller: _tabController,
+              indicatorSize: TabBarIndicatorSize.tab,
               tabs: [
                 Tab(text: '概要'),
                 Tab(text: '配分'),
@@ -423,164 +429,240 @@ class PortfolioTabState extends State<PortfolioTab>
                 controller: _tabController,
                 children: [
                   // 概要
-                  ListView(
-                    children: portfolioCategories.entries.map((entry) {
-                      final category = entry.value;
-                      return Card(
-                        margin: EdgeInsets.all(8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                  SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ListView(
+                          shrinkWrap: true, // 关键：只占内容高度
+                          physics: NeverScrollableScrollPhysics(), // 关键：禁止自身滚动
+                          children: portfolioCategories.entries.map((entry) {
+                            final category = entry.value;
+                            return CardSection(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    category['name'] as String,
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        '¥${category['totalValue']}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              ((category['gain'] ?? 0)
-                                                      as num) >=
-                                                  0
-                                              ? Colors.green[50]
-                                              : Colors.red[50],
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
+                                  Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Icon(
-                                              ((category['gain'] ?? 0)
-                                                          as num) >=
-                                                      0
-                                                  ? Icons.trending_up
-                                                  : Icons.trending_down,
-                                              color:
-                                                  ((category['gain'] ?? 0)
-                                                          as num) >=
-                                                      0
-                                                  ? Colors.green
-                                                  : Colors.red,
-                                              size: 16,
-                                            ),
-                                            SizedBox(width: 4),
                                             Text(
-                                              '¥${((category['gain'] ?? 0) as num).abs()} (${category['gainPercent']}%)',
+                                              category['name'] as String,
                                               style: TextStyle(
-                                                color:
-                                                    ((category['gain'] ?? 0)
-                                                            as num) >=
-                                                        0
-                                                    ? Colors.green
-                                                    : Colors.red,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
                                               ),
+                                            ),
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.end,
+                                              children: [
+                                                Text(
+                                                  AppUtils().formatMoney(
+                                                    (category['totalValue']
+                                                            as num)
+                                                        .toDouble(),
+                                                    (category['currency'] ??
+                                                            'JPY')
+                                                        as String,
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                Container(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        ((category['gain'] ?? 0)
+                                                                as num) >=
+                                                            0
+                                                        ? AppColors
+                                                              .appLightGreen
+                                                        : AppColors.appLightRed,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Icon(
+                                                        ((category['gain'] ?? 0)
+                                                                    as num) >=
+                                                                0
+                                                            ? Icons.trending_up
+                                                            : Icons
+                                                                  .trending_down,
+                                                        color:
+                                                            ((category['gain'] ??
+                                                                        0)
+                                                                    as num) >=
+                                                                0
+                                                            ? AppColors
+                                                                  .appUpGreen
+                                                            : AppColors
+                                                                  .appDownRed,
+                                                        size: 16,
+                                                      ),
+                                                      SizedBox(width: 4),
+                                                      Text(
+                                                        '${AppUtils().formatProfit((category['gain'] as num).toDouble(), (category['currency'] ?? 'JPY') as String)} (${appUtils.formatNumberByTwoDigits(category['gainPercent'])}%)',
+                                                        style: TextStyle(
+                                                          color:
+                                                              ((category['gain'] ??
+                                                                          0)
+                                                                      as num) >=
+                                                                  0
+                                                              ? AppColors
+                                                                    .appUpGreen
+                                                              : AppColors
+                                                                    .appDownRed,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         ),
-                                      ),
-                                    ],
+                                        if (category['stocks'] != null)
+                                          ...((category['stocks'] as List)
+                                              .map<Widget>(
+                                                (stock) => InkWell(
+                                                  onTap: () => setState(
+                                                    () => selectedStock = stock,
+                                                  ),
+                                                  child: Container(
+                                                    margin:
+                                                        EdgeInsets.symmetric(
+                                                          vertical: 4,
+                                                        ),
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 6,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: AppColors
+                                                          .appLightLightGrey, //Colors.grey[100],
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: AppColors
+                                                            .appLightGrey, // 外线颜色
+                                                        width: 1, // 线宽
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceBetween,
+                                                      children: [
+                                                        Expanded(
+                                                          child: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Text(
+                                                                stock['symbol'],
+                                                                style: TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                              ),
+                                                              Text(
+                                                                stock['name'],
+                                                                style: TextStyle(
+                                                                  color: Colors
+                                                                      .grey,
+                                                                ),
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .end,
+                                                          children: [
+                                                            Text(
+                                                              AppUtils().formatMoney(
+                                                                (stock['value']
+                                                                        as num)
+                                                                    .toDouble(),
+                                                                (category['currency'] ??
+                                                                        'JPY')
+                                                                    as String,
+                                                              ),
+                                                              style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                            ),
+                                                            Text(
+                                                              AppUtils().formatProfit(
+                                                                (stock['gain']
+                                                                        as num)
+                                                                    .toDouble(),
+                                                                (category['currency'] ??
+                                                                        'JPY')
+                                                                    as String,
+                                                              ),
+                                                              style: TextStyle(
+                                                                color:
+                                                                    stock['gain'] >=
+                                                                        0
+                                                                    ? AppColors
+                                                                          .appUpGreen
+                                                                    : AppColors
+                                                                          .appDownRed,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        Icon(
+                                                          Icons.chevron_right,
+                                                          color: Colors.grey,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              )
+                                              .toList()),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
-                              if (category['stocks'] != null)
-                                ...((category['stocks'] as List)
-                                    .map<Widget>(
-                                      (stock) => InkWell(
-                                        onTap: () => setState(
-                                          () => selectedStock = stock,
-                                        ),
-                                        child: Container(
-                                          margin: EdgeInsets.symmetric(
-                                            vertical: 8,
-                                          ),
-                                          padding: EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[100],
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    stock['symbol'],
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    stock['name'],
-                                                    style: TextStyle(
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.end,
-                                                children: [
-                                                  Text(
-                                                    '¥${stock['value']}',
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    '${stock['gain'] >= 0 ? '+' : ''}¥${stock['gain']}',
-                                                    style: TextStyle(
-                                                      color: stock['gain'] >= 0
-                                                          ? Colors.green
-                                                          : Colors.red,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              Icon(
-                                                Icons.chevron_right,
-                                                color: Colors.grey,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                    .toList()),
-                            ],
-                          ),
+                            );
+                          }).toList(),
                         ),
-                      );
-                    }).toList(),
+                      ],
+                    ),
                   ),
                   // 配分
                   ListView(

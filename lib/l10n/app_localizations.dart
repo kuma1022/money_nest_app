@@ -130,19 +130,19 @@ abstract class AppLocalizations {
   /// No description provided for @marketDataJpLabel.
   ///
   /// In en, this message translates to:
-  /// **'日股'**
+  /// **'日本株'**
   String get marketDataJpLabel;
 
   /// No description provided for @marketDataUsLabel.
   ///
   /// In en, this message translates to:
-  /// **'美股'**
+  /// **'米国株'**
   String get marketDataUsLabel;
 
   /// No description provided for @marketDataFundLabel.
   ///
   /// In en, this message translates to:
-  /// **'基金'**
+  /// **'投資信託'**
   String get marketDataFundLabel;
 
   /// No description provided for @marketDataEtfLabel.
@@ -154,37 +154,37 @@ abstract class AppLocalizations {
   /// No description provided for @marketDataOptionLabel.
   ///
   /// In en, this message translates to:
-  /// **'期权'**
+  /// **'オプション'**
   String get marketDataOptionLabel;
 
   /// No description provided for @marketDataCryptoLabel.
   ///
   /// In en, this message translates to:
-  /// **'加密货币'**
+  /// **'暗号資産'**
   String get marketDataCryptoLabel;
 
   /// No description provided for @marketDataForexLabel.
   ///
   /// In en, this message translates to:
-  /// **'外汇'**
+  /// **'FX'**
   String get marketDataForexLabel;
 
   /// No description provided for @marketDataShszLabel.
   ///
   /// In en, this message translates to:
-  /// **'沪深'**
+  /// **'中国A株'**
   String get marketDataShszLabel;
 
   /// No description provided for @marketDataHkLabel.
   ///
   /// In en, this message translates to:
-  /// **'港股'**
+  /// **'香港株'**
   String get marketDataHkLabel;
 
   /// No description provided for @marketDataOtherLabel.
   ///
   /// In en, this message translates to:
-  /// **'其他'**
+  /// **'その他'**
   String get marketDataOtherLabel;
 
   /// No description provided for @error.

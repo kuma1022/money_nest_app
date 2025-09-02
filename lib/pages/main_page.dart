@@ -11,6 +11,7 @@ import 'package:money_nest_app/pages/trade_detail/trade_tab_page.dart';
 import 'package:money_nest_app/pages/search_result/search_result_list.dart';
 import 'package:money_nest_app/presentation/resources/app_resources.dart';
 import 'package:money_nest_app/util/app_utils.dart';
+import 'package:money_nest_app/util/provider/portfolio_provider.dart';
 import 'package:money_nest_app/util/provider/total_asset_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -32,6 +33,15 @@ class MainPageState extends State<MainPage> {
       context,
       listen: false,
     ).fetchTotalAsset(widget.db, _selectedCurrency);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 这里可以安全访问 AppLocalizations.of(context)
+    final l10n = AppLocalizations.of(context)!;
+    final provider = Provider.of<PortfolioProvider>(context, listen: false);
+    provider.fetchPortfolio(widget.db, l10n);
   }
 
   int _currentIndex = 0; // 默认选中“TOP”

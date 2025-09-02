@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/models/currency.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AppUtils {
@@ -62,5 +64,29 @@ class AppUtils {
         stock['symbol']:
             (stock['regularMarketPrice'] as num?)?.toDouble() ?? 0.0,
     };
+  }
+
+  double formatNumberByTwoDigits(double num) {
+    return double.parse(num.toStringAsFixed(2));
+  }
+
+  String formatProfit(double profit, String currencyCode) {
+    final symbol = profit > 0 ? '+' : (profit < 0 ? '-' : '');
+    final currency = Currency.values.firstWhere(
+      (c) => c.code == currencyCode,
+      orElse: () => Currency.jpy,
+    );
+    return '$symbol${NumberFormat.currency(locale: currency.locale, symbol: currency.symbol).format(profit.abs())}';
+  }
+
+  String formatMoney(double money, String currencyCode) {
+    final currency = Currency.values.firstWhere(
+      (c) => c.code == currencyCode,
+      orElse: () => Currency.jpy,
+    );
+    return NumberFormat.currency(
+      locale: currency.locale,
+      symbol: currency.symbol,
+    ).format(money);
   }
 }
