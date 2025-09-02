@@ -6,6 +6,7 @@ class AppColors {
   static const Color appGreen = Color(0xFF4CAF50);
   static const Color appOrange = Color(0xFFFF683B);
   static const Color appPurple = Color(0xFF6E1BFF);
+  static const Color appLightLightGrey = Color.fromRGBO(238, 237, 237, 1);
   static const Color appLightGrey = Color.fromRGBO(224, 224, 224, 1);
   static const Color appMediumGrey = Colors.white38;
   static const Color appDarkGrey = Color.fromRGBO(55, 55, 55, 1);
@@ -13,6 +14,8 @@ class AppColors {
   static const Color appDownRed = Color(0xFFE53935);
   static const Color appUpGreen = Color(0xFF2E7D32);
   static const Color pageBackground = Colors.white;
+  static const Color appLightGreen = Color.fromRGBO(232, 245, 233, 1);
+  static const Color appLightRed = Color.fromRGBO(255, 205, 210, 1);
 
   static const Color primary = contentColorCyan;
   static const Color menuBackground = Color(0xFF090912);

@@ -1,12 +1,18 @@
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:money_nest_app/components/card_section.dart';
+import 'package:money_nest_app/components/quick_action_button.dart';
+import 'package:money_nest_app/components/summary_row.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
+import 'package:money_nest_app/pages/main_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
 import 'package:money_nest_app/util/app_utils.dart';
+import 'package:money_nest_app/util/provider/total_asset_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class HomeTabPage extends StatefulWidget {
@@ -40,9 +46,6 @@ class HomeTabPageState extends State<HomeTabPage> {
   Currency _selectedCurrency = Currency.values.first;
   double _totalProfit = 0;
   double _totalCost = 0;
-  String _lastAsset = '';
-  String _totalAsset = '';
-  DateTime _assetFetchedTime = DateTime.now();
   bool _assetVisible = true; // 资产是否可见
 
   Future<void> _onRefresh() async {
@@ -51,102 +54,16 @@ class HomeTabPageState extends State<HomeTabPage> {
   }
 
   Future<void> _refreshData() async {
-    await _fetchTotalAsset(widget.db, _selectedCurrency);
-  }
-
-  // 获取总资产和时间
-  Future<void> _fetchTotalAsset(AppDatabase db, Currency currency) async {
-    // 实际股票资产计算逻辑
-    double total = await _calculateAllStockValue(db, currency.code);
-    setState(() {
-      _totalAsset = NumberFormat.currency(
-        locale: currency.locale,
-        symbol: currency.symbol,
-      ).format(total);
-      _lastAsset = _totalAsset;
-    });
-  }
-
-  // 这里模拟股票总价值计算，实际应从你的数据源获取
-  Future<double> _calculateAllStockValue(
-    AppDatabase db,
-    String currencyCode,
-  ) async {
-    // 获取持仓股票的数据
-    final stockDataList = await db.getAllStocksRecords();
-
-    List<Stock> newStockDataList = List.from(stockDataList);
-    // 如果除了FX之外没有数据
-    if (stockDataList.isEmpty ||
-        newStockDataList.every((stock) => stock.marketCode == 'FOREX')) {
-      return 0;
-    }
-    final marketDataList = await db.getAllMarketDataRecords();
-    // 如果所有 priceUpdatedAt 都在周六或周日，则不更新
-    bool allWeekend =
-        stockDataList.isNotEmpty &&
-        stockDataList.every((stock) {
-          final dt = stock.priceUpdatedAt;
-          if (dt == null) return false;
-          return dt.weekday == DateTime.saturday ||
-              dt.weekday == DateTime.sunday;
-        });
-    if (!allWeekend &&
-        stockDataList.any(
-          (stock) =>
-              stock.priceUpdatedAt == null ||
-              stock.priceUpdatedAt!.isBefore(
-                DateTime.now().subtract(const Duration(hours: 1)),
-              ),
-        )) {
-      // 调用YH Finance API 获取实时股票价格
-      final stocks = await db.getAllStocks();
-      final appUtils = AppUtils();
-      print('Fetching stock prices...');
-      final stockPrices = await appUtils.getStockPricesByYHFinanceAPI(
-        stocks,
-        marketDataList,
-      );
-      newStockDataList.clear();
-      for (var stock in stockDataList) {
-        newStockDataList.add(
-          stock.copyWith(
-            currentPrice: Value(
-              stockPrices['${stock.code}${marketDataList.firstWhere(
-                (m) => m.code == stock.marketCode,
-                orElse: () => MarketDataData(code: '', name: '', surfix: '', sortOrder: 0, isActive: true),
-              ).surfix}'],
-            ),
-          ),
-        );
-      }
-      // 更新数据库中的股票价格和更新时间
-      await db.updateStockPrices(newStockDataList);
-    }
-
-    Map<String, double> priceMap = {
-      for (var stock in newStockDataList)
-        if (stock.currentPrice != null) stock.code: stock.currentPrice!,
-    };
-
-    // 更新资产获取时间
-    setState(
-      () => _assetFetchedTime = stockDataList.isNotEmpty
-          ? stockDataList.first.priceUpdatedAt ?? DateTime.now()
-          : DateTime.now(),
-    );
-
-    // 遍历持仓列表，累加每只股票的市值
-    final records = await db.getAllAvailableBuyRecords();
-    return records.fold<double>(
-      0,
-      (sum, r) =>
-          sum +
-          r.quantity *
-              priceMap[r.code]! *
-              (priceMap['${r.currency.code != 'USD' ? r.currency.code : ''}$currencyCode'] ??
-                  1.0),
-    );
+    //await _fetchTotalAsset(widget.db, _selectedCurrency);
+    // 在 PortfolioTab、HomeTab 等
+    Provider.of<TotalAssetProvider>(
+      context,
+      listen: false,
+    ).setTotalAsset(''); // 先清空或标记
+    Provider.of<TotalAssetProvider>(
+      context,
+      listen: false,
+    ).fetchTotalAsset(widget.db, _selectedCurrency);
   }
 
   // 获取总盈亏金额（请用实际业务逻辑替换）
@@ -230,6 +147,8 @@ class HomeTabPageState extends State<HomeTabPage> {
 
   @override
   Widget build(BuildContext context) {
+    final totalAsset = context.watch<TotalAssetProvider>().totalAsset;
+
     if (showAddTransaction) {
       // TODO: AddTransactionForm 替换为实际表单
       return Scaffold(
@@ -239,7 +158,6 @@ class HomeTabPageState extends State<HomeTabPage> {
     }
     return Scaffold(
       backgroundColor: AppColors.pageBackground,
-
       body: SmartRefresher(
         controller: _refreshController,
         onRefresh: _onRefresh,
@@ -300,12 +218,16 @@ class HomeTabPageState extends State<HomeTabPage> {
                       double profit = profitSnapshot.data ?? 0.0;
                       double profitRate = profitRateSnapshot.data ?? 0.0;
                       Color profitColor;
+                      Color profitLightColor;
                       if (_assetVisible && profit > 0) {
                         profitColor = AppColors.appUpGreen;
+                        profitLightColor = AppColors.appLightGreen;
                       } else if (_assetVisible && profit < 0) {
                         profitColor = AppColors.appDownRed;
+                        profitLightColor = AppColors.appLightRed;
                       } else {
-                        profitColor = Colors.black;
+                        profitColor = AppColors.appDarkGrey;
+                        profitLightColor = AppColors.appLightGrey;
                       }
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -320,8 +242,8 @@ class HomeTabPageState extends State<HomeTabPage> {
                                   context,
                                 )!.homeTabPageTotalAssetLabel,
                                 style: const TextStyle(
-                                  fontSize: 15,
-                                  color: Colors.black87,
+                                  fontSize: AppTexts.fontSizeMedium,
+                                  color: AppColors.appDarkGrey,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -343,44 +265,66 @@ class HomeTabPageState extends State<HomeTabPage> {
                           ),
 
                           const SizedBox(height: 8),
-                          Text(
-                            _assetVisible
-                                ? (_totalAsset.isNotEmpty
-                                      ? _totalAsset
-                                      : '*****')
-                                : '*****',
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
+                          SizedBox(
+                            height: 40, // 你可以根据实际字体高度微调
+                            child: Center(
+                              child: Text(
+                                _assetVisible
+                                    ? (totalAsset.isNotEmpty
+                                          ? totalAsset
+                                          : '*****')
+                                    : '*****',
+                                style: const TextStyle(
+                                  fontSize: AppTexts.fontSizeHuge,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
-                            textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (_assetVisible && profit != 0) ...[
-                                Icon(
-                                  profit > 0
-                                      ? Icons.trending_up
-                                      : Icons.trending_down,
-                                  color: profitColor,
-                                  size: AppTexts.fontSizeExtraLarge,
-                                ),
-                              ],
-                              const SizedBox(width: 4),
-                              Text(
-                                _assetVisible
-                                    ? '${_formatProfit(profit, _selectedCurrency)} (${_formatProfitRate(profitRate)})'
-                                    : '***',
-                                style: TextStyle(
-                                  color: profitColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                          SizedBox(
+                            height: 24, // 固定高度，可根据实际内容微调
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: profitLightColor,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: IntrinsicWidth(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_assetVisible && profit != 0) ...[
+                                      Icon(
+                                        profit > 0
+                                            ? Icons.trending_up
+                                            : Icons.trending_down,
+                                        color: profitColor,
+                                        size: AppTexts.fontSizeExtraLarge,
+                                      ),
+                                    ],
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      textAlign: TextAlign.center,
+                                      _assetVisible
+                                          ? '${_formatProfit(profit, _selectedCurrency)} (${_formatProfitRate(profitRate)})'
+                                          : '***',
+                                      style: TextStyle(
+                                        color: profitColor,
+                                        fontSize: AppTexts.fontSizeSmall,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
+                            ),
                           ),
                           const SizedBox(height: 20),
                         ],
@@ -390,7 +334,7 @@ class HomeTabPageState extends State<HomeTabPage> {
                 },
               ),
               // Portfolio Chart
-              _CardSection(
+              CardSection(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -460,7 +404,7 @@ class HomeTabPageState extends State<HomeTabPage> {
                 ),
               ),
               // Quick Actions
-              _CardSection(
+              CardSection(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -482,26 +426,28 @@ class HomeTabPageState extends State<HomeTabPage> {
                         physics: const NeverScrollableScrollPhysics(),
                         childAspectRatio: 1.8,
                         children: [
-                          _QuickActionButton(
+                          QuickActionButton(
                             icon: Icons.add,
                             label: '取引追加',
                             onTap: () =>
                                 setState(() => showAddTransaction = true),
-                            iconColor: AppColors.appGreen,
+                            iconColor: AppColors.appWhite,
+                            bgColor: AppColors.appBlue,
+                            fontColor: AppColors.appWhite,
                           ),
-                          _QuickActionButton(
+                          QuickActionButton(
                             icon: Icons.pie_chart_outline,
                             label: 'ポートフォリオ',
                             onTap: () => widget.onPortfolioTap?.call(),
                             iconColor: AppColors.appPurple,
                           ),
-                          _QuickActionButton(
+                          QuickActionButton(
                             icon: Icons.download,
                             label: 'レポート',
                             onTap: () {},
-                            iconColor: AppColors.appBlue,
+                            iconColor: AppColors.appGreen,
                           ),
-                          _QuickActionButton(
+                          QuickActionButton(
                             icon: Icons.calculate,
                             label: '損益計算',
                             onTap: () {},
@@ -515,7 +461,7 @@ class HomeTabPageState extends State<HomeTabPage> {
                 ),
               ),
               // 今日のサマリー
-              _CardSection(
+              CardSection(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -556,86 +502,6 @@ class HomeTabPageState extends State<HomeTabPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _CardSection extends StatelessWidget {
-  final Widget child;
-  const _CardSection({required this.child, super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
-      ),
-      child: child,
-    );
-  }
-}
-
-class _QuickActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color iconColor;
-  const _QuickActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.iconColor = Colors.black,
-    super.key,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        side: const BorderSide(color: Color(0xFFE5E6EA)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: EdgeInsets.zero,
-      ),
-      onPressed: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 28, color: iconColor),
-          const SizedBox(height: 4),
-          Text(label),
-        ],
-      ),
-    );
-  }
-}
-
-class SummaryRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color valueColor;
-  const SummaryRow({
-    required this.label,
-    required this.value,
-    required this.valueColor,
-    Key? key,
-  }) : super(key: key);
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-          Text(
-            value,
-            style: TextStyle(color: valueColor, fontWeight: FontWeight.bold),
-          ),
-        ],
       ),
     );
   }

@@ -11,6 +11,7 @@ import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/pages/main_page.dart';
 import 'package:money_nest_app/util/provider/stocks_provider.dart';
+import 'package:money_nest_app/util/provider/total_asset_provider.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -41,6 +42,7 @@ void main() async {
           value: buyRecordsProvider,
         ),
         ChangeNotifierProvider<StocksProvider>.value(value: stocksProvider),
+        ChangeNotifierProvider(create: (_) => TotalAssetProvider()),
       ],
       child: MyApp(db: db),
     ),
@@ -781,7 +783,7 @@ class MyApp extends StatelessWidget {
         Locale('zh'), // 中文
         Locale('ja'), // 日文
       ],
-      home: TradeRecordListPage(db: db),
+      home: MainPage(db: db),
     );
   }
 }

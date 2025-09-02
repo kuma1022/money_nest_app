@@ -1,27 +1,45 @@
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
+import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/pages/account/account_tab_page.dart';
+import 'package:money_nest_app/pages/account/portfolio_tab_page.dart';
 import 'package:money_nest_app/pages/home/home_tab_page.dart';
 import 'package:money_nest_app/pages/trade_detail/trade_tab_page.dart';
 import 'package:money_nest_app/pages/search_result/search_result_list.dart';
 import 'package:money_nest_app/presentation/resources/app_resources.dart';
+import 'package:money_nest_app/util/app_utils.dart';
+import 'package:money_nest_app/util/provider/total_asset_provider.dart';
+import 'package:provider/provider.dart';
 
-class TradeRecordListPage extends StatefulWidget {
+class MainPage extends StatefulWidget {
   final AppDatabase db;
-  const TradeRecordListPage({super.key, required this.db});
+  const MainPage({super.key, required this.db});
 
   @override
-  State<TradeRecordListPage> createState() => _TradeRecordListPageState();
+  State<MainPage> createState() => MainPageState();
 }
 
-class _TradeRecordListPageState extends State<TradeRecordListPage> {
+class MainPageState extends State<MainPage> {
+  Currency _selectedCurrency = Currency.values.first;
+
+  @override
+  void initState() {
+    super.initState();
+    Provider.of<TotalAssetProvider>(
+      context,
+      listen: false,
+    ).fetchTotalAsset(widget.db, _selectedCurrency);
+  }
+
   int _currentIndex = 0; // 默认选中“TOP”
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  final GlobalKey<AccountTabPageState> accountTabPageKey =
-      GlobalKey<AccountTabPageState>();
+  final GlobalKey<PortfolioTabState> portfolioTabPageKey =
+      GlobalKey<PortfolioTabState>();
   final GlobalKey<HomeTabPageState> homeTabPageKey =
       GlobalKey<HomeTabPageState>();
 
@@ -37,7 +55,8 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
         });
       },
     ),
-    AccountTabPage(key: accountTabPageKey, db: widget.db), // 账户tab
+    //AccountTabPage(key: accountTabPageKey, db: widget.db), // 账户tab
+    PortfolioTab(key: portfolioTabPageKey, db: widget.db),
     TradeTabPage(db: widget.db), // 交易明细tab
     //TotalCapitalTabPage(db: widget.db), // 资产总览tab
     Center(child: Text(AppLocalizations.of(context)!.mainPageMarketTitle)),
@@ -278,30 +297,66 @@ class _TradeRecordListPageState extends State<TradeRecordListPage> {
                 fontWeight: FontWeight.normal,
                 fontSize: AppTexts.fontSizeMini,
               ),
-              onTap: (index) {
+              onTap: (index) async {
+                // 1. 先处理异步逻辑
+                if (index != 2) {
+                  _isSearching = false;
+                  _searchController.clear();
+                  _searchFocusNode.unfocus();
+                }
+
+                bool needRefresh = false;
+                if (_currentIndex == index) {
+                  needRefresh = true;
+                } else if (index == 0 || index == 1) {
+                  final stockDataList = await widget.db.getAllStocksRecords();
+                  List<Stock> newStockDataList = List.from(stockDataList);
+                  if (stockDataList.isNotEmpty &&
+                      !newStockDataList.every(
+                        (stock) => stock.marketCode == 'FOREX',
+                      )) {
+                    bool allWeekend =
+                        stockDataList.isNotEmpty &&
+                        stockDataList.every((stock) {
+                          final dt = stock.priceUpdatedAt;
+                          if (dt == null) return false;
+                          return dt.weekday == DateTime.saturday ||
+                              dt.weekday == DateTime.sunday;
+                        });
+                    needRefresh =
+                        !allWeekend &&
+                        stockDataList.any(
+                          (stock) =>
+                              stock.priceUpdatedAt == null ||
+                              stock.priceUpdatedAt!.isBefore(
+                                DateTime.now().subtract(
+                                  const Duration(hours: 1),
+                                ),
+                              ),
+                        );
+                  }
+                }
+
+                // 2. 再同步 setState
                 setState(() {
                   _currentIndex = index;
-                  if (index != 2) {
-                    // 离开“交易明细”tab时，退出搜索状态
-                    _isSearching = false;
-                    _searchController.clear();
-                    _searchFocusNode.unfocus();
-                  }
+                  // 其它同步状态更新
+                });
+
+                // 3. 刷新页面（如果需要）
+                if (needRefresh) {
                   if (index == 0) {
-                    // 0为Home tab的索引
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       homeTabPageKey.currentState?.refreshController
                           .requestRefresh();
                     });
-                  }
-                  if (index == 1) {
-                    // 1为账户tab的索引
+                  } else if (index == 1) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                      accountTabPageKey.currentState?.refreshController
+                      portfolioTabPageKey.currentState?.refreshController
                           .requestRefresh();
                     });
                   }
-                });
+                }
               },
             ),
           ],
