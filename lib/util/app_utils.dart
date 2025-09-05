@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/db/app_database.dart';
@@ -88,5 +89,60 @@ class AppUtils {
       locale: currency.locale,
       symbol: currency.symbol,
     ).format(money);
+  }
+
+  Future<double> getCurrencyExchangeRatesByDate(
+    String fromCurrency,
+    String toCurrency,
+    DateTime date,
+  ) async {
+    AppDatabase db = AppDatabase();
+    // 先检查数据库中是否已有该日期的汇率数据
+    final existingRate =
+        await (db.select(db.exchangeRates)..where(
+              (tbl) =>
+                  tbl.date.equals(date) &
+                  tbl.fromCurrency.equals(fromCurrency) &
+                  tbl.toCurrency.equals(toCurrency),
+            ))
+            .getSingleOrNull();
+    if (existingRate != null) {
+      // 已有数据，直接返回
+      return existingRate.rate;
+    }
+
+    final response = await http.get(
+      Uri.parse(
+        'https://openexchangerates.org/api/historical/${DateFormat('yyyy-MM-dd').format(date)}.json?app_id=0fb44797862744c798dfaf16db35a829',
+      ),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final Map<String, double> rates = Map<String, double>.from(data['rates']);
+      // 处理汇率数据
+      if (rates.containsKey(fromCurrency) && rates.containsKey(toCurrency)) {
+        final fromRate = rates[fromCurrency]!;
+        final toRate = rates[toCurrency]!;
+        final exchangeRate = toRate / fromRate;
+
+        // 将新的汇率数据存入数据库
+        await db
+            .into(db.exchangeRates)
+            .insert(
+              ExchangeRatesCompanion(
+                date: Value(date),
+                fromCurrency: Value(fromCurrency),
+                toCurrency: Value(toCurrency),
+                rate: Value(exchangeRate),
+                updatedAt: Value(DateTime.now()),
+                remark: Value('Fetched from API'),
+              ),
+            );
+
+        return exchangeRate;
+      } else {
+        throw Exception('Currency not found in the response');
+      }
+    }
   }
 }

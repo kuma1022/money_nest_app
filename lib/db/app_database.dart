@@ -46,6 +46,17 @@ class TradeSellMappings extends Table {
   RealColumn get quantity => real()();
 }
 
+// 汇率表（可选，用于多货币转换）
+class ExchangeRates extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  DateTimeColumn get date => dateTime()(); // 日期
+  TextColumn get fromCurrency => text().map(const CurrencyConverter())();
+  TextColumn get toCurrency => text().map(const CurrencyConverter())();
+  RealColumn get rate => real()(); // 汇率
+  DateTimeColumn get updatedAt => dateTime()(); // 更新时间
+  TextColumn get remark => text().nullable()();
+}
+
 // 现金流表
 class CashFlows extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -131,6 +142,7 @@ class Stocks extends Table {
     CashBalanceHistories,
     MarketData,
     Stocks,
+    ExchangeRates,
   ],
 )
 class AppDatabase extends _$AppDatabase {
