@@ -131,8 +131,18 @@ class AppUtils {
             .insert(
               ExchangeRatesCompanion(
                 date: Value(date),
-                fromCurrency: Value(fromCurrency),
-                toCurrency: Value(toCurrency),
+                fromCurrency: Value(
+                  Currency.values.firstWhere(
+                    (c) => c.code == fromCurrency,
+                    orElse: () => Currency.jpy,
+                  ),
+                ),
+                toCurrency: Value(
+                  Currency.values.firstWhere(
+                    (c) => c.code == toCurrency,
+                    orElse: () => Currency.jpy,
+                  ),
+                ),
                 rate: Value(exchangeRate),
                 updatedAt: Value(DateTime.now()),
                 remark: Value('Fetched from API'),
@@ -144,5 +154,6 @@ class AppUtils {
         throw Exception('Currency not found in the response');
       }
     }
+    throw Exception('Failed to fetch exchange rates');
   }
 }
