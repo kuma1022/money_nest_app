@@ -44,6 +44,7 @@ def fetch_stock_info(ticker):
             # print(f"✅ {info} 信息获取成功")
             return {
                 "ticker": ticker,
+                "name": info.get("shortName") or info.get("longName") or "",
                 "exchange": "US",
                 "sector": info.get("sector"),
                 "industry": info.get("industry"),
