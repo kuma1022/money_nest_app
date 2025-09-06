@@ -119,6 +119,8 @@ def main():
             info = future.result()
             print(f"✅ {info} 信息获取成功")
             if info.get("success"):
+                # 移除 success 字段并加入 updates
+                info.pop("success", None)  # 如果不存在也不会报错
                 updates.append(info)
                 success_count += 1
             else:
