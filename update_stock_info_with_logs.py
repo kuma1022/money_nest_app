@@ -24,10 +24,13 @@ RETRY_DELAY = 2
 # 获取 US 股票列表
 # -----------------------------
 def get_us_stocks():
-    response = supabase.table("stocks").select("ticker").eq("exchange", "US").execute()
-    if response.error:
-        raise Exception(f"Supabase 获取股票列表失败: {response.error}")
-    return [row["ticker"] for row in response.data]
+    try:
+        response = supabase.table("stocks").select("ticker").eq("exchange", "US").execute()
+        if response.status_code != 200:
+            raise Exception(f"Supabase 获取股票列表失败: {response.data}")
+        return [row["ticker"] for row in response.data]
+    except Exception as e:
+        raise Exception(f"Supabase 获取股票列表异常: {e}")
 
 # -----------------------------
 # 获取单只股票信息（带重试）
@@ -68,23 +71,33 @@ def fetch_stock_info(ticker):
 def upsert_stocks(updates):
     for i in range(0, len(updates), BATCH_SIZE):
         batch = updates[i:i+BATCH_SIZE]
-        response = supabase.table("stocks").upsert(batch, on_conflict=["ticker","exchange"]).execute()
-        if response.error:
-            print(f"❌ 批量 upsert 失败 [{i}-{i+len(batch)}]: {response.error}")
-        else:
-            print(f"✅ 批量 upsert 成功 [{i}-{i+len(batch)}]")
+        try:
+            response = supabase.table("stocks").upsert(batch, on_conflict=["ticker","exchange"]).execute()
+            if response.status_code != 200:
+                print(f"❌ 批量 upsert 失败 [{i}-{i+len(batch)}]: {response.data}")
+            else:
+                print(f"✅ 批量 upsert 成功 [{i}-{i+len(batch)}]")
+        except Exception as e:
+            print(f"❌ 批量 upsert 异常 [{i}-{i+len(batch)}]: {e}")
         time.sleep(SLEEP_BETWEEN_BATCHES)
 
 # -----------------------------
 # 写入日志表
 # -----------------------------
 def write_log(total, success, fail, message=""):
-    supabase.table("stock_update_logs").insert({
-        "total_stocks": total,
-        "success_count": success,
-        "fail_count": fail,
-        "message": message
-    }).execute()
+    try:
+        response = supabase.table("stock_update_logs").insert({
+            "total_stocks": total,
+            "success_count": success,
+            "fail_count": fail,
+            "message": message
+        }).execute()
+        if response.status_code != 200:
+            print(f"❌ 日志写入失败: {response.data}")
+        else:
+            print("✅ 日志写入成功")
+    except Exception as e:
+        print(f"❌ 日志写入异常: {e}")
 
 # -----------------------------
 # 主流程
