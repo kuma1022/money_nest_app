@@ -26,8 +26,9 @@ RETRY_DELAY = 2
 def get_us_stocks():
     try:
         response = supabase.table("stocks").select("ticker").eq("exchange", "US").execute()
-        if response.status_code != 200:
-            raise Exception(f"Supabase 获取股票列表失败: {response.data}")
+        # 检查返回数据
+        if response.data is None:
+            raise Exception("Supabase 返回 data 为 None")
         return [row["ticker"] for row in response.data]
     except Exception as e:
         raise Exception(f"Supabase 获取股票列表异常: {e}")
@@ -73,8 +74,8 @@ def upsert_stocks(updates):
         batch = updates[i:i+BATCH_SIZE]
         try:
             response = supabase.table("stocks").upsert(batch, on_conflict=["ticker","exchange"]).execute()
-            if response.status_code != 200:
-                print(f"❌ 批量 upsert 失败 [{i}-{i+len(batch)}]: {response.data}")
+            if response.data is None:
+                print(f"❌ 批量 upsert 失败 [{i}-{i+len(batch)}]")
             else:
                 print(f"✅ 批量 upsert 成功 [{i}-{i+len(batch)}]")
         except Exception as e:
@@ -92,8 +93,8 @@ def write_log(total, success, fail, message=""):
             "fail_count": fail,
             "message": message
         }).execute()
-        if response.status_code != 200:
-            print(f"❌ 日志写入失败: {response.data}")
+        if response.data is None:
+            print(f"❌ 日志写入失败")
         else:
             print("✅ 日志写入成功")
     except Exception as e:
