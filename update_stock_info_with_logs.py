@@ -74,7 +74,7 @@ def upsert_stocks(updates):
     for i in range(0, len(updates), BATCH_SIZE):
         batch = updates[i:i+BATCH_SIZE]
         try:
-            response = supabase.table("stocks").upsert(batch, on_conflict=["ticker","exchange"]).execute()
+            response = supabase.table("stocks").upsert(batch, on_conflict="unique_ticker_exchange").execute()
             if response.data is None:
                 print(f"❌ 批量 upsert 失败 [{i}-{i+len(batch)}]")
             else:
