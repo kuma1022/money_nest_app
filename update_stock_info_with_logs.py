@@ -15,7 +15,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # 配置参数
 # -----------------------------
 BATCH_SIZE = 200
-MAX_WORKERS = 1
+MAX_WORKERS = 5
 SLEEP_BETWEEN_BATCHES = 1
 RETRY_COUNT = 3
 RETRY_DELAY = 2
@@ -25,7 +25,7 @@ RETRY_DELAY = 2
 # -----------------------------
 def get_us_stocks():
     try:
-        response = supabase.table("stocks").select("ticker").eq("exchange", "US").execute()
+        response = supabase.table("stocks").select("ticker").eq("exchange", "US").limit(10).execute()
         # 检查返回数据
         if response.data is None:
             raise Exception("Supabase 返回 data 为 None")
@@ -41,7 +41,7 @@ def fetch_stock_info(ticker):
         try:
             t = yf.Ticker(ticker)
             info = t.info
-            print(f"✅ {info} 信息获取成功")
+            # print(f"✅ {info} 信息获取成功")
             return {
                 "ticker": ticker,
                 "exchange": "US",
@@ -117,8 +117,9 @@ def main():
         for idx, future in enumerate(as_completed(future_to_ticker), 1):
             ticker = future_to_ticker[future]
             info = future.result()
-            updates.append(info)
+            print(f"✅ {info} 信息获取成功")
             if info.get("success"):
+                updates.append(info)
                 success_count += 1
             else:
                 fail_count += 1
