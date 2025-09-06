@@ -76,7 +76,7 @@ def upsert_stocks(updates):
         # 去重 batch 中重复 ticker+exchange
         batch = list({ (d['ticker'], d['exchange']): d for d in batch }.values())
         try:
-            response = supabase.table("stocks").upsert(batch, on_conflict=["ticker","exchange"]).execute()
+            response = supabase.table("stocks").upsert(batch).execute()
             if response.data is None:
                 print(f"❌ 批量 upsert 失败 [{i}-{i+len(batch)}]")
             else:
