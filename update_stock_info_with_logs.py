@@ -15,7 +15,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # 配置参数
 # -----------------------------
 BATCH_SIZE = 200
-MAX_WORKERS = 5
+MAX_WORKERS = 1
 SLEEP_BETWEEN_BATCHES = 1
 RETRY_COUNT = 3
 RETRY_DELAY = 2
@@ -41,6 +41,7 @@ def fetch_stock_info(ticker):
         try:
             t = yf.Ticker(ticker)
             info = t.info
+            print(f"✅ {info} 信息获取成功")
             return {
                 "ticker": ticker,
                 "exchange": "US",
