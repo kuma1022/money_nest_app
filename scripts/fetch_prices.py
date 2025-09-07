@@ -36,8 +36,9 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 for ticker in tickers:
                     try:
                         price = df[ticker]["Close"].iloc[-1]
-                        if pd.isna(price) or math.isinf(price):
-                            price = None
+                        print(f"[DEBUG] Ticker: {ticker}, Price: {price}")
+                        #if pd.isna(price) or math.isinf(price):
+                        #    price = None
                         price_at = df.index[-1].date().isoformat()
                         result[ticker] = {"price": price, "price_at": price_at}
                     except Exception:
