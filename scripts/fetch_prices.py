@@ -1,5 +1,6 @@
 import os
 import yfinance as yf
+import pandas as pd
 from supabase import create_client, Client
 from datetime import date
 import time, random
