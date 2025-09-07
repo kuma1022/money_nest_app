@@ -1,20 +1,38 @@
 import os
-import time
-import random
-from datetime import date, datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 import yfinance as yf
-import pandas_market_calendars as mcal
-from supabase import create_client
+from supabase import create_client, Client
+from datetime import date
+import time, random
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ---------------------------
 # Supabase 初始化
 # ---------------------------
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-supabase = create_client(url, key)
-MARKET = os.environ.get("MARKET", "US")
+supabase: Client = create_client(url, key)
+MARKET = os.environ.get("MARKET")
+
+# ---------------------------
+# 下载函数（带重试）
+# ---------------------------
+def download_with_retry(tickers, max_retries=3, delay=5):
+    for attempt in range(1, max_retries + 1):
+        try:
+            data = yf.download(
+                tickers,
+                period="1d",
+                progress=False,
+                group_by="ticker",
+                auto_adjust=True,
+            )["Close"].iloc[-1]
+            return data
+        except Exception as e:
+            print(f"[WARN] Attempt {attempt} failed for {tickers[:3]}...: {e}")
+            if attempt < max_retries:
+                time.sleep(delay + random.uniform(0, 2))
+            else:
+                return None
 
 # ---------------------------
 # 判断交易日
@@ -39,86 +57,62 @@ def is_trading_day(market: str) -> bool:
 # 格式化 ticker
 # ---------------------------
 def format_ticker(ticker, exchange):
-    if exchange == "TSE":
+    if exchange == "TSE":  # 东京
         return f"{ticker}.T"
-    elif exchange == "US":
+    elif exchange == "US":  # 美股
         return ticker
     else:
         return ticker
 
 # ---------------------------
-# 单只股票下载函数（带重试 + 安全 float）
+# 抓取单个批次
 # ---------------------------
-def download_price(ticker, max_retries=3, delay=5):
-    for attempt in range(1, max_retries + 1):
-        try:
-            df = yf.download(ticker, period="1d", progress=False, auto_adjust=False)
-            if df.empty or "Close" not in df.columns:
-                raise ValueError("Empty DataFrame or no Close column")
+def fetch_batch(batch, today):
+    tickers = [format_ticker(s["ticker"], s["exchange"]) for s in batch]
+    data = download_with_retry(tickers)
+    rows = []
+    failed_rows = []
 
-            price_series = df["Close"].iloc[-1]
+    if data is not None:
+        for s in batch:
+            yfticker = format_ticker(s["ticker"], s["exchange"])
+            try:
+                price = data[yfticker] if isinstance(data, dict) else data[yfticker]
+                if price is not None and not (price != price):  # NaN 检查
+                    rows.append({
+                        "stock_id": s["id"],
+                        "price": float(price),
+                        "price_at": today,
+                    })
+                else:
+                    failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "NaN"})
+            except Exception as e:
+                failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": str(e)})
+    else:
+        for s in batch:
+            failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "Download failed"})
 
-            # 安全转换 float
-            if isinstance(price_series, (float, int)):
-                price = float(price_series)
-            else:
-                # 如果仍然是 Series
-                price = float(price_series.values[-1])
-
-            price_date = df.index[-1].date().isoformat()
-            return price, price_date
-
-        except Exception as e:
-            print(f"[WARN] Attempt {attempt} failed for {ticker}: {e}")
-            if attempt < max_retries:
-                time.sleep(delay + random.uniform(0, 2))
-            else:
-                return None, str(e)
-
-# ---------------------------
-# 抓取批次
-# ---------------------------
-def fetch_batch(batch):
-    rows, failed = [], []
-    for s in batch:
-        yfticker = format_ticker(s["ticker"], s["exchange"])
-        price, result = download_price(yfticker)
-        if price is not None:
-            rows.append({
-                "stock_id": s["id"],
-                "price": price,
-                "price_at": result
-            })
-        else:
-            failed.append({
-                "stock_id": s["id"],
-                "ticker": s["ticker"],
-                "market": MARKET,
-                "reason": result
-            })
-    return rows, failed
+    return rows, failed_rows
 
 # ---------------------------
 # 主逻辑
 # ---------------------------
 def main():
-    exchange_map = {"US": "US", "JP": "TSE"}
-    exchange_filter = exchange_map.get(MARKET, "US")
-
-    stocks = supabase.table("stocks").select("id, ticker, exchange").limit(50) \
-        .eq("exchange", exchange_filter).execute().data
+    today = date.today().isoformat()
+    stocks = supabase.table("stocks").select("id, ticker, exchange").limit(50).eq("exchange", MARKET).execute().data
 
     if not stocks:
         print(f"[INFO] No stocks found for market {MARKET}")
         return
 
-    # 分批处理
-    batch_size = 20
-    batches = [stocks[i:i+batch_size] for i in range(0, len(stocks), batch_size)]
-    all_rows, all_failed = [], []
+    batch_size = 50
+    batches = [stocks[i:i + batch_size] for i in range(0, len(stocks), batch_size)]
+
+    all_rows = []
+    all_failed = []
 
     with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = [executor.submit(fetch_batch, batch) for batch in batches]
+        futures = [executor.submit(fetch_batch, batch, today) for batch in batches]
         for f in as_completed(futures):
             rows, failed = f.result()
             all_rows.extend(rows)
@@ -126,32 +120,36 @@ def main():
 
     print(f"[INFO] Collected {len(all_rows)} prices for market {MARKET}")
 
-    # 写入 stock_prices，on_conflict 与唯一索引字段匹配
-    for i in range(0, len(all_rows), 500):
-        batch = all_rows[i:i+500]
-        # 去重
-        batch_unique = list({ (r['stock_id'], r['price_at']): r for r in batch }.values())
-        try:
-            supabase.table("stock_prices").upsert(
-                batch_unique,
-                on_conflict=["stock_id", "price_at"]  # 必须与唯一索引字段完全一致
-            ).execute()
-            print(f"[OK] Upserted {len(batch_unique)} rows")
-        except Exception as e:
-            print(f"[ERROR] Failed batch {i}: {e}")
+    # ---------------------------
+    # 先删除当天已有的记录
+    # ---------------------------
+    if all_rows:
+        stock_ids = list({r["stock_id"] for r in all_rows})
+        supabase.table("stock_prices").delete().in_("stock_id", stock_ids).eq("price_at", today).execute()
 
-    # 写入 stock_price_failures，确保唯一约束字段匹配
+    # ---------------------------
+    # 分批插入新记录
+    # ---------------------------
+    batch_size = 500
+    for i in range(0, len(all_rows), batch_size):
+        batch = all_rows[i:i + batch_size]
+        res = supabase.table("stock_prices").insert(batch).execute()
+        if res.error:
+            print(f"[ERROR] Failed batch {i}: {res.error}")
+        else:
+            print(f"[OK] Inserted {len(batch)} rows")
+
+    # ---------------------------
+    # 保存失败记录
+    # ---------------------------
     if all_failed:
-        for i in range(0, len(all_failed), 500):
-            batch = all_failed[i:i+500]
-            try:
-                supabase.table("stock_price_failures").upsert(
-                    batch,
-                    on_conflict=["stock_id", "market", "ticker"]
-                ).execute()
-            except Exception as e:
-                print(f"[ERROR] Failed to insert failures batch {i}: {e}")
-        print(f"[INFO] {len(all_failed)} stocks failed and written to stock_price_failures")
+        for i in range(0, len(all_failed), batch_size):
+            batch = all_failed[i:i + batch_size]
+            res = supabase.table("stock_price_failures").insert(batch).execute()
+            if res.error:
+                print(f"[ERROR] Failed to save failures batch {i}: {res.error}")
+            else:
+                print(f"[INFO] Saved {len(batch)} failed records")
 
 if __name__ == "__main__":
     main()
