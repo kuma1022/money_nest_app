@@ -162,7 +162,7 @@ def format_ticker(ticker, exchange):
 # 抓取单个批次（支持单 ticker 回退，price_at 使用交易日）
 # ---------------------------
 def fetch_batch(batch):
-    delay = random.uniform(10, 15)  # 每个 batch 下载前加延迟
+    delay = random.uniform(3, 5)  # 每个 batch 下载前加延迟
     print(f"[INFO] Sleeping {delay:.2f}s before next batch...")
     time.sleep(delay)
     tickers = [format_ticker(s["ticker"], s["exchange"]) for s in batch]
