@@ -35,8 +35,8 @@ jobs:
           case "${{ github.event.inputs.action }}" in
             fetch_us) echo "MARKET=US" >> $GITHUB_ENV ;;
             fetch_jp) echo "MARKET=JP" >> $GITHUB_ENV ;;
-            retry_us) echo "MARKET=US_RETRY" >> $GITHUB_ENV ;;
-            retry_jp) echo "MARKET=JP_RETRY" >> $GITHUB_ENV ;;
+            retry_us) echo "MARKET=US, IS_RETRY=1" >> $GITHUB_ENV ;;
+            retry_jp) echo "MARKET=JP, IS_RETRY=1" >> $GITHUB_ENV ;;
           esac
 
       - name: Run script
@@ -44,11 +44,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           MARKET: ${{ env.MARKET }}
+          IS_RETRY: ${{ env.IS_RETRY }}
         run: |
-          if [ "$MARKET" = "US" ] || [ "$MARKET" = "JP" ]; then
-            echo "[INFO] Running fetch_prices.py for $MARKET"
-            python scripts/fetch_prices.py
-          else
-            echo "[INFO] Running retry_failed_prices.py for $MARKET"
-            python scripts/retry_failed_prices.py
-          fi
+          echo "[INFO] Running fetch_prices.py for $MARKET, RetryMode: $IS_RETRY"
+          python scripts/fetch_prices.py

@@ -15,6 +15,74 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 supabase: Client = create_client(url, key)
 MARKET = os.environ.get("MARKET")
+isRetry = os.environ.get("IS_RETRY", "0") == "1"
+
+# ---------------------------
+# supabase 分页查询所有数据
+# ---------------------------
+def fetch_all(supabase, table_name, select_cols="*", filters=None, page_size=1000):
+    """
+    自动分页获取 Supabase 表的所有数据
+    supabase: Supabase 客户端
+    table_name: 表名
+    select_cols: 要查询的列，默认 '*'
+    filters: dict，等于条件，比如 {"exchange": "US"}
+    page_size: 每次拉取的数量，默认 1000
+    """
+    all_data = []
+    offset = 0
+
+    while True:
+        query = supabase.table(table_name).select(select_cols)
+        if filters:
+            for k, v in filters.items():
+                query = query.eq(k, v)
+
+        result = query.range(offset, offset + page_size - 1).execute()
+        data = result.data
+        if not data:
+            break
+        all_data.extend(data)
+        offset += page_size
+
+    return all_data
+
+# ---------------------------
+# supabase 分页查询所有失败数据
+# ---------------------------
+def fetch_all_failures_joined(supabase, page_size=1000):
+    """
+    获取 stock_price_failures 对应的 stocks 信息
+    直接在 Supabase 端做 JOIN，相当于：
+    SELECT s.id, s.ticker, s.exchange
+    FROM stock_price_failures spf
+    JOIN stocks s ON spf.stock_id = s.id
+    支持分页拉取
+    """
+    all_data = []
+    offset = 0
+
+    while True:
+        # 使用嵌套 select，通过 foreign key 显式条件
+        result = (
+            supabase.table("stock_price_failures")
+            .select("stocks(id, ticker, exchange)")
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        data = result.data
+        if not data:
+            break
+
+        # 扁平化 stocks 数据
+        for item in data:
+            stock = item.get("stocks")
+            if stock:
+                all_data.append(stock)
+
+        offset += page_size
+
+    return all_data
 
 # ---------------------------
 # 下载函数（带重试，返回 {ticker: {"price": float, "price_at": str}}）
@@ -37,7 +105,6 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 for ticker in tickers:
                     try:
                         price = df[ticker]["Close"].iloc[-1]
-                        print(f"[DEBUG] Ticker: {ticker}, Price: {price}")
                         if pd.isna(price) or math.isinf(price):
                             price = None
                         price_at = df.index[-1].date().isoformat()
@@ -156,7 +223,16 @@ def fetch_batch(batch):
 # 主逻辑
 # ---------------------------
 def main():
-    stocks = supabase.table("stocks").select("id, ticker, exchange").eq("exchange", MARKET).execute().data
+    if isRetry:
+        print("[INFO] Running in retry mode, exiting fetch_prices.py")
+        stocks = fetch_all_failures_joined(supabase)
+    else:
+        stocks = fetch_all(
+            supabase,
+            "stocks",
+            select_cols="id, ticker, exchange",
+            filters={"exchange": MARKET}
+        )
     if not stocks:
         print(f"[INFO] No stocks found for market {MARKET}")
         return
@@ -167,7 +243,7 @@ def main():
     all_rows = []
     all_failed = []
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         futures = [executor.submit(fetch_batch, batch) for batch in batches]
         for f in as_completed(futures):
             rows, failed = f.result()
@@ -194,6 +270,17 @@ def main():
             print(f"[OK] Inserted {len(batch)} rows")
         except Exception as e:
             print(f"[ERROR] Exception on batch {i}: {e}")
+
+    # ---------------------------
+    # 删除已成功的失败记录
+    # ---------------------------
+    if isRetry and all_failed:
+        stock_ids = [s["id"] for s in stocks]
+        if stock_ids:
+            supabase.table("stock_price_failures") \
+                .delete() \
+                .in_("stock_id", stock_ids) \
+                .execute()
 
     # ---------------------------
     # 保存失败记录
