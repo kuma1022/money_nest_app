@@ -1,0 +1,30 @@
+name: Import Stock Prices
+
+on:
+  workflow_dispatch:
+    inputs:
+      market:
+        description: 'Market to import (jp/us)'
+        default: 'jp'
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run import script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node scripts/import_stock_prices.js ${{ github.event.inputs.market }}
