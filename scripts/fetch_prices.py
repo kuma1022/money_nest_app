@@ -289,7 +289,7 @@ def main():
 
     with ThreadPoolExecutor(max_workers=1) as executor:
         futures = [executor.submit(fetch_batch, batch) for batch in batches]
-        for f in as_completed(futures, timeout=300):
+        for f in as_completed(futures):
             try:
                 rows, failed = f.result()
                 all_rows.extend(rows)
