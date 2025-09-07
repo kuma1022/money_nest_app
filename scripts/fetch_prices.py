@@ -2,7 +2,7 @@ import os
 import yfinance as yf
 import pandas as pd
 from supabase import create_client, Client
-from datetime import date
+from datetime import date, datetime, timedelta
 import time, random
 import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
