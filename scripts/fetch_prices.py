@@ -28,6 +28,7 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 auto_adjust=True,
             )
             print(f"[INFO] Downloaded data for {tickers[:3]}..., attempt {attempt}, rows: {len(res)}")
+            print(res)
 
             if res.empty:
                 raise ValueError("Empty DataFrame")
