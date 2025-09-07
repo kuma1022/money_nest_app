@@ -96,6 +96,7 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 progress=False,
                 group_by="ticker",
                 auto_adjust=True,
+                timeout=15,
             )
             print(f"[INFO] Downloaded data for {tickers[:3]}..., attempt {attempt}, rows: {len(df)}")
 
@@ -104,7 +105,6 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 # 多 ticker
                 for ticker in tickers:
                     try:
-                        print(f"[DEBUG] Processing ticker {ticker}: {df[ticker].head()}")
                         price = df[ticker]["Close"].iloc[-1]
                         if pd.isna(price) or math.isinf(price):
                             price = None
@@ -162,7 +162,9 @@ def format_ticker(ticker, exchange):
 # 抓取单个批次（支持单 ticker 回退，price_at 使用交易日）
 # ---------------------------
 def fetch_batch(batch):
-    time.sleep(random.uniform(5, 10))  # 每个 batch 下载前加延迟
+    delay = random.uniform(10, 15)  # 每个 batch 下载前加延迟
+    print(f"[INFO] Sleeping {delay:.2f}s before next batch...")
+    time.sleep(delay)
     tickers = [format_ticker(s["ticker"], s["exchange"]) for s in batch]
     data = download_with_retry(tickers)
 
@@ -248,10 +250,15 @@ def main():
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = [executor.submit(fetch_batch, batch) for batch in batches]
-        for f in as_completed(futures):
-            rows, failed = f.result()
-            all_rows.extend(rows)
-            all_failed.extend(failed)
+        for f in as_completed(futures, timeout=300):
+            try:
+                rows, failed = f.result()
+                all_rows.extend(rows)
+                all_failed.extend(failed)
+            except TimeoutError:
+                print(f"[ERROR] Batch fetch timed out")
+            except Exception as e:
+                print(f"[ERROR] Exception occurred: {e}")
 
     print(f"[INFO] Collected {len(all_rows)} prices for market {MARKET}")
 
