@@ -99,7 +99,7 @@ def fetch_batch(batch, today):
 # ---------------------------
 def main():
     today = date.today().isoformat()
-    stocks = supabase.table("stocks").select("id, ticker, exchange").limit(50).eq("exchange", MARKET).execute().data
+    stocks = supabase.table("stocks").select("id, ticker, exchange").eq("exchange", MARKET).limit(50).execute().data
 
     if not stocks:
         print(f"[INFO] No stocks found for market {MARKET}")
@@ -133,11 +133,14 @@ def main():
     batch_size = 500
     for i in range(0, len(all_rows), batch_size):
         batch = all_rows[i:i + batch_size]
-        res = supabase.table("stock_prices").insert(batch).execute()
-        if res.error:
-            print(f"[ERROR] Failed batch {i}: {res.error}")
-        else:
-            print(f"[OK] Inserted {len(batch)} rows")
+        try:
+            res = supabase.table("stock_prices").insert(batch).execute()
+            if res.status_code >= 400:
+                print(f"[ERROR] Failed batch {i}: {res.data}")
+            else:
+                print(f"[OK] Inserted {len(batch)} rows")
+        except Exception as e:
+            print(f"[ERROR] Exception on batch {i}: {e}")
 
     # ---------------------------
     # 保存失败记录
