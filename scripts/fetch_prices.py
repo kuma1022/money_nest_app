@@ -57,11 +57,13 @@ def download_price(ticker, max_retries=3, delay=5):
                 raise ValueError("Empty DataFrame or no Close column")
 
             price_series = df["Close"].iloc[-1]
-            # 安全转换为 float
-            if hasattr(price_series, "__len__") and len(price_series) == 1:
-                price = float(price_series.iloc[0])
-            else:
+
+            # 安全转换 float
+            if isinstance(price_series, (float, int)):
                 price = float(price_series)
+            else:
+                # 如果仍然是 Series
+                price = float(price_series.values[-1])
 
             price_date = df.index[-1].date().isoformat()
             return price, price_date
@@ -124,21 +126,27 @@ def main():
 
     print(f"[INFO] Collected {len(all_rows)} prices for market {MARKET}")
 
-    # 写入 stock_prices，指定 on_conflict
+    # 写入 stock_prices，on_conflict 与唯一索引字段匹配
     for i in range(0, len(all_rows), 500):
         batch = all_rows[i:i+500]
         try:
-            supabase.table("stock_prices").upsert(batch, on_conflict=["stock_id","price_at"]).execute()
+            supabase.table("stock_prices").upsert(
+                batch,
+                on_conflict=["stock_id", "price_at"]  # 必须与唯一索引字段完全一致
+            ).execute()
             print(f"[OK] Upserted {len(batch)} rows")
         except Exception as e:
             print(f"[ERROR] Failed batch {i}: {e}")
 
-    # 写入 stock_price_failures
+    # 写入 stock_price_failures，确保唯一约束字段匹配
     if all_failed:
         for i in range(0, len(all_failed), 500):
             batch = all_failed[i:i+500]
             try:
-                supabase.table("stock_price_failures").upsert(batch, on_conflict=["stock_id","market","ticker"]).execute()
+                supabase.table("stock_price_failures").upsert(
+                    batch,
+                    on_conflict=["stock_id", "market", "ticker"]
+                ).execute()
             except Exception as e:
                 print(f"[ERROR] Failed to insert failures batch {i}: {e}")
         print(f"[INFO] {len(all_failed)} stocks failed and written to stock_price_failures")
