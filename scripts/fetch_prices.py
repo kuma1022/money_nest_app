@@ -68,33 +68,50 @@ def format_ticker(ticker, exchange):
 # ---------------------------
 def fetch_batch(batch):
     tickers = [format_ticker(s["ticker"], s["exchange"]) for s in batch]
-    data = download_with_retry(tickers)
     rows, failed = [], []
 
-    if data is not None:
-        # 获取实际交易日
-        price_date = data.index[-1].date().isoformat()
+    data = download_with_retry(tickers)  # download_with_retry 已保留重试逻辑
+    if data is None:
+        # 整批失败
+        for s in batch:
+            failed.append({"stock_id": s["id"], "ticker": s["ticker"], "market": MARKET, "reason": "download failed"})
+        return rows, failed
+
+    # 判断 data 类型
+    if isinstance(data, dict):
+        # batch 返回字典，每个 ticker 对应一个 Series
         for s in batch:
             yfticker = format_ticker(s["ticker"], s["exchange"])
             try:
-                if isinstance(data, dict):
-                    price = data.get(yfticker)
-                else:
-                    price = data[yfticker] if yfticker in data else None
-
-                if price is not None and not math.isnan(price):
+                price = data.get(yfticker)
+                if price is not None and not (price != price):  # NaN 检查
                     rows.append({
                         "stock_id": s["id"],
                         "price": float(price),
-                        "price_at": price_date,
+                        "price_at": price.index[-1].date().isoformat() if hasattr(price.index, '__getitem__') else date.today().isoformat()
                     })
                 else:
                     failed.append({"stock_id": s["id"], "ticker": s["ticker"], "market": MARKET, "reason": "price missing"})
             except Exception as e:
                 failed.append({"stock_id": s["id"], "ticker": s["ticker"], "market": MARKET, "reason": str(e)})
+
     else:
+        # 单只股票，返回 Series
+        price_date = data.name if hasattr(data, 'name') else date.today().isoformat()
         for s in batch:
-            failed.append({"stock_id": s["id"], "ticker": s["ticker"], "market": MARKET, "reason": "download failed"})
+            yfticker = format_ticker(s["ticker"], s["exchange"])
+            try:
+                price = data[yfticker] if yfticker in data else None
+                if price is not None and not (price != price):
+                    rows.append({
+                        "stock_id": s["id"],
+                        "price": float(price),
+                        "price_at": price_date
+                    })
+                else:
+                    failed.append({"stock_id": s["id"], "ticker": s["ticker"], "market": MARKET, "reason": "price missing"})
+            except Exception as e:
+                failed.append({"stock_id": s["id"], "ticker": s["ticker"], "market": MARKET, "reason": str(e)})
 
     return rows, failed
 
