@@ -1,9 +1,10 @@
 import os
 import yfinance as yf
 from supabase import create_client, Client
-from datetime import date
+from datetime import date, datetime
 import time, random
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import pandas_market_calendars as mcal
 
 # ---------------------------
 # Supabase 初始化
@@ -39,10 +40,10 @@ def download_with_retry(tickers, max_retries=3, delay=5):
 # ---------------------------
 def is_trading_day(market: str) -> bool:
     if market == "US":
-        cal = mcal.get_calendar('NYSE')
+        cal = mcal.get_calendar("NYSE")
         now = datetime.now().astimezone(cal.tz)
     elif market == "JP":
-        cal = mcal.get_calendar('JPX')
+        cal = mcal.get_calendar("JPX")
         now = datetime.now().astimezone(cal.tz)
     else:
         return True
@@ -65,19 +66,23 @@ def format_ticker(ticker, exchange):
         return ticker
 
 # ---------------------------
-# 抓取单个批次
+# 抓取单个批次（支持单 ticker 回退）
 # ---------------------------
 def fetch_batch(batch, today):
     tickers = [format_ticker(s["ticker"], s["exchange"]) for s in batch]
     data = download_with_retry(tickers)
+
     rows = []
     failed_rows = []
 
-    if data is not None:
+    # 如果批量失败 → 回退到单 ticker
+    if data is None:
+        print(f"[INFO] Batch failed, falling back to single ticker fetch for {tickers[:3]}...")
         for s in batch:
             yfticker = format_ticker(s["ticker"], s["exchange"])
-            try:
-                price = data[yfticker] if isinstance(data, dict) else data[yfticker]
+            single_data = download_with_retry([yfticker])
+            if single_data is not None:
+                price = single_data[yfticker] if isinstance(single_data, dict) else single_data
                 if price is not None and not (price != price):  # NaN 检查
                     rows.append({
                         "stock_id": s["id"],
@@ -86,12 +91,25 @@ def fetch_batch(batch, today):
                     })
                 else:
                     failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "NaN"})
-            except Exception as e:
-                failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": str(e)})
-    else:
-        for s in batch:
-            failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "Download failed"})
+            else:
+                failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "Download failed"})
+        return rows, failed_rows
 
+    # 批量成功 → 正常处理
+    for s in batch:
+        yfticker = format_ticker(s["ticker"], s["exchange"])
+        try:
+            price = data[yfticker] if isinstance(data, dict) else data[yfticker]
+            if price is not None and not (price != price):
+                rows.append({
+                    "stock_id": s["id"],
+                    "price": float(price),
+                    "price_at": today,
+                })
+            else:
+                failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "NaN"})
+        except Exception as e:
+            failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": str(e)})
     return rows, failed_rows
 
 # ---------------------------
@@ -149,8 +167,8 @@ def main():
         for i in range(0, len(all_failed), batch_size):
             batch = all_failed[i:i + batch_size]
             res = supabase.table("stock_price_failures").insert(batch).execute()
-            if res.error:
-                print(f"[ERROR] Failed to save failures batch {i}: {res.error}")
+            if res.status_code >= 400:
+                print(f"[ERROR] Failed to save failures batch {i}: {res.data}")
             else:
                 print(f"[INFO] Saved {len(batch)} failed records")
 
