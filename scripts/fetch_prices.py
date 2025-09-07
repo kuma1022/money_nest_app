@@ -20,13 +20,15 @@ MARKET = os.environ.get("MARKET")
 def download_with_retry(tickers, max_retries=3, delay=5):
     for attempt in range(1, max_retries + 1):
         try:
-            data = yf.download(
+            res = yf.download(
                 tickers,
                 period="1d",
                 progress=False,
                 group_by="ticker",
                 auto_adjust=True,
-            )["Close"].iloc[-1]
+            )
+            print(f"[INFO] Downloaded data for {tickers[:3]}..., attempt {attempt}, rows: {len(res)}")
+            data = res["Close"].iloc[-1]
             return data
         except Exception as e:
             print(f"[WARN] Attempt {attempt} failed for {tickers[:3]}...: {e}")
@@ -117,7 +119,7 @@ def fetch_batch(batch, today):
 # ---------------------------
 def main():
     today = date.today().isoformat()
-    stocks = supabase.table("stocks").select("id, ticker, exchange").eq("exchange", MARKET).limit(50).execute().data
+    stocks = supabase.table("stocks").select("id, ticker, exchange").eq("exchange", MARKET).limit(10).execute().data
 
     if not stocks:
         print(f"[INFO] No stocks found for market {MARKET}")
