@@ -48,3 +48,4 @@ jobs:
           else
             echo "[INFO] Running retry_failed_prices.py for $MARKET"
             python scripts/retry_failed_prices.py
+          fi

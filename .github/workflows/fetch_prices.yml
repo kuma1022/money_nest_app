@@ -41,3 +41,4 @@ jobs:
             python scripts/fetch_prices.py
           else
             python scripts/retry_failed_prices.py
+          fi
