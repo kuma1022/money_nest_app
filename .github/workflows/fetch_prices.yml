@@ -2,14 +2,14 @@ name: Stock Price Automation
 
 on:
   schedule:
-    # 美股抓取：每天 8:00 JST → UTC 23:00
-    - cron: "0 23 * * *"
+    # 美股抓取：每天 7:00 JST → UTC 22:00
+    - cron: "0 22 * * *"
     # 日股抓取：每天 16:30 JST → UTC 7:30
     - cron: "30 7 * * *"
-    # 美股重试：每天 10:00 JST → UTC 1:00
-    - cron: "0 1 * * *"
-    # 日股重试：每天 18:30 JST → UTC 9:30
-    - cron: "30 9 * * *"
+    # 美股重试：每天 8:00 JST → UTC 23:00
+    - cron: "0 23 * * *"
+    # 日股重试：每天 17:30 JST → UTC 8:30
+    - cron: "30 8 * * *"
   workflow_dispatch:
 
 jobs:
