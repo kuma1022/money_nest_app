@@ -148,6 +148,30 @@ def is_trading_day(market: str) -> bool:
 #    exit(0)
 
 # ---------------------------
+# 取得最近的交易日
+# ---------------------------
+def get_last_trading_day(market: str) -> str:
+    if market == "US":
+        cal = mcal.get_calendar("NYSE")
+    elif market == "JP":
+        cal = mcal.get_calendar("JPX")
+    else:
+        raise ValueError(f"Unsupported market: {market}")
+
+    now = datetime.now(cal.tz)  # 带市场时区
+    today = now.date()
+
+    # 往前推一周（足够覆盖周末/休市）
+    schedule = cal.schedule(start_date=today - timedelta(days=7), end_date=today)
+
+    # 取最后一个交易日
+    if not schedule.empty:
+        last_day = schedule.index[-1].date()
+        return last_day.isoformat()
+    else:
+        return None
+
+# ---------------------------
 # 格式化 ticker
 # ---------------------------
 def format_ticker(ticker, exchange):
@@ -161,7 +185,7 @@ def format_ticker(ticker, exchange):
 # ---------------------------
 # 抓取单个批次（支持单 ticker 回退，price_at 使用交易日）
 # ---------------------------
-def fetch_batch(batch):
+def fetch_batch(batch, base_day):
     delay = random.uniform(3, 5)  # 每个 batch 下载前加延迟
     print(f"[INFO] Sleeping {delay:.2f}s before next batch...")
     time.sleep(delay)
@@ -187,7 +211,7 @@ def fetch_batch(batch):
             else:
                 failed_rows.append({
                     "stock_id": s["id"],
-                    "price_at": date.today().isoformat(),
+                    "price_at": base_day,
                     "reason": "Download failed or NaN"
                 })
         return rows, failed_rows
@@ -217,7 +241,7 @@ def fetch_batch(batch):
             else:
                 failed_rows.append({
                     "stock_id": s["id"],
-                    "price_at": date.today().isoformat(),
+                    "price_at": base_day,
                     "reason": "Download failed or NaN"
                 })
                 
@@ -227,17 +251,30 @@ def fetch_batch(batch):
 # 主逻辑
 # ---------------------------
 def main():
+    base_day = get_last_trading_day(MARKET)
     if isRetry:
         print("[INFO] Running in retry mode, exiting fetch_prices.py")
-        stocks = fetch_all_failures_joined(supabase)
+        stocks = fetch_all_failures_joined(supabase, base_day)
     else:
         print(f"[INFO] Fetching prices for market {MARKET}")
+        # 1. 查询 stocks 表
         stocks = fetch_all(
             supabase,
             "stocks",
             select_cols="id, ticker, exchange",
             filters={"exchange": MARKET}
         )
+        # 2. 查询 stock_prices（当天已有的）
+        existing = fetch_all(
+            supabase,
+            "stock_prices",
+            select_cols="stock_id, price_at",
+            filters={"price_at": base_day}
+        )
+        done_ids = {x["stock_id"] for x in existing}
+        # 3. 过滤掉已有的
+        stocks = [s for s in stocks if s["id"] not in done_ids]
+
     if not stocks:
         print(f"[INFO] No stocks found for market {MARKET}")
         return
@@ -290,6 +327,7 @@ def main():
             supabase.table("stock_price_failures") \
                 .delete() \
                 .in_("stock_id", stock_ids) \
+                .eq("price_at", base_day) \
                 .execute()
 
     # ---------------------------
