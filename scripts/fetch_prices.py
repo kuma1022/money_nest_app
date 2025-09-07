@@ -1,9 +1,8 @@
 import os
 import yfinance as yf
 import pandas as pd
-import math
 from supabase import create_client, Client
-from datetime import date, datetime
+from datetime import date
 import time, random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas_market_calendars as mcal
@@ -29,22 +28,35 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 group_by="ticker",
                 auto_adjust=True,
             )
-            if df.empty:
-                raise ValueError("No data returned")
-
-            # 单 ticker 时，调整 MultiIndex
-            if isinstance(df.columns, pd.Index):
-                df.columns = pd.MultiIndex.from_product([tickers, df.columns])
-
-            trade_date = df.index[-1].date().isoformat()
             print(f"[INFO] Downloaded data for {tickers[:3]}..., attempt {attempt}, rows: {len(df)}")
-            return df, trade_date
+
+            result = {}
+            if isinstance(df.columns, pd.MultiIndex):
+                # 多 ticker
+                for ticker in tickers:
+                    try:
+                        price = df[ticker]["Close"].iloc[-1]
+                        if pd.isna(price) or math.isinf(price):
+                            price = None
+                        price_at = df.index[-1].date().isoformat()
+                        result[ticker] = {"price": price, "price_at": price_at}
+                    except Exception:
+                        result[ticker] = {"price": None, "price_at": None}
+            else:  # 单 ticker
+                price = df["Close"].iloc[-1]
+                if pd.isna(price) or math.isinf(price):
+                    price = None
+                price_at = df.index[-1].date().isoformat()
+                result[tickers[0]] = {"price": price, "price_at": price_at}
+
+            return result
+
         except Exception as e:
             print(f"[WARN] Attempt {attempt} failed for {tickers[:3]}...: {e}")
             if attempt < max_retries:
                 time.sleep(delay + random.uniform(0, 2))
             else:
-                return None, None
+                return None
 
 # ---------------------------
 # 判断交易日
@@ -81,44 +93,63 @@ def format_ticker(ticker, exchange):
 # ---------------------------
 def fetch_batch(batch):
     tickers = [format_ticker(s["ticker"], s["exchange"]) for s in batch]
-    data, trade_date = download_with_retry(tickers)
+    data = download_with_retry(tickers)
 
     rows = []
     failed_rows = []
 
-    # 批量失败 → 单 ticker 回退
-    if data is None or data.empty:
+    # 整个批次下载失败 → 单个再尝试
+    if data is None:
+        print(f"[INFO] Batch failed, falling back to single ticker fetch for {tickers[:3]}...")
         for s in batch:
             yfticker = format_ticker(s["ticker"], s["exchange"])
-            single_data, single_date = download_with_retry([yfticker])
-            price_date = single_date or date.today().isoformat()
-
-            if single_data is None or single_data.empty:
-                failed_rows.append({"stock_id": s["id"], "price_at": price_date, "reason": "Download failed or no data"})
-                continue
-
-            try:
-                price = single_data[yfticker]["Close"].iloc[-1] if isinstance(single_data, pd.DataFrame) else None
-                if price is not None and math.isfinite(price):
-                    rows.append({"stock_id": s["id"], "price": float(price), "price_at": single_data.index[-1].date().isoformat()})
-                else:
-                    failed_rows.append({"stock_id": s["id"], "price_at": price_date, "reason": "Invalid price"})
-            except Exception as e:
-                failed_rows.append({"stock_id": s["id"], "price_at": price_date, "reason": str(e)})
+            single_data = download_with_retry([yfticker])
+            price = single_data[yfticker]["price"] if single_data else None
+            if price is not None and not (math.isnan(price) or math.isinf(price)):
+                rows.append({
+                    "stock_id": s["id"],
+                    "price": float(price),
+                    "price_at": single_data[yfticker]["price_at"],
+                })
+            else:
+                failed_rows.append({
+                    "stock_id": s["id"],
+                    "price_at": date.today().isoformat(),
+                    "reason": "Download failed or NaN"
+                })
         return rows, failed_rows
 
-    # 批量成功
+    # 批量成功 → 对单个价格为 None/NaN 的再尝试
     for s in batch:
         yfticker = format_ticker(s["ticker"], s["exchange"])
-        try:
-            price = data[yfticker]["Close"].iloc[-1]
-            if price is not None and math.isfinite(price):
-                rows.append({"stock_id": s["id"], "price": float(price), "price_at": data.index[-1].date().isoformat()})
-            else:
-                failed_rows.append({"stock_id": s["id"], "price_at": data.index[-1].date().isoformat(), "reason": "Invalid price"})
-        except Exception as e:
-            failed_rows.append({"stock_id": s["id"], "price_at": data.index[-1].date().isoformat(), "reason": str(e)})
+        price = data.get(yfticker, {}).get("price")
+        price_at = data.get(yfticker, {}).get("price_at", date.today().isoformat())
 
+        if price is not None and not (math.isnan(price) or math.isinf(price)):
+            rows.append({
+                "stock_id": s["id"],
+                "price": float(price),
+                "price_at": price_at,
+            })
+        else:
+            # 单独下载失败 ticker
+            single_data = download_with_retry([yfticker])
+            single_price = single_data[yfticker]["price"] if single_data else None
+            single_price_at = single_data[yfticker]["price_at"] if single_data else date.today().isoformat()
+
+            if single_price is not None and not (math.isnan(single_price) or math.isinf(single_price)):
+                rows.append({
+                    "stock_id": s["id"],
+                    "price": float(single_price),
+                    "price_at": single_price_at,
+                })
+            else:
+                failed_rows.append({
+                    "stock_id": s["id"],
+                    "price_at": single_price_at,
+                    "reason": "Download failed or NaN"
+                })
+                
     return rows, failed_rows
 
 # ---------------------------
@@ -146,7 +177,7 @@ def main():
     print(f"[INFO] Collected {len(all_rows)} prices for market {MARKET}")
 
     # ---------------------------
-    # 删除已有记录（以当天交易日 price_at 为准）
+    # 删除当天已有的记录
     # ---------------------------
     if all_rows:
         stock_ids = list({r["stock_id"] for r in all_rows})
@@ -159,7 +190,7 @@ def main():
     for i in range(0, len(all_rows), batch_size):
         batch = all_rows[i:i + batch_size]
         try:
-            supabase.table("stock_prices").insert(batch).execute()
+            res = supabase.table("stock_prices").insert(batch).execute()
             print(f"[OK] Inserted {len(batch)} rows")
         except Exception as e:
             print(f"[ERROR] Exception on batch {i}: {e}")
