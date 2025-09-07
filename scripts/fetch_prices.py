@@ -103,7 +103,7 @@ def main():
     exchange_map = {"US": "US", "JP": "TSE"}
     exchange_filter = exchange_map.get(MARKET, "US")
 
-    stocks = supabase.table("stocks").select("id, ticker, exchange").limit(20) \
+    stocks = supabase.table("stocks").select("id, ticker, exchange").limit(50) \
         .eq("exchange", exchange_filter).execute().data
 
     if not stocks:
@@ -124,11 +124,11 @@ def main():
 
     print(f"[INFO] Collected {len(all_rows)} prices for market {MARKET}")
 
-    # 写入 stock_prices
+    # 写入 stock_prices，指定 on_conflict
     for i in range(0, len(all_rows), 500):
         batch = all_rows[i:i+500]
         try:
-            supabase.table("stock_prices").upsert(batch).execute()
+            supabase.table("stock_prices").upsert(batch, on_conflict=["stock_id","price_at"]).execute()
             print(f"[OK] Upserted {len(batch)} rows")
         except Exception as e:
             print(f"[ERROR] Failed batch {i}: {e}")
@@ -138,7 +138,7 @@ def main():
         for i in range(0, len(all_failed), 500):
             batch = all_failed[i:i+500]
             try:
-                supabase.table("stock_price_failures").upsert(batch).execute()
+                supabase.table("stock_price_failures").upsert(batch, on_conflict=["stock_id","market","ticker"]).execute()
             except Exception as e:
                 print(f"[ERROR] Failed to insert failures batch {i}: {e}")
         print(f"[INFO] {len(all_failed)} stocks failed and written to stock_price_failures")
