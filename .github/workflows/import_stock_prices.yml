@@ -19,12 +19,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install Supabase client
+        run: npm install @supabase/supabase-js
 
       - name: Run import script
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          node scripts/import_stock_prices.js ${{ github.event.inputs.market }}
+        run: node scripts/import_stock_prices.js ${{ github.event.inputs.market }}
