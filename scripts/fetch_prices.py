@@ -301,17 +301,22 @@ def main():
 
     print(f"[INFO] Collected {len(all_rows)} prices for market {MARKET}")
 
+    batch_size = 500
     # ---------------------------
     # 删除当天已有的记录
     # ---------------------------
-    if all_rows:
-        stock_ids = list({r["stock_id"] for r in all_rows})
-        supabase.table("stock_prices").delete().in_("stock_id", stock_ids).eq("price_at", all_rows[0]["price_at"]).execute()
+    price_at = all_rows[0]["price_at"]  # 理论上所有记录的 price_at 都一样
+    for i in range(0, len(stock_ids), batch_size):
+      batch_ids = stock_ids[i:i + batch_size]
+      supabase.table("stock_prices") \
+          .delete() \
+          .in_("stock_id", batch_ids) \
+          .eq("price_at", price_at) \
+          .execute()
 
     # ---------------------------
     # 插入新记录
     # ---------------------------
-    batch_size = 500
     for i in range(0, len(all_rows), batch_size):
         batch = all_rows[i:i + batch_size]
         try:
@@ -321,14 +326,15 @@ def main():
             print(f"[ERROR] Exception on batch {i}: {e}")
 
     # ---------------------------
-    # 删除已成功的失败记录
+    # 删除已成功的失败记录（仅限最近交易日）
     # ---------------------------
-    if isRetry:
-        stock_ids = [s["id"] for s in stocks]
-        if stock_ids:
+    stock_ids = [s["id"] for s in stocks]
+    if stock_ids:
+        for i in range(0, len(stock_ids), batch_size):
+            batch_ids = stock_ids[i:i + batch_size]
             supabase.table("stock_price_failures") \
                 .delete() \
-                .in_("stock_id", stock_ids) \
+                .in_("stock_id", batch_ids) \
                 .eq("price_at", base_day) \
                 .execute()
 
