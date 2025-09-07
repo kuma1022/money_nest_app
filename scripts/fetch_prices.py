@@ -72,6 +72,17 @@ def is_trading_day(market: str) -> bool:
 #    exit(0)
 
 # ---------------------------
+# 格式化 ticker
+# ---------------------------
+def format_ticker(ticker, exchange):
+    if exchange == "JP":  # 日股
+        return f"{ticker}.T"
+    elif exchange == "US":  # 美股
+        return ticker
+    else:
+        return ticker
+
+# ---------------------------
 # 抓取单个批次（支持单 ticker 回退，price_at 使用交易日）
 # ---------------------------
 def fetch_batch(batch):
