@@ -64,7 +64,7 @@ async function processFile(filePath, stockMap) {
     if (!stockId) continue;
 
     const record = {
-      stocks_id: stockId,
+      stock_id: stockId,
       price: parseFloat(close),
       price_at: date.replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3"),
     };
@@ -76,7 +76,7 @@ async function processFile(filePath, stockMap) {
     if (batchSizeBytes >= MAX_UPSERT_SIZE_MB * 1024 * 1024) {
       const { error: upsertErr } = await supabase
         .from("stock_prices")
-        .upsert(batch, { onConflict: "stocks_id,price_at" });
+        .upsert(batch, { onConflict: "stock_id,price_at" });
       if (upsertErr) console.error("Upsert error:", upsertErr);
       batch = [];
       batchSizeBytes = 0;
@@ -87,7 +87,7 @@ async function processFile(filePath, stockMap) {
   if (batch.length > 0) {
     const { error: upsertErr } = await supabase
       .from("stock_prices")
-      .upsert(batch, { onConflict: "stocks_id,price_at" });
+      .upsert(batch, { onConflict: "stock_id,price_at" });
     if (upsertErr) console.error("Upsert error:", upsertErr);
   }
 
