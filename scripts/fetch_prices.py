@@ -47,17 +47,24 @@ def format_ticker(ticker, exchange):
         return ticker
 
 # ---------------------------
-# 单只股票下载函数（带重试）
+# 单只股票下载函数（带重试 + 安全 float）
 # ---------------------------
 def download_price(ticker, max_retries=3, delay=5):
     for attempt in range(1, max_retries + 1):
         try:
             df = yf.download(ticker, period="1d", progress=False, auto_adjust=False)
-            if df.empty:
-                raise ValueError("Empty DataFrame")
-            price = df["Close"].iloc[-1]
+            if df.empty or "Close" not in df.columns:
+                raise ValueError("Empty DataFrame or no Close column")
+
+            price_series = df["Close"].iloc[-1]
+            if hasattr(price_series, "__len__") and len(price_series) == 1:
+                price = float(price_series.iloc[0])
+            else:
+                price = float(price_series)
+
             price_date = df.index[-1].date().isoformat()
             return price, price_date
+
         except Exception as e:
             print(f"[WARN] Attempt {attempt} failed for {ticker}: {e}")
             if attempt < max_retries:
@@ -76,7 +83,7 @@ def fetch_batch(batch):
         if price is not None:
             rows.append({
                 "stock_id": s["id"],
-                "price": float(price),
+                "price": price,
                 "price_at": result
             })
         else:
@@ -92,18 +99,17 @@ def fetch_batch(batch):
 # 主逻辑
 # ---------------------------
 def main():
-    # 获取股票列表
     exchange_map = {"US": "US", "JP": "TSE"}
     exchange_filter = exchange_map.get(MARKET, "US")
 
-    stocks = supabase.table("stocks").select("id, ticker, exchange") \
+    stocks = supabase.table("stocks").select("id, ticker, exchange").limit(10) \
         .eq("exchange", exchange_filter).execute().data
 
     if not stocks:
         print(f"[INFO] No stocks found for market {MARKET}")
         return
 
-    # 分批（线程池处理）
+    # 分批处理
     batch_size = 20
     batches = [stocks[i:i+batch_size] for i in range(0, len(stocks), batch_size)]
     all_rows, all_failed = [], []
@@ -126,7 +132,7 @@ def main():
         else:
             print(f"[OK] Upserted {len(batch)} rows")
 
-    # 写入失败记录
+    # 写入 stock_price_failures
     if all_failed:
         for i in range(0, len(all_failed), 500):
             batch = all_failed[i:i+500]
