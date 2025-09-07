@@ -15,7 +15,7 @@ supabase: Client = create_client(url, key)
 MARKET = os.environ.get("MARKET")
 
 # ---------------------------
-# 下载函数（带重试）
+# 下载函数（带重试，统一返回 dict）
 # ---------------------------
 def download_with_retry(tickers, max_retries=3, delay=5):
     for attempt in range(1, max_retries + 1):
@@ -28,8 +28,25 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 auto_adjust=True,
             )
             print(f"[INFO] Downloaded data for {tickers[:3]}..., attempt {attempt}, rows: {len(res)}")
-            data = res["Close"].iloc[-1]
-            return data
+
+            if res.empty:
+                raise ValueError("Empty DataFrame")
+
+            closes = {}
+            if isinstance(tickers, str):
+                # 单 ticker
+                if "Close" in res.columns:
+                    closes[tickers] = res["Close"].iloc[-1]
+            else:
+                # 多 ticker
+                for t in tickers:
+                    try:
+                        closes[t] = res["Close"][t].iloc[-1]
+                    except Exception as e:
+                        print(f"[WARN] Missing Close for {t}: {e}")
+
+            return closes
+
         except Exception as e:
             print(f"[WARN] Attempt {attempt} failed for {tickers[:3]}...: {e}")
             if attempt < max_retries:
@@ -77,14 +94,14 @@ def fetch_batch(batch, today):
     rows = []
     failed_rows = []
 
-    # 如果批量失败 → 回退到单 ticker
+    # 批量失败 → 回退到单 ticker
     if data is None:
         print(f"[INFO] Batch failed, falling back to single ticker fetch for {tickers[:3]}...")
         for s in batch:
             yfticker = format_ticker(s["ticker"], s["exchange"])
             single_data = download_with_retry([yfticker])
-            if single_data is not None:
-                price = single_data[yfticker] if isinstance(single_data, dict) else single_data
+            if single_data and yfticker in single_data:
+                price = single_data[yfticker]
                 if price is not None and not (price != price):  # NaN 检查
                     rows.append({
                         "stock_id": s["id"],
@@ -100,18 +117,15 @@ def fetch_batch(batch, today):
     # 批量成功 → 正常处理
     for s in batch:
         yfticker = format_ticker(s["ticker"], s["exchange"])
-        try:
-            price = data[yfticker] if isinstance(data, dict) else data[yfticker]
-            if price is not None and not (price != price):
-                rows.append({
-                    "stock_id": s["id"],
-                    "price": float(price),
-                    "price_at": today,
-                })
-            else:
-                failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "NaN"})
-        except Exception as e:
-            failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": str(e)})
+        price = data.get(yfticker)
+        if price is not None and not (price != price):
+            rows.append({
+                "stock_id": s["id"],
+                "price": float(price),
+                "price_at": today,
+            })
+        else:
+            failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "NaN or missing"})
     return rows, failed_rows
 
 # ---------------------------
@@ -155,8 +169,9 @@ def main():
         batch = all_rows[i:i + batch_size]
         try:
             res = supabase.table("stock_prices").insert(batch).execute()
-            if res.status_code >= 400:
-                print(f"[ERROR] Failed batch {i}: {res.data}")
+            # 直接检查 data 是否为空即可
+            if not res.data:
+                print(f"[ERROR] Failed batch {i}: {res}")
             else:
                 print(f"[OK] Inserted {len(batch)} rows")
         except Exception as e:
@@ -169,8 +184,8 @@ def main():
         for i in range(0, len(all_failed), batch_size):
             batch = all_failed[i:i + batch_size]
             res = supabase.table("stock_price_failures").insert(batch).execute()
-            if res.status_code >= 400:
-                print(f"[ERROR] Failed to save failures batch {i}: {res.data}")
+            if not res.data:
+                print(f"[ERROR] Failed to save failures batch {i}: {res}")
             else:
                 print(f"[INFO] Saved {len(batch)} failed records")
 
