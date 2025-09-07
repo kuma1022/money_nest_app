@@ -31,7 +31,7 @@ def is_trading_day(market: str) -> bool:
     else:
         return True
     schedule = cal.schedule(start_date=now.date(), end_date=now.date())
-    return not schedule.empty
+    return True #not schedule.empty
 
 if not is_trading_day(MARKET):
     print(f"[INFO] Today is not a trading day for {MARKET}, exiting.")
