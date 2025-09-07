@@ -227,6 +227,7 @@ def main():
         print("[INFO] Running in retry mode, exiting fetch_prices.py")
         stocks = fetch_all_failures_joined(supabase)
     else:
+        print(f"[INFO] Fetching prices for market {MARKET}")
         stocks = fetch_all(
             supabase,
             "stocks",
@@ -274,7 +275,7 @@ def main():
     # ---------------------------
     # 删除已成功的失败记录
     # ---------------------------
-    if isRetry and all_failed:
+    if isRetry:
         stock_ids = [s["id"] for s in stocks]
         if stock_ids:
             supabase.table("stock_price_failures") \
