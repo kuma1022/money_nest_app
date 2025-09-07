@@ -1,8 +1,9 @@
 import os
 import yfinance as yf
 import pandas as pd
+import math
 from supabase import create_client, Client
-from datetime import date
+from datetime import date, datetime
 import time, random
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas_market_calendars as mcal
@@ -19,9 +20,6 @@ MARKET = os.environ.get("MARKET")
 # 下载函数（带重试，返回 {ticker: {"price": float, "price_at": str}}）
 # ---------------------------
 def download_with_retry(tickers, max_retries=3, delay=5):
-    """
-    下载 tickers 的价格数据，返回 DataFrame，并保证列为单层 MultiIndex (Ticker, OHLCV)
-    """
     for attempt in range(1, max_retries + 1):
         try:
             df = yf.download(
@@ -34,14 +32,13 @@ def download_with_retry(tickers, max_retries=3, delay=5):
             if df.empty:
                 raise ValueError("No data returned")
 
-            # 如果只下载一个 ticker，yfinance 会返回单层列名，需要调整成 MultiIndex
+            # 单 ticker 时修正 MultiIndex
             if isinstance(df.columns, pd.Index):
                 df.columns = pd.MultiIndex.from_product([tickers, df.columns])
 
             trade_date = df.index[-1].date().isoformat()
             print(f"[INFO] Downloaded data for {tickers[:3]}..., attempt {attempt}, rows: {len(df)}")
             return df, trade_date
-
         except Exception as e:
             print(f"[WARN] Attempt {attempt} failed for {tickers[:3]}...: {e}")
             if attempt < max_retries:
@@ -82,69 +79,41 @@ def format_ticker(ticker, exchange):
 # ---------------------------
 # 抓取单个批次（支持单 ticker 回退，price_at 使用交易日）
 # ---------------------------
-def fetch_batch(batch, today):
+def fetch_batch(batch):
     tickers = [format_ticker(s["ticker"], s["exchange"]) for s in batch]
-    data = download_with_retry(tickers)
+    data, trade_date = download_with_retry(tickers)
 
     rows = []
     failed_rows = []
 
-    # 批量失败 → 回退到单 ticker
     if data is None:
         print(f"[INFO] Batch failed, falling back to single ticker fetch for {tickers[:3]}...")
         for s in batch:
             yfticker = format_ticker(s["ticker"], s["exchange"])
-            single_data = download_with_retry([yfticker])
-            if single_data is not None:
-                # 获取交易日和收盘价
-                if isinstance(single_data, pd.DataFrame):
-                    trade_date = single_data.index[-1].date().isoformat()
-                    price = single_data["Close"].iloc[-1]
-                elif isinstance(single_data, dict):
-                    trade_date = list(single_data.keys())[0]  # 单 ticker dict 情况
-                    price = single_data[yfticker]
-                else:
-                    trade_date = today
-                    price = single_data
+            single_data, single_trade_date = download_with_retry([yfticker])
+            trade_date = single_trade_date or date.today().isoformat()
 
+            if single_data is not None:
+                price = single_data[yfticker]["Close"].iloc[-1] if isinstance(single_data, pd.DataFrame) else single_data
                 if price is not None and not (price != price) and math.isfinite(price):
-                    rows.append({
-                        "stock_id": s["id"],
-                        "price": float(price),
-                        "price_at": trade_date,
-                    })
+                    rows.append({"stock_id": s["id"], "price": float(price), "price_at": trade_date})
                 else:
                     failed_rows.append({"stock_id": s["id"], "price_at": trade_date, "reason": "Invalid price"})
             else:
-                failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "Download failed"})
+                failed_rows.append({"stock_id": s["id"], "price_at": trade_date, "reason": "Download failed"})
         return rows, failed_rows
 
-    # 批量成功 → 正常处理
+    # 批量成功
     for s in batch:
         yfticker = format_ticker(s["ticker"], s["exchange"])
         try:
-            # 获取交易日和收盘价
-            if isinstance(data, pd.DataFrame):
-                trade_date = data.index[-1].date().isoformat()
-                price = data[yfticker]["Close"].iloc[-1]
-            elif isinstance(data, dict):
-                trade_date = list(data[yfticker].keys())[-1]  # 单 ticker dict 情况
-                price = data[yfticker][-1]
-            else:
-                trade_date = today
-                price = data[yfticker]
-
+            price = data[yfticker]["Close"].iloc[-1]
             if price is not None and not (price != price) and math.isfinite(price):
-                rows.append({
-                    "stock_id": s["id"],
-                    "price": float(price),
-                    "price_at": trade_date,
-                })
+                rows.append({"stock_id": s["id"], "price": float(price), "price_at": trade_date})
             else:
                 failed_rows.append({"stock_id": s["id"], "price_at": trade_date, "reason": "Invalid price"})
         except Exception as e:
-            failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": str(e)})
-
+            failed_rows.append({"stock_id": s["id"], "price_at": trade_date, "reason": str(e)})
     return rows, failed_rows
 
 # ---------------------------
@@ -172,7 +141,7 @@ def main():
     print(f"[INFO] Collected {len(all_rows)} prices for market {MARKET}")
 
     # ---------------------------
-    # 删除当天已有的记录
+    # 删除已有记录
     # ---------------------------
     if all_rows:
         stock_ids = list({r["stock_id"] for r in all_rows})
@@ -185,7 +154,7 @@ def main():
     for i in range(0, len(all_rows), batch_size):
         batch = all_rows[i:i + batch_size]
         try:
-            res = supabase.table("stock_prices").insert(batch).execute()
+            supabase.table("stock_prices").insert(batch).execute()
             print(f"[OK] Inserted {len(batch)} rows")
         except Exception as e:
             print(f"[ERROR] Exception on batch {i}: {e}")
