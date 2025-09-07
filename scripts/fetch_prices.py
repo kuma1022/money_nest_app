@@ -156,7 +156,7 @@ def fetch_batch(batch):
 # 主逻辑
 # ---------------------------
 def main():
-    stocks = supabase.table("stocks").select("id, ticker, exchange").eq("exchange", MARKET).limit(10).execute().data
+    stocks = supabase.table("stocks").select("id, ticker, exchange").eq("exchange", MARKET).execute().data
     if not stocks:
         print(f"[INFO] No stocks found for market {MARKET}")
         return
