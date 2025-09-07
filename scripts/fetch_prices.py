@@ -122,14 +122,13 @@ def fetch_batch(batch):
     # 批量成功 → 对单个价格为 None/NaN 的再尝试
     for s in batch:
         yfticker = format_ticker(s["ticker"], s["exchange"])
-        price = data.get(yfticker, {}).get("price")
-        price_at = data.get(yfticker, {}).get("price_at", date.today().isoformat())
+        price = data[yfticker]["price"]
 
         if price is not None and not (math.isnan(price) or math.isinf(price)):
             rows.append({
                 "stock_id": s["id"],
                 "price": float(price),
-                "price_at": price_at,
+                "price_at": data[yfticker]["price_at"],
             })
         else:
             # 单独下载失败 ticker
