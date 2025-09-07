@@ -4,6 +4,7 @@ from supabase import create_client, Client
 from datetime import date, datetime
 import time, random
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import pandas as pd
 import pandas_market_calendars as mcal
 
 # ---------------------------
@@ -15,7 +16,7 @@ supabase: Client = create_client(url, key)
 MARKET = os.environ.get("MARKET")
 
 # ---------------------------
-# 下载函数（带重试，统一返回 dict）
+# 下载函数（带重试）
 # ---------------------------
 def download_with_retry(tickers, max_retries=3, delay=5):
     for attempt in range(1, max_retries + 1):
@@ -28,26 +29,15 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 auto_adjust=True,
             )
             print(f"[INFO] Downloaded data for {tickers[:3]}..., attempt {attempt}, rows: {len(res)}")
-            print(res.head(10))
-            print(res.columns)
 
-            if res.empty:
-                raise ValueError("Empty DataFrame")
-
-            closes = {}
-            if isinstance(tickers, str):
-                # 单 ticker
-                if "Close" in res.columns:
-                    closes[tickers] = res["Close"].iloc[-1]
+            # 提取 Close 列
+            if isinstance(res.columns, pd.MultiIndex):
+                close_data = res.xs("Close", axis=1, level=1)
+                result = {col: close_data[col].iloc[-1] for col in close_data.columns}
             else:
-                # 多 ticker
-                for t in tickers:
-                    try:
-                        closes[t] = res["Close"][t].iloc[-1]
-                    except Exception as e:
-                        print(f"[WARN] Missing Close for {t}: {e}")
+                result = {tickers[0]: res["Close"].iloc[-1]}
 
-            return closes
+            return result
 
         except Exception as e:
             print(f"[WARN] Attempt {attempt} failed for {tickers[:3]}...: {e}")
@@ -79,9 +69,9 @@ def is_trading_day(market: str) -> bool:
 # 格式化 ticker
 # ---------------------------
 def format_ticker(ticker, exchange):
-    if exchange == "JP":  # 日股
+    if exchange == "JP":
         return f"{ticker}.T"
-    elif exchange == "US":  # 美股
+    elif exchange == "US":
         return ticker
     else:
         return ticker
@@ -96,15 +86,14 @@ def fetch_batch(batch, today):
     rows = []
     failed_rows = []
 
-    # 批量失败 → 回退到单 ticker
     if data is None:
         print(f"[INFO] Batch failed, falling back to single ticker fetch for {tickers[:3]}...")
         for s in batch:
             yfticker = format_ticker(s["ticker"], s["exchange"])
             single_data = download_with_retry([yfticker])
-            if single_data and yfticker in single_data:
-                price = single_data[yfticker]
-                if price is not None and not (price != price):  # NaN 检查
+            if single_data is not None:
+                price = single_data.get(yfticker)
+                if price is not None and not (price != price):
                     rows.append({
                         "stock_id": s["id"],
                         "price": float(price),
@@ -116,7 +105,7 @@ def fetch_batch(batch, today):
                 failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "Download failed"})
         return rows, failed_rows
 
-    # 批量成功 → 正常处理
+    # 批量成功
     for s in batch:
         yfticker = format_ticker(s["ticker"], s["exchange"])
         price = data.get(yfticker)
@@ -127,7 +116,8 @@ def fetch_batch(batch, today):
                 "price_at": today,
             })
         else:
-            failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "NaN or missing"})
+            failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "NaN"})
+
     return rows, failed_rows
 
 # ---------------------------
@@ -156,40 +146,36 @@ def main():
 
     print(f"[INFO] Collected {len(all_rows)} prices for market {MARKET}")
 
-    # ---------------------------
-    # 先删除当天已有的记录
-    # ---------------------------
+    # 删除当天已有记录
     if all_rows:
         stock_ids = list({r["stock_id"] for r in all_rows})
         supabase.table("stock_prices").delete().in_("stock_id", stock_ids).eq("price_at", today).execute()
 
-    # ---------------------------
-    # 分批插入新记录
-    # ---------------------------
+    # 插入新记录
     batch_size = 500
     for i in range(0, len(all_rows), batch_size):
         batch = all_rows[i:i + batch_size]
         try:
             res = supabase.table("stock_prices").insert(batch).execute()
-            # 直接检查 data 是否为空即可
-            if not res.data:
-                print(f"[ERROR] Failed batch {i}: {res}")
+            if getattr(res, "status_code", 200) >= 400:
+                print(f"[ERROR] Failed batch {i}: {getattr(res, 'data', res)}")
             else:
                 print(f"[OK] Inserted {len(batch)} rows")
         except Exception as e:
             print(f"[ERROR] Exception on batch {i}: {e}")
 
-    # ---------------------------
     # 保存失败记录
-    # ---------------------------
     if all_failed:
         for i in range(0, len(all_failed), batch_size):
             batch = all_failed[i:i + batch_size]
-            res = supabase.table("stock_price_failures").insert(batch).execute()
-            if not res.data:
-                print(f"[ERROR] Failed to save failures batch {i}: {res}")
-            else:
-                print(f"[INFO] Saved {len(batch)} failed records")
+            try:
+                res = supabase.table("stock_price_failures").insert(batch).execute()
+                if getattr(res, "status_code", 200) >= 400:
+                    print(f"[ERROR] Failed to save failures batch {i}: {getattr(res, 'data', res)}")
+                else:
+                    print(f"[INFO] Saved {len(batch)} failed records")
+            except Exception as e:
+                print(f"[ERROR] Exception saving failures batch {i}: {e}")
 
 if __name__ == "__main__":
     main()
