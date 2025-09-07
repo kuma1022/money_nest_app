@@ -122,6 +122,9 @@ def fetch_all_failures_joined(supabase, page_size=1000):
 
         # 扁平化 stocks 数据
         for item in data:
+            reason = item.get("reason", "")
+            if "delisted" in reason.lower():
+                continue  # 跳过退市的
             stock = item.get("stocks")
             if stock:
                 all_data.append(stock)
@@ -134,6 +137,7 @@ def fetch_all_failures_joined(supabase, page_size=1000):
 # 下载函数（带重试，返回 {ticker: {"price": float, "price_at": str}}）
 # ---------------------------
 def download_with_retry(tickers, max_retries=3, delay=5):
+    last_error = None
     for attempt in range(1, max_retries + 1):
         try:
             df = yf.download(
@@ -165,14 +169,15 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 price_at = df.index[-1].date().isoformat()
                 result[tickers[0]] = {"price": price, "price_at": price_at}
 
-            return result
+            return result, None
 
         except Exception as e:
+            last_error = f"{type(e).__name__}: {str(e)}"
             print(f"[WARN] Attempt {attempt} failed for {tickers[:3]}...: {e}")
             if attempt < max_retries:
                 time.sleep(delay + random.uniform(0, 2))
             else:
-                return None
+                return None, last_error
 
 # ---------------------------
 # 格式化 ticker
@@ -193,7 +198,7 @@ def fetch_batch(batch):
     print(f"[INFO] Sleeping {delay:.2f}s before next batch...")
     time.sleep(delay)
     tickers = [format_ticker(s["ticker"], s["exchange"]) for s in batch]
-    data = download_with_retry(tickers)
+    data, error_reason = download_with_retry(tickers)
 
     rows = []
     failed_rows = []
@@ -203,8 +208,9 @@ def fetch_batch(batch):
         print(f"[INFO] Batch failed, falling back to single ticker fetch for {tickers[:3]}...")
         for s in batch:
             yfticker = format_ticker(s["ticker"], s["exchange"])
-            single_data = download_with_retry([yfticker])
+            single_data, single_error = download_with_retry([yfticker])
             price = single_data[yfticker]["price"] if single_data else None
+            reason = single_error or "Download failed or NaN"
             if price is not None and not (math.isnan(price) or math.isinf(price)):
                 rows.append({
                     "stock_id": s["id"],
@@ -215,7 +221,7 @@ def fetch_batch(batch):
                 failed_rows.append({
                     "stock_id": s["id"],
                     "price_at": base_day,
-                    "reason": "Download failed or NaN"
+                    "reason": reason
                 })
         return rows, failed_rows
 
@@ -232,8 +238,9 @@ def fetch_batch(batch):
             })
         else:
             # 单独下载失败 ticker
-            single_data = download_with_retry([yfticker])
+            single_data, single_error = download_with_retry([yfticker])
             single_price = single_data[yfticker]["price"] if single_data else None
+            reason = single_error or "Download failed or NaN"
 
             if single_price is not None and not (math.isnan(single_price) or math.isinf(single_price)):
                 rows.append({
@@ -245,7 +252,7 @@ def fetch_batch(batch):
                 failed_rows.append({
                     "stock_id": s["id"],
                     "price_at": base_day,
-                    "reason": "Download failed or NaN"
+                    "reason": reason
                 })
                 
     return rows, failed_rows
