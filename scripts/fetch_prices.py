@@ -306,6 +306,7 @@ def main():
     # 删除当天已有的记录
     # ---------------------------
     price_at = all_rows[0]["price_at"]  # 理论上所有记录的 price_at 都一样
+    stock_ids = list({r["stock_id"] for r in all_rows})
     for i in range(0, len(stock_ids), batch_size):
       batch_ids = stock_ids[i:i + batch_size]
       supabase.table("stock_prices") \
