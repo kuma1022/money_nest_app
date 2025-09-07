@@ -1,0 +1,50 @@
+name: Stock Price Manual Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '选择执行操作'
+        required: true
+        default: fetch_us
+        type: choice
+        options:
+          - fetch_us
+          - fetch_jp
+          - retry_us
+          - retry_jp
+
+jobs:
+  stock-job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt pandas_market_calendars yfinance supabase
+
+      - name: Set MARKET env
+        run: |
+          case "${{ github.event.inputs.action }}" in
+            fetch_us) echo "MARKET=US" >> $GITHUB_ENV ;;
+            fetch_jp) echo "MARKET=JP" >> $GITHUB_ENV ;;
+            retry_us) echo "MARKET=US_RETRY" >> $GITHUB_ENV ;;
+            retry_jp) echo "MARKET=JP_RETRY" >> $GITHUB_ENV ;;
+          esac
+
+      - name: Run script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MARKET: ${{ env.MARKET }}
+        run: |
+          if [ "$MARKET" = "US" ] || [ "$MARKET" = "JP" ]; then
+            echo "[INFO] Running fetch_prices.py for $MARKET"
+            python scripts/fetch_prices.py
+          else
+            echo "[INFO] Running retry_failed_prices.py for $MARKET"
+            python scripts/retry_failed_prices.py
