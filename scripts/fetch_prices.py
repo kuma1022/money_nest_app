@@ -18,6 +18,52 @@ MARKET = os.environ.get("MARKET")
 isRetry = os.environ.get("IS_RETRY", "0") == "1"
 
 # ---------------------------
+# 判断交易日
+# ---------------------------
+def is_trading_day(market: str) -> bool:
+    if market == "US":
+        cal = mcal.get_calendar("NYSE")
+        now = datetime.now().astimezone(cal.tz)
+    elif market == "JP":
+        cal = mcal.get_calendar("JPX")
+        now = datetime.now().astimezone(cal.tz)
+    else:
+        return True
+    schedule = cal.schedule(start_date=now.date(), end_date=now.date())
+    return not schedule.empty
+
+#if not is_trading_day(MARKET):
+#    print(f"[INFO] Today is not a trading day for {MARKET}, exiting.")
+#    exit(0)
+
+# ---------------------------
+# 取得最近的交易日
+# ---------------------------
+def get_last_trading_day(market: str) -> str:
+    if market == "US":
+        cal = mcal.get_calendar("NYSE")
+    elif market == "JP":
+        cal = mcal.get_calendar("JPX")
+    else:
+        raise ValueError(f"Unsupported market: {market}")
+
+    now = datetime.now(cal.tz)  # 带市场时区
+    today = now.date()
+
+    # 往前推一周（足够覆盖周末/休市）
+    schedule = cal.schedule(start_date=today - timedelta(days=7), end_date=today)
+
+    # 取最后一个交易日
+    if not schedule.empty:
+        last_day = schedule.index[-1].date()
+        return last_day.isoformat()
+    else:
+        return None
+
+base_day = get_last_trading_day(MARKET)
+print(f"[INFO] Base trading day for {MARKET} is {base_day}")
+
+# ---------------------------
 # supabase 分页查询所有数据
 # ---------------------------
 def fetch_all(supabase, table_name, select_cols="*", filters=None, page_size=1000):
@@ -129,49 +175,6 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 return None
 
 # ---------------------------
-# 判断交易日
-# ---------------------------
-def is_trading_day(market: str) -> bool:
-    if market == "US":
-        cal = mcal.get_calendar("NYSE")
-        now = datetime.now().astimezone(cal.tz)
-    elif market == "JP":
-        cal = mcal.get_calendar("JPX")
-        now = datetime.now().astimezone(cal.tz)
-    else:
-        return True
-    schedule = cal.schedule(start_date=now.date(), end_date=now.date())
-    return not schedule.empty
-
-#if not is_trading_day(MARKET):
-#    print(f"[INFO] Today is not a trading day for {MARKET}, exiting.")
-#    exit(0)
-
-# ---------------------------
-# 取得最近的交易日
-# ---------------------------
-def get_last_trading_day(market: str) -> str:
-    if market == "US":
-        cal = mcal.get_calendar("NYSE")
-    elif market == "JP":
-        cal = mcal.get_calendar("JPX")
-    else:
-        raise ValueError(f"Unsupported market: {market}")
-
-    now = datetime.now(cal.tz)  # 带市场时区
-    today = now.date()
-
-    # 往前推一周（足够覆盖周末/休市）
-    schedule = cal.schedule(start_date=today - timedelta(days=7), end_date=today)
-
-    # 取最后一个交易日
-    if not schedule.empty:
-        last_day = schedule.index[-1].date()
-        return last_day.isoformat()
-    else:
-        return None
-
-# ---------------------------
 # 格式化 ticker
 # ---------------------------
 def format_ticker(ticker, exchange):
@@ -185,7 +188,7 @@ def format_ticker(ticker, exchange):
 # ---------------------------
 # 抓取单个批次（支持单 ticker 回退，price_at 使用交易日）
 # ---------------------------
-def fetch_batch(batch, base_day):
+def fetch_batch(batch):
     delay = random.uniform(3, 5)  # 每个 batch 下载前加延迟
     print(f"[INFO] Sleeping {delay:.2f}s before next batch...")
     time.sleep(delay)
@@ -251,10 +254,9 @@ def fetch_batch(batch, base_day):
 # 主逻辑
 # ---------------------------
 def main():
-    base_day = get_last_trading_day(MARKET)
     if isRetry:
         print("[INFO] Running in retry mode, exiting fetch_prices.py")
-        stocks = fetch_all_failures_joined(supabase, base_day)
+        stocks = fetch_all_failures_joined(supabase)
     else:
         print(f"[INFO] Fetching prices for market {MARKET}")
         # 1. 查询 stocks 表
