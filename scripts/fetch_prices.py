@@ -19,6 +19,9 @@ MARKET = os.environ.get("MARKET")
 # 下载函数（带重试，返回 {ticker: {"price": float, "price_at": str}}）
 # ---------------------------
 def download_with_retry(tickers, max_retries=3, delay=5):
+    """
+    下载 tickers 的价格数据，返回 DataFrame，并保证列为单层 MultiIndex (Ticker, OHLCV)
+    """
     for attempt in range(1, max_retries + 1):
         try:
             df = yf.download(
@@ -28,30 +31,23 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 group_by="ticker",
                 auto_adjust=True,
             )
+            if df.empty:
+                raise ValueError("No data returned")
+
+            # 如果只下载一个 ticker，yfinance 会返回单层列名，需要调整成 MultiIndex
+            if isinstance(df.columns, pd.Index):
+                df.columns = pd.MultiIndex.from_product([tickers, df.columns])
+
+            trade_date = df.index[-1].date().isoformat()
             print(f"[INFO] Downloaded data for {tickers[:3]}..., attempt {attempt}, rows: {len(df)}")
-
-            result = {}
-            if isinstance(df.columns, pd.MultiIndex):
-                for ticker in tickers:
-                    try:
-                        price = df[ticker]["Close"].iloc[-1]
-                        price_at = df.index[-1].date().isoformat()
-                        result[ticker] = {"price": price, "price_at": price_at}
-                    except Exception:
-                        result[ticker] = {"price": None, "price_at": None}
-            else:  # 单 ticker
-                price = df["Close"].iloc[-1]
-                price_at = df.index[-1].date().isoformat()
-                result[tickers[0]] = {"price": price, "price_at": price_at}
-
-            return result
+            return df, trade_date
 
         except Exception as e:
             print(f"[WARN] Attempt {attempt} failed for {tickers[:3]}...: {e}")
             if attempt < max_retries:
                 time.sleep(delay + random.uniform(0, 2))
             else:
-                return None
+                return None, None
 
 # ---------------------------
 # 判断交易日
@@ -86,7 +82,7 @@ def format_ticker(ticker, exchange):
 # ---------------------------
 # 抓取单个批次（支持单 ticker 回退，price_at 使用交易日）
 # ---------------------------
-def fetch_batch(batch):
+def fetch_batch(batch, today):
     tickers = [format_ticker(s["ticker"], s["exchange"]) for s in batch]
     data = download_with_retry(tickers)
 
@@ -99,27 +95,56 @@ def fetch_batch(batch):
         for s in batch:
             yfticker = format_ticker(s["ticker"], s["exchange"])
             single_data = download_with_retry([yfticker])
-            if single_data and single_data[yfticker]["price"] is not None:
-                rows.append({
-                    "stock_id": s["id"],
-                    "price": float(single_data[yfticker]["price"]),
-                    "price_at": single_data[yfticker]["price_at"],
-                })
+            if single_data is not None:
+                # 获取交易日和收盘价
+                if isinstance(single_data, pd.DataFrame):
+                    trade_date = single_data.index[-1].date().isoformat()
+                    price = single_data["Close"].iloc[-1]
+                elif isinstance(single_data, dict):
+                    trade_date = list(single_data.keys())[0]  # 单 ticker dict 情况
+                    price = single_data[yfticker]
+                else:
+                    trade_date = today
+                    price = single_data
+
+                if price is not None and not (price != price) and math.isfinite(price):
+                    rows.append({
+                        "stock_id": s["id"],
+                        "price": float(price),
+                        "price_at": trade_date,
+                    })
+                else:
+                    failed_rows.append({"stock_id": s["id"], "price_at": trade_date, "reason": "Invalid price"})
             else:
-                failed_rows.append({"stock_id": s["id"], "price_at": date.today().isoformat(), "reason": "Download failed or NaN"})
+                failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": "Download failed"})
         return rows, failed_rows
 
-    # 批量成功
+    # 批量成功 → 正常处理
     for s in batch:
         yfticker = format_ticker(s["ticker"], s["exchange"])
-        if data.get(yfticker) and data[yfticker]["price"] is not None:
-            rows.append({
-                "stock_id": s["id"],
-                "price": float(data[yfticker]["price"]),
-                "price_at": data[yfticker]["price_at"],
-            })
-        else:
-            failed_rows.append({"stock_id": s["id"], "price_at": date.today().isoformat(), "reason": "NaN"})
+        try:
+            # 获取交易日和收盘价
+            if isinstance(data, pd.DataFrame):
+                trade_date = data.index[-1].date().isoformat()
+                price = data[yfticker]["Close"].iloc[-1]
+            elif isinstance(data, dict):
+                trade_date = list(data[yfticker].keys())[-1]  # 单 ticker dict 情况
+                price = data[yfticker][-1]
+            else:
+                trade_date = today
+                price = data[yfticker]
+
+            if price is not None and not (price != price) and math.isfinite(price):
+                rows.append({
+                    "stock_id": s["id"],
+                    "price": float(price),
+                    "price_at": trade_date,
+                })
+            else:
+                failed_rows.append({"stock_id": s["id"], "price_at": trade_date, "reason": "Invalid price"})
+        except Exception as e:
+            failed_rows.append({"stock_id": s["id"], "price_at": today, "reason": str(e)})
+
     return rows, failed_rows
 
 # ---------------------------
