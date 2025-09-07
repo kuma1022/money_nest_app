@@ -104,6 +104,7 @@ def download_with_retry(tickers, max_retries=3, delay=5):
                 # 多 ticker
                 for ticker in tickers:
                     try:
+                        print(f"[DEBUG] Processing ticker {ticker}: {df[ticker].head()}")
                         price = df[ticker]["Close"].iloc[-1]
                         if pd.isna(price) or math.isinf(price):
                             price = None
