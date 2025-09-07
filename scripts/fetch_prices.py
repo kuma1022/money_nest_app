@@ -129,12 +129,14 @@ def main():
     # 写入 stock_prices，on_conflict 与唯一索引字段匹配
     for i in range(0, len(all_rows), 500):
         batch = all_rows[i:i+500]
+        # 去重
+        batch_unique = list({ (r['stock_id'], r['price_at']): r for r in batch }.values())
         try:
             supabase.table("stock_prices").upsert(
-                batch,
+                batch_unique,
                 on_conflict=["stock_id", "price_at"]  # 必须与唯一索引字段完全一致
             ).execute()
-            print(f"[OK] Upserted {len(batch)} rows")
+            print(f"[OK] Upserted {len(batch_unique)} rows")
         except Exception as e:
             print(f"[ERROR] Failed batch {i}: {e}")
 
