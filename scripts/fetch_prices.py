@@ -57,6 +57,7 @@ def download_price(ticker, max_retries=3, delay=5):
                 raise ValueError("Empty DataFrame or no Close column")
 
             price_series = df["Close"].iloc[-1]
+            # 安全转换为 float
             if hasattr(price_series, "__len__") and len(price_series) == 1:
                 price = float(price_series.iloc[0])
             else:
@@ -102,7 +103,7 @@ def main():
     exchange_map = {"US": "US", "JP": "TSE"}
     exchange_filter = exchange_map.get(MARKET, "US")
 
-    stocks = supabase.table("stocks").select("id, ticker, exchange").limit(10) \
+    stocks = supabase.table("stocks").select("id, ticker, exchange").limit(20) \
         .eq("exchange", exchange_filter).execute().data
 
     if not stocks:
@@ -126,17 +127,20 @@ def main():
     # 写入 stock_prices
     for i in range(0, len(all_rows), 500):
         batch = all_rows[i:i+500]
-        res = supabase.table("stock_prices").upsert(batch).execute()
-        if res.error:
-            print(f"[ERROR] Failed batch {i}: {res.error}")
-        else:
+        try:
+            supabase.table("stock_prices").upsert(batch).execute()
             print(f"[OK] Upserted {len(batch)} rows")
+        except Exception as e:
+            print(f"[ERROR] Failed batch {i}: {e}")
 
     # 写入 stock_price_failures
     if all_failed:
         for i in range(0, len(all_failed), 500):
             batch = all_failed[i:i+500]
-            supabase.table("stock_price_failures").upsert(batch).execute()
+            try:
+                supabase.table("stock_price_failures").upsert(batch).execute()
+            except Exception as e:
+                print(f"[ERROR] Failed to insert failures batch {i}: {e}")
         print(f"[INFO] {len(all_failed)} stocks failed and written to stock_price_failures")
 
 if __name__ == "__main__":
