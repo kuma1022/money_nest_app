@@ -57,7 +57,7 @@ def is_trading_day(market: str) -> bool:
 # 格式化 ticker
 # ---------------------------
 def format_ticker(ticker, exchange):
-    if exchange == "TSE":  # 东京
+    if exchange == "JP":  # 日股
         return f"{ticker}.T"
     elif exchange == "US":  # 美股
         return ticker
