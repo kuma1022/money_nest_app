@@ -33,10 +33,20 @@ jobs:
       - name: Set MARKET env
         run: |
           case "${{ github.event.inputs.action }}" in
-            fetch_us) echo "MARKET=US" >> $GITHUB_ENV ;;
-            fetch_jp) echo "MARKET=JP" >> $GITHUB_ENV ;;
-            retry_us) echo "MARKET=US, IS_RETRY=1" >> $GITHUB_ENV ;;
-            retry_jp) echo "MARKET=JP, IS_RETRY=1" >> $GITHUB_ENV ;;
+            fetch_us)
+                echo "MARKET=US" >> $GITHUB_ENV
+                ;;
+            fetch_jp)
+                echo "MARKET=JP" >> $GITHUB_ENV
+                ;;
+            retry_us)
+                echo "MARKET=US" >> $GITHUB_ENV
+                echo "IS_RETRY=1" >> $GITHUB_ENV
+                ;;
+            retry_jp)
+                echo "MARKET=JP" >> $GITHUB_ENV
+                echo "IS_RETRY=1" >> $GITHUB_ENV
+                ;;
           esac
 
       - name: Run script

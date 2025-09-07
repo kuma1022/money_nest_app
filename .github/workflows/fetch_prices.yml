@@ -26,10 +26,16 @@ jobs:
         run: |
           UTC_HOUR=$(date -u +%H)
           UTC_MIN=$(date -u +%M)
-          if [ "$UTC_HOUR$UTC_MIN" = "2300" ]; then echo "MARKET=US" >> $GITHUB_ENV
-          elif [ "$UTC_HOUR$UTC_MIN" = "0730" ]; then echo "MARKET=JP" >> $GITHUB_ENV
-          elif [ "$UTC_HOUR$UTC_MIN" = "0100" ]; then echo "MARKET=US, IS_RETRY=1" >> $GITHUB_ENV
-          elif [ "$UTC_HOUR$UTC_MIN" = "0930" ]; then echo "MARKET=JP, IS_RETRY=1" >> $GITHUB_ENV
+          if [ "$UTC_HOUR$UTC_MIN" = "2300" ]; then
+            echo "MARKET=US" >> $GITHUB_ENV
+          elif [ "$UTC_HOUR$UTC_MIN" = "0730" ]; then
+            echo "MARKET=JP" >> $GITHUB_ENV
+          elif [ "$UTC_HOUR$UTC_MIN" = "0100" ]; then
+            echo "MARKET=US" >> $GITHUB_ENV
+            echo "IS_RETRY=1" >> $GITHUB_ENV
+          elif [ "$UTC_HOUR$UTC_MIN" = "0930" ]; then
+            echo "MARKET=JP" >> $GITHUB_ENV
+            echo "IS_RETRY=1" >> $GITHUB_ENV
           fi
       - name: Run Script
         env:
