@@ -135,18 +135,17 @@ def fetch_batch(batch):
             # 单独下载失败 ticker
             single_data = download_with_retry([yfticker])
             single_price = single_data[yfticker]["price"] if single_data else None
-            single_price_at = single_data[yfticker]["price_at"] if single_data else date.today().isoformat()
 
             if single_price is not None and not (math.isnan(single_price) or math.isinf(single_price)):
                 rows.append({
                     "stock_id": s["id"],
                     "price": float(single_price),
-                    "price_at": single_price_at,
+                    "price_at": single_data[yfticker]["price_at"],
                 })
             else:
                 failed_rows.append({
                     "stock_id": s["id"],
-                    "price_at": single_price_at,
+                    "price_at": date.today().isoformat(),
                     "reason": "Download failed or NaN"
                 })
                 
