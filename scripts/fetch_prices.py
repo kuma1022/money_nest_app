@@ -115,6 +115,7 @@ def fetch_all_failures_joined(supabase, market, page_size=1000):
             .select("reason, stocks(id, ticker, exchange)")
             .eq("price_at", base_day)
             .eq("stocks.exchange", market)   # 关键过滤条件
+            .eq("stocks.status", "active") # 只要 active 的
             .range(offset, offset + page_size - 1)
             .execute()
         )
@@ -273,7 +274,7 @@ def main():
             supabase,
             "stocks",
             select_cols="id, ticker, exchange",
-            filters={"exchange": MARKET}
+            filters={"exchange": MARKET, "status": "active"}
         )
         # 2. 查询 stock_prices（当天已有的）
         existing = fetch_all(
