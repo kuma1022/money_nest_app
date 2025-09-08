@@ -311,6 +311,9 @@ def main():
     # ---------------------------
     # 校验 price_at 与 base_day 一致性
     # ---------------------------
+    before_check_count = len(all_rows)
+    print(f"[INFO] Collected {before_check_count} raw rows for market {MARKET}")
+
     mismatched = [r for r in all_rows if r["price_at"] != base_day]
     if mismatched:
         print(f"[WARN] Found {len(mismatched)} rows with price_at != base_day, moving to failures")
@@ -326,21 +329,21 @@ def main():
         all_rows = [r for r in all_rows if r["price_at"] == base_day]
 
 
-    print(f"[INFO] Collected {len(all_rows)} prices for market {MARKET}")
+    print(f"[INFO] Collected {len(all_rows)} valid rows for market {MARKET}")
 
     batch_size = 500
     # ---------------------------
     # 删除当天已有的记录
     # ---------------------------
-    price_at = all_rows[0]["price_at"]  # 理论上所有记录的 price_at 都一样
+    batch_size = 500
     stock_ids = list({r["stock_id"] for r in all_rows})
     for i in range(0, len(stock_ids), batch_size):
-      batch_ids = stock_ids[i:i + batch_size]
-      supabase.table("stock_prices") \
-          .delete() \
-          .in_("stock_id", batch_ids) \
-          .eq("price_at", price_at) \
-          .execute()
+    batch_ids = stock_ids[i:i + batch_size]
+    supabase.table("stock_prices") \
+        .delete() \
+        .in_("stock_id", batch_ids) \
+        .eq("price_at", base_day) \
+        .execute()
 
     # ---------------------------
     # 插入新记录
