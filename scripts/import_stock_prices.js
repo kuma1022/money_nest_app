@@ -136,21 +136,40 @@ async function filterAlreadyImported(batchFiles, stockMap) {
   return batchFiles.filter(f => {
     const filename = f.split("/").pop();
     const [ticker, exchange] = filename.replace(".txt", "").split(".");
-    const stockId = stockMap.get(`${ticker}.${exchange.toUpperCase()}`);
+    const stockId = stockMap.get(`${ticker.toUpperCase()}.${exchange.toUpperCase()}`);
     return !importedIds.has(stockId);
   });
+}
+
+// 获取所有股票
+async function getAllStocks() {
+  let allStocks = [];
+  let from = 0;
+  const limit = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("stocks")
+      .select("id,ticker,exchange")
+      .range(from, from + limit - 1);
+
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+
+    allStocks = allStocks.concat(data);
+    from += data.length;
+    if (data.length < limit) break;
+  }
+
+  return allStocks;
 }
 
 async function main() {
   const market = process.argv[2] || "jp";
   console.log("Processing market:", market);
 
-  const { data: stocks, error: stockErr } = await supabase
-    .from("stocks")
-    .select("id,ticker,exchange");
-  if (stockErr || !stocks) throw stockErr;
-
-  const stockMap = new Map(stocks.map((s) => [`${s.ticker}.${s.exchange}`, s.id]));
+  const stocks = await getAllStocks();
+  const stockMap = new Map(stocks.map((s) => [`${s.ticker.toUpperCase()}.${s.exchange.toUpperCase()}`, s.id]));
 
   const allFiles = await listAllFiles(BUCKET, `upload/${market}`);
   console.log(`Total files found: ${allFiles.length}`);
