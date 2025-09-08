@@ -33,7 +33,8 @@ async function listAllFiles(bucket, prefix) {
 
     for (const item of data) {
       if (item.name.toLowerCase().endsWith(".txt")) {
-        files.push(`${prefix}/${item.name}`);
+        if (item.name.includes("_"))  // 临时修改，只处理包含下划线的文件
+          files.push(`${prefix}/${item.name}`);
       } else if (!item.name.includes(".")) {
         const subFiles = await listAllFiles(bucket, `${prefix}/${item.name}`);
         files = files.concat(subFiles);
