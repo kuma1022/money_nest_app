@@ -338,12 +338,12 @@ def main():
     batch_size = 500
     stock_ids = list({r["stock_id"] for r in all_rows})
     for i in range(0, len(stock_ids), batch_size):
-    batch_ids = stock_ids[i:i + batch_size]
-    supabase.table("stock_prices") \
-        .delete() \
-        .in_("stock_id", batch_ids) \
-        .eq("price_at", base_day) \
-        .execute()
+        batch_ids = stock_ids[i:i + batch_size]
+        supabase.table("stock_prices") \
+            .delete() \
+            .in_("stock_id", batch_ids) \
+            .eq("price_at", base_day) \
+            .execute()
 
     # ---------------------------
     # 插入新记录
