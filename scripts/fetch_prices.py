@@ -66,14 +66,14 @@ print(f"[INFO] Base trading day for {MARKET} is {base_day}")
 # ---------------------------
 # supabase 分页查询所有数据
 # ---------------------------
-def fetch_all(supabase, table_name, select_cols="*", filters=None, page_size=1000):
+def fetch_all(supabase, table_name, select_cols="*", filters=None, page_size=500):
     """
     自动分页获取 Supabase 表的所有数据
     supabase: Supabase 客户端
     table_name: 表名
     select_cols: 要查询的列，默认 '*'
     filters: dict，等于条件，比如 {"exchange": "US"}
-    page_size: 每次拉取的数量，默认 1000
+    page_size: 每次拉取的数量，默认 500
     """
     all_data = []
     offset = 0
@@ -96,7 +96,7 @@ def fetch_all(supabase, table_name, select_cols="*", filters=None, page_size=100
 # ---------------------------
 # supabase 分页查询所有失败数据
 # ---------------------------
-def fetch_all_failures_joined(supabase, market, page_size=1000):
+def fetch_all_failures_joined(supabase, market, page_size=500):
     """
     获取 stock_price_failures 对应的 stocks 信息
     直接在 Supabase 端做 JOIN，相当于：
