@@ -60,7 +60,8 @@ def get_last_trading_day(market: str) -> str:
     else:
         return None
 
-base_day = get_last_trading_day(MARKET)
+#base_day = get_last_trading_day(MARKET)
+base_day = '2025-09-05' # for test
 print(f"[INFO] Base trading day for {MARKET} is {base_day}")
 
 # ---------------------------
