@@ -347,6 +347,16 @@ def main():
             .execute()
 
     # ---------------------------
+    # 去重 (保证 stock_id + price_at 唯一)
+    # ---------------------------
+    unique = {}
+    for r in all_rows:
+        key = (r["stock_id"], r["price_at"])
+        unique[key] = r
+    all_rows = list(unique.values())
+    print(f"[INFO] Deduplicated rows, {len(all_rows)} unique records remain")
+    
+    # ---------------------------
     # 插入新记录
     # ---------------------------
     for i in range(0, len(all_rows), batch_size):
