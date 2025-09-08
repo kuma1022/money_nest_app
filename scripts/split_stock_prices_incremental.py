@@ -16,17 +16,14 @@ SRC_PATH = "historical_prices/"
 PROCESSED_FILE = f"{SRC_PATH}processed_files.json"
 
 def list_csv_files():
-    """列出所有 stock_prices_xxx.csv 文件"""
     res = supabase.storage.from_(BUCKET).list(SRC_PATH)
     return [f["name"] for f in res if f["name"].startswith("stock_prices") and f["name"].endswith(".csv")]
 
 def read_csv_from_storage(path, chunksize=100_000):
-    """按块读取大CSV"""
     data = supabase.storage.from_(BUCKET).download(path)
     return pd.read_csv(io.BytesIO(data), chunksize=chunksize)
 
 def download_stock_csv(exchange: str, ticker: str):
-    """下载目标股票CSV，如果不存在则返回空DataFrame"""
     path = f"{SRC_PATH}{exchange}/{ticker}.csv"
     try:
         data = supabase.storage.from_(BUCKET).download(path)
@@ -35,14 +32,16 @@ def download_stock_csv(exchange: str, ticker: str):
         return pd.DataFrame(columns=["stock_id","ticker","exchange","price","price_at"])
 
 def upload_stock_csv(df: pd.DataFrame, exchange: str, ticker: str):
-    """上传股票CSV"""
     path = f"{SRC_PATH}{exchange}/{ticker}.csv"
     csv_bytes = df.to_csv(index=False).encode("utf-8")
-    supabase.storage.from_(BUCKET).upload(path, csv_bytes, {"upsert": True})
-    print(f"[UPLOAD] {path}, rows={len(df)}")
+    supabase.storage.from_(BUCKET).upload(
+        path,
+        csv_bytes,
+        file_options={"upsert": "true", "content-type": "text/csv"}
+    )
+    return len(df)
 
 def load_processed_files():
-    """读取 processed_files.json"""
     try:
         data = supabase.storage.from_(BUCKET).download(PROCESSED_FILE)
         return json.loads(data.decode("utf-8"))
@@ -50,54 +49,66 @@ def load_processed_files():
         return []
 
 def save_processed_files(processed):
-    """保存 processed_files.json"""
     data = json.dumps(processed, indent=2).encode("utf-8")
-    supabase.storage.from_(BUCKET).upload(PROCESSED_FILE, data, {"upsert": True})
-    print(f"[UPDATE] processed_files.json updated, total={len(processed)}")
+    supabase.storage.from_(BUCKET).upload(
+        PROCESSED_FILE,
+        data,
+        file_options={"upsert": "true", "content-type": "application/json"}
+    )
 
-def process_new_file(file_name: str):
-    """处理单个 stock_prices_xxx.csv 文件"""
+def process_new_file(file_name: str, stats: dict):
     path = f"{SRC_PATH}{file_name}"
-    print(f"Processing {path} ...")
+    print(f"[PROCESS] {path}")
 
     for chunk in read_csv_from_storage(path):
         for (exchange, ticker), g in chunk.groupby(["exchange", "ticker"]):
             # 读旧数据
             df_old = download_stock_csv(exchange, ticker)
+            old_rows = len(df_old)
 
             # 合并新数据
             df_new = pd.concat([df_old, g], ignore_index=True)
-
-            # 去重 + 按日期排序
             df_new.drop_duplicates(
                 subset=["stock_id", "ticker", "exchange", "price_at"], inplace=True
             )
             df_new.sort_values(by=["price_at"], inplace=True)
 
-            # 上传
-            upload_stock_csv(df_new, exchange, ticker)
+            new_rows = len(df_new) - old_rows
+            total_rows = upload_stock_csv(df_new, exchange, ticker)
+
+            # 更新统计
+            stats["updated_stocks"] += 1
+            stats["new_rows"] += max(new_rows, 0)
+
+            print(f"  -> {exchange}/{ticker}: +{new_rows}, total={total_rows}")
 
 def main():
     files = list_csv_files()
-    print(f"Found {len(files)} csv files")
+    print(f"[INFO] Found {len(files)} stock_prices csv files")
 
-    # 已处理文件
     processed = load_processed_files()
-
-    # 找出未处理的新文件
     new_files = [f for f in files if f not in processed]
-    print(f"New files to process: {new_files}")
+
+    print(f"[INFO] New files to process: {new_files}")
 
     if not new_files:
-        print("No new files. Done.")
+        print("[DONE] No new files, nothing to update.")
         return
 
+    stats = {"new_files": len(new_files), "updated_stocks": 0, "new_rows": 0}
+
     for f in new_files:
-        process_new_file(f)
+        process_new_file(f, stats)
         processed.append(f)
 
-    # 更新 processed_files.json
     save_processed_files(processed)
+
+    # ---- 汇总日志 ----
+    print("========== SUMMARY ==========")
+    print(f"Processed new files : {stats['new_files']}")
+    print(f"Updated stock files : {stats['updated_stocks']}")
+    print(f"New rows inserted   : {stats['new_rows']}")
+    print("=============================")
 
 if __name__ == "__main__":
     main()
