@@ -114,6 +114,7 @@ def fetch_all_failures_joined(supabase, page_size=1000):
         result = (
             supabase.table("stock_price_failures")
             .select("stocks(id, ticker, exchange)")
+            .eq("price_at", base_day)
             .range(offset, offset + page_size - 1)
             .execute()
         )
@@ -306,6 +307,24 @@ def main():
                 print(f"[ERROR] Batch fetch timed out")
             except Exception as e:
                 print(f"[ERROR] Exception occurred: {e}")
+
+    # ---------------------------
+    # 校验 price_at 与 base_day 一致性
+    # ---------------------------
+    mismatched = [r for r in all_rows if r["price_at"] != base_day]
+    if mismatched:
+        print(f"[WARN] Found {len(mismatched)} rows with price_at != base_day, moving to failures")
+
+        for r in mismatched:
+            all_failed.append({
+                "stock_id": r["stock_id"],
+                "price_at": base_day,
+                "reason": f"Price date mismatch (got {r['price_at']})"
+            })
+
+        # 从 all_rows 里去掉这些不一致的记录
+        all_rows = [r for r in all_rows if r["price_at"] == base_day]
+
 
     print(f"[INFO] Collected {len(all_rows)} prices for market {MARKET}")
 
