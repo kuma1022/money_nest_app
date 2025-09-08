@@ -97,7 +97,7 @@ def fetch_all(supabase, table_name, select_cols="*", filters=None, page_size=100
 # ---------------------------
 # supabase 分页查询所有失败数据
 # ---------------------------
-def fetch_all_failures_joined(supabase, page_size=1000):
+def fetch_all_failures_joined(supabase, market, page_size=1000):
     """
     获取 stock_price_failures 对应的 stocks 信息
     直接在 Supabase 端做 JOIN，相当于：
@@ -113,8 +113,9 @@ def fetch_all_failures_joined(supabase, page_size=1000):
         # 使用嵌套 select，通过 foreign key 显式条件
         result = (
             supabase.table("stock_price_failures")
-            .select("stocks(id, ticker, exchange)")
+            .select("reason, stocks(id, ticker, exchange)")
             .eq("price_at", base_day)
+            .eq("stocks.exchange", market)   # 关键过滤条件
             .range(offset, offset + page_size - 1)
             .execute()
         )
@@ -265,7 +266,7 @@ def fetch_batch(batch):
 def main():
     if isRetry:
         print("[INFO] Running in retry mode, exiting fetch_prices.py")
-        stocks = fetch_all_failures_joined(supabase)
+        stocks = fetch_all_failures_joined(supabase, MARKET)
     else:
         print(f"[INFO] Fetching prices for market {MARKET}")
         # 1. 查询 stocks 表
