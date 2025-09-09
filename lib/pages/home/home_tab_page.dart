@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import 'package:money_nest_app/components/card_section.dart';
-import 'package:money_nest_app/components/quick_action_button.dart';
-import 'package:money_nest_app/components/summary_row.dart';
 import 'package:money_nest_app/db/app_database.dart';
-import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
-import 'package:money_nest_app/presentation/resources/app_colors.dart';
-import 'package:money_nest_app/presentation/resources/app_texts.dart';
-import 'package:money_nest_app/util/provider/total_asset_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:money_nest_app/util/provider/total_asset_provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class HomeTabPage extends StatefulWidget {
@@ -44,6 +39,7 @@ class HomeTabPageState extends State<HomeTabPage> {
   double _totalProfit = 0;
   double _totalCost = 0;
   bool _assetVisible = true; // 资产是否可见
+  int _overviewTabIndex = 0; // 资产总览tab切换
 
   Future<void> _onRefresh() async {
     await _refreshData();
@@ -154,351 +150,399 @@ class HomeTabPageState extends State<HomeTabPage> {
       );
     }
     return Scaffold(
-      backgroundColor: AppColors.pageBackground,
-      body: SmartRefresher(
-        controller: _refreshController,
-        onRefresh: _onRefresh,
-        header: CustomHeader(
-          builder: (context, mode) {
-            String text;
-            if (mode == RefreshStatus.idle) {
-              text = AppLocalizations.of(
-                context,
-              )!.accountTabPageRefreshStatusIdleLabel;
-            } else if (mode == RefreshStatus.canRefresh) {
-              text = AppLocalizations.of(
-                context,
-              )!.accountTabPageRefreshStatusCanRefreshLabel;
-            } else if (mode == RefreshStatus.refreshing) {
-              text = AppLocalizations.of(
-                context,
-              )!.accountTabPageRefreshStatusRefreshingLabel;
-            } else if (mode == RefreshStatus.completed) {
-              text = AppLocalizations.of(
-                context,
-              )!.accountTabPageRefreshStatusCompletedLabel;
-            } else {
-              text = '';
-            }
-            return Container(
-              height: 60,
-              alignment: Alignment.center,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: const Color(0xFFF5F6FA),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 总资产卡片
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
+              ),
+              child: Column(
                 children: [
-                  const Icon(Icons.sync, color: AppColors.appGreen),
-                  const SizedBox(width: 8),
+                  const Text(
+                    '資産総額',
+                    style: TextStyle(fontSize: 15, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
-                    text,
+                    '¥1,600,000',
                     style: const TextStyle(
-                      fontSize: AppTexts.fontSizeSmall,
-                      color: AppColors.appGreen,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F9F0),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.trending_up, color: Colors.green, size: 20),
+                        SizedBox(width: 4),
+                        Text(
+                          '+¥250,000 (25%)',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-            );
-          },
+            ),
+            // 资产总览卡片
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 顶部tab切换
+                  Row(
+                    children: [
+                      _OverviewTabButton(
+                        label: '品種',
+                        selected: _overviewTabIndex == 0,
+                        onTap: () => setState(() => _overviewTabIndex = 0),
+                      ),
+                      _OverviewTabButton(
+                        label: '山',
+                        selected: _overviewTabIndex == 1,
+                        onTap: () => setState(() => _overviewTabIndex = 1),
+                      ),
+                      _OverviewTabButton(
+                        label: '分析',
+                        selected: _overviewTabIndex == 2,
+                        onTap: () => setState(() => _overviewTabIndex = 2),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // 环形图
+                  SizedBox(
+                    height: 180,
+                    child: PieChart(
+                      PieChartData(
+                        sections: [
+                          PieChartSectionData(
+                            color: const Color(0xFF4CAF50),
+                            value: 46.9,
+                            title: '',
+                            radius: 40,
+                          ),
+                          PieChartSectionData(
+                            color: const Color(0xFF2196F3),
+                            value: 28.1,
+                            title: '',
+                            radius: 40,
+                          ),
+                          PieChartSectionData(
+                            color: const Color(0xFFFF9800),
+                            value: 15.6,
+                            title: '',
+                            radius: 40,
+                          ),
+                          PieChartSectionData(
+                            color: const Color(0xFF9C27B0),
+                            value: 9.4,
+                            title: '',
+                            radius: 40,
+                          ),
+                        ],
+                        centerSpaceRadius: 50,
+                        sectionsSpace: 2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 图例部分
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: const [
+                        _LegendDot(
+                          color: Color(0xFF4CAF50),
+                          label: '日本株',
+                          percent: '46.9%',
+                        ),
+                        SizedBox(width: 16),
+                        _LegendDot(
+                          color: Color(0xFF2196F3),
+                          label: '米国株',
+                          percent: '28.1%',
+                        ),
+                        SizedBox(width: 16),
+                        _LegendDot(
+                          color: Color(0xFFFF9800),
+                          label: '現金',
+                          percent: '15.6%',
+                        ),
+                        SizedBox(width: 16),
+                        _LegendDot(
+                          color: Color(0xFF9C27B0),
+                          label: 'その他',
+                          percent: '9.4%',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 快捷操作
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
+              ),
+              child: GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: 2.6,
+                children: [
+                  _QuickActionButton(
+                    icon: Icons.add,
+                    label: '取引追加',
+                    onTap: () => setState(() => showAddTransaction = true),
+                    bgColor: const Color(0xFF1976D2),
+                    fontColor: Colors.white,
+                  ),
+                  _QuickActionButton(
+                    icon: Icons.pie_chart_outline,
+                    label: 'ポートフォリオ',
+                    onTap: () => widget.onPortfolioTap?.call(),
+                  ),
+                  _QuickActionButton(
+                    icon: Icons.download,
+                    label: 'レポート',
+                    onTap: () {},
+                  ),
+                  _QuickActionButton(
+                    icon: Icons.calculate,
+                    label: '損益計算',
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ),
+            // 今日のサマリー
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Padding(
+                    padding: EdgeInsets.only(left: 8, bottom: 8),
+                    child: Text(
+                      '今日のサマリー',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  _SummaryRowStyled(
+                    label: '日本株',
+                    value: '+¥15,000 (+2.1%)',
+                    valueColor: Color(0xFF388E3C),
+                    bgColor: Color(0xFFE6F9F0),
+                  ),
+                  _SummaryRowStyled(
+                    label: '米国株',
+                    value: '¥8,500 (-1.2%)',
+                    valueColor: Color(0xFFD32F2F),
+                    bgColor: Color(0xFFFDEAEA),
+                  ),
+                  _SummaryRowStyled(
+                    label: '現金',
+                    value: '¥250,000',
+                    valueColor: Color(0xFF757575),
+                    bgColor: Color(0xFFF5F6FA),
+                  ),
+                  _SummaryRowStyled(
+                    label: 'その他',
+                    value: '+¥2,500 (+1.7%)',
+                    valueColor: Color(0xFF388E3C),
+                    bgColor: Color(0xFFE6F9F0),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header
-              FutureBuilder<double>(
-                future: _getTotalProfit(),
-                builder: (context, profitSnapshot) {
-                  return FutureBuilder<double>(
-                    future: _getTotalProfitRate(),
-                    builder: (context, profitRateSnapshot) {
-                      double profit = profitSnapshot.data ?? 0.0;
-                      double profitRate = profitRateSnapshot.data ?? 0.0;
-                      Color profitColor;
-                      Color profitLightColor;
-                      if (_assetVisible && profit > 0) {
-                        profitColor = AppColors.appUpGreen;
-                        profitLightColor = AppColors.appLightGreen;
-                      } else if (_assetVisible && profit < 0) {
-                        profitColor = AppColors.appDownRed;
-                        profitLightColor = AppColors.appLightRed;
-                      } else {
-                        profitColor = AppColors.appDarkGrey;
-                        profitLightColor = AppColors.appLightGrey;
-                      }
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.homeTabPageTotalAssetLabel,
-                                style: const TextStyle(
-                                  fontSize: AppTexts.fontSizeMedium,
-                                  color: AppColors.appDarkGrey,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              // 资产显示与否icon
-                              IconButton(
-                                icon: Icon(
-                                  _assetVisible
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                  color: AppColors.appGrey,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _assetVisible = !_assetVisible;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
+      ),
+    );
+  }
+}
 
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            height: 40, // 你可以根据实际字体高度微调
-                            child: Center(
-                              child: Text(
-                                _assetVisible
-                                    ? (totalAsset.isNotEmpty
-                                          ? totalAsset
-                                          : '*****')
-                                    : '*****',
-                                style: const TextStyle(
-                                  fontSize: AppTexts.fontSizeHuge,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            height: 24, // 固定高度，可根据实际内容微调
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: profitLightColor,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: IntrinsicWidth(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (_assetVisible && profit != 0) ...[
-                                      Icon(
-                                        profit > 0
-                                            ? Icons.trending_up
-                                            : Icons.trending_down,
-                                        color: profitColor,
-                                        size: AppTexts.fontSizeExtraLarge,
-                                      ),
-                                    ],
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      textAlign: TextAlign.center,
-                                      _assetVisible
-                                          ? '${_formatProfit(profit, _selectedCurrency)} (${_formatProfitRate(profitRate)})'
-                                          : '***',
-                                      style: TextStyle(
-                                        color: profitColor,
-                                        fontSize: AppTexts.fontSizeSmall,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-                      );
-                    },
-                  );
-                },
-              ),
-              // Portfolio Chart
-              CardSection(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(left: 16, top: 16, bottom: 0),
-                      child: Text(
-                        '資産推移',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 160,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: portfolioData.map((data) {
-                          final double height =
-                              ((data['value'] - 900000) / 400000) * 100;
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                width: 24,
-                                height: 20 + (height > 0 ? height : 0),
-                                decoration: BoxDecoration(
-                                  color: AppColors.appBlue,
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(6),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                data['date'],
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text(
-                            '¥0.9M',
-                            style: TextStyle(fontSize: 13, color: Colors.grey),
-                          ),
-                          Text(
-                            '¥1.3M',
-                            style: TextStyle(fontSize: 13, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Quick Actions
-              CardSection(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(left: 16, top: 16, bottom: 0),
-                      child: Text(
-                        'クイックアクション',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        physics: const NeverScrollableScrollPhysics(),
-                        childAspectRatio: 1.8,
-                        children: [
-                          QuickActionButton(
-                            icon: Icons.add,
-                            label: '取引追加',
-                            onTap: () =>
-                                setState(() => showAddTransaction = true),
-                            iconColor: AppColors.appWhite,
-                            bgColor: AppColors.appBlue,
-                            fontColor: AppColors.appWhite,
-                          ),
-                          QuickActionButton(
-                            icon: Icons.pie_chart_outline,
-                            label: 'ポートフォリオ',
-                            onTap: () => widget.onPortfolioTap?.call(),
-                            iconColor: AppColors.appPurple,
-                          ),
-                          QuickActionButton(
-                            icon: Icons.download,
-                            label: 'レポート',
-                            onTap: () {},
-                            iconColor: AppColors.appGreen,
-                          ),
-                          QuickActionButton(
-                            icon: Icons.calculate,
-                            label: '損益計算',
-                            onTap: () {},
-                            iconColor: AppColors.appOrange,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ),
-              // 今日のサマリー
-              CardSection(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(left: 16, top: 16, bottom: 0),
-                      child: Text(
-                        '今日のサマリー',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        children: const [
-                          SummaryRow(
-                            label: '日本株',
-                            value: '+¥15,000 (+2.1%)',
-                            valueColor: Colors.green,
-                          ),
-                          SummaryRow(
-                            label: '米国株',
-                            value: '-¥8,500 (-1.2%)',
-                            valueColor: Colors.red,
-                          ),
-                          SummaryRow(
-                            label: '現金',
-                            value: '¥250,000',
-                            valueColor: Colors.grey,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ),
-            ],
+// 顶部tab按钮
+class _OverviewTabButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _OverviewTabButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFF5F6FA) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? const Color(0xFF1976D2) : const Color(0xFFE5E6EA),
+            width: 1.5,
           ),
         ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? const Color(0xFF1976D2) : Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 图例
+class _LegendDot extends StatelessWidget {
+  final Color color;
+  final String label;
+  final String percent;
+  const _LegendDot({
+    required this.color,
+    required this.label,
+    required this.percent,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 13)),
+        const SizedBox(width: 2),
+        Text(percent, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+      ],
+    );
+  }
+}
+
+// 快捷按钮
+class _QuickActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? bgColor;
+  final Color? fontColor;
+  const _QuickActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.bgColor,
+    this.fontColor,
+    super.key,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        backgroundColor: bgColor ?? Colors.white,
+        foregroundColor: fontColor ?? Colors.black,
+        side: BorderSide(color: bgColor ?? const Color(0xFFE5E6EA)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: EdgeInsets.zero,
+      ),
+      onPressed: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 28, color: fontColor ?? Colors.black),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: fontColor ?? Colors.black)),
+        ],
+      ),
+    );
+  }
+}
+
+// 今日のサマリー行
+class _SummaryRowStyled extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color valueColor;
+  final Color bgColor;
+  const _SummaryRowStyled({
+    required this.label,
+    required this.value,
+    required this.valueColor,
+    required this.bgColor,
+    Key? key,
+  }) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Text(
+            value,
+            style: TextStyle(color: valueColor, fontWeight: FontWeight.bold),
+          ),
+        ],
       ),
     );
   }
