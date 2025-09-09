@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
+import 'package:money_nest_app/pages/trade_history/trade_detail_page.dart';
 
 class TradeHistoryPage extends StatefulWidget {
   const TradeHistoryPage({super.key});
@@ -40,7 +42,11 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                   ),
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('追加'),
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const TradeAddPage()),
+                    );
+                  },
                 ),
               ],
             ),
@@ -263,91 +269,98 @@ class _TradeRecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 左侧icon
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: typeColor.withOpacity(0.08),
-              shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => TradeDetailPage(record: record)),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 左侧icon
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: typeColor.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(typeIcon, color: typeColor, size: 20),
             ),
-            child: Icon(typeIcon, color: typeColor, size: 20),
-          ),
-          const SizedBox(width: 10),
-          // 主要内容
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      record.code,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: typeColor.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        typeLabel,
-                        style: TextStyle(
-                          color: typeColor,
+            const SizedBox(width: 10),
+            // 主要内容
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        record.code,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: 15,
                         ),
                       ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      record.amount,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: record.type == TradeType.dividend
-                            ? const Color(0xFF388E3C)
-                            : Colors.black,
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: typeColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          typeLabel,
+                          style: TextStyle(
+                            color: typeColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                Text(
-                  record.name,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-                if (record.detail.isNotEmpty)
+                      const Spacer(),
+                      Text(
+                        record.amount,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: record.type == TradeType.dividend
+                              ? const Color(0xFF388E3C)
+                              : Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
                   Text(
-                    record.detail,
+                    record.name,
                     style: const TextStyle(fontSize: 13, color: Colors.grey),
                   ),
-                Text(
-                  record.date,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-              ],
+                  if (record.detail.isNotEmpty)
+                    Text(
+                      record.detail,
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
+                    ),
+                  Text(
+                    record.date,
+                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

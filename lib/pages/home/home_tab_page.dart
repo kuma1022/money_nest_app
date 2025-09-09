@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:money_nest_app/components/total_asset_analysis_card.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:provider/provider.dart';
@@ -10,8 +11,14 @@ import 'package:pull_to_refresh/pull_to_refresh.dart';
 class HomeTabPage extends StatefulWidget {
   final AppDatabase db;
   final VoidCallback? onPortfolioTap;
+  final VoidCallback? onAssetAnalysisTap;
 
-  const HomeTabPage({super.key, required this.db, this.onPortfolioTap});
+  const HomeTabPage({
+    super.key,
+    required this.db,
+    this.onPortfolioTap,
+    this.onAssetAnalysisTap,
+  });
 
   @override
   State<HomeTabPage> createState() => HomeTabPageState();
@@ -47,12 +54,7 @@ class HomeTabPageState extends State<HomeTabPage> {
   }
 
   Future<void> _refreshData() async {
-    //await _fetchTotalAsset(widget.db, _selectedCurrency);
-    // 在 PortfolioTab、HomeTab 等
-    Provider.of<TotalAssetProvider>(
-      context,
-      listen: false,
-    ).setTotalAsset(''); // 先清空或标记
+    Provider.of<TotalAssetProvider>(context, listen: false).setTotalAsset('');
     Provider.of<TotalAssetProvider>(
       context,
       listen: false,
@@ -61,7 +63,6 @@ class HomeTabPageState extends State<HomeTabPage> {
 
   // 获取总盈亏金额（请用实际业务逻辑替换）
   Future<double> _getTotalProfit() async {
-    // 取得所有持仓记录
     final records = await widget.db.getAllAvailableBuyRecords();
     final stocks = await widget.db.getAllStocks();
     final stockMap = {for (var stock in stocks) stock.code: stock};
@@ -72,7 +73,6 @@ class HomeTabPageState extends State<HomeTabPage> {
         final currentPrice = stock?.currentPrice ?? r.price;
         final stockCurrency = stock?.currency ?? r.currencyUsed.code;
 
-        // 1. 当前市值换算成 moneyUsed 币种
         double fxToMoneyUsed = 1.0;
         if (stockCurrency != r.currencyUsed.code) {
           final fxCode = stockCurrency != 'USD'
@@ -83,10 +83,8 @@ class HomeTabPageState extends State<HomeTabPage> {
         final marketValueInMoneyUsed =
             r.quantity * currentPrice * fxToMoneyUsed;
 
-        // 2. 盈亏（moneyUsed币种）
         final profitInMoneyUsed = marketValueInMoneyUsed - r.moneyUsed;
 
-        // 3. 盈亏换算成当前选中币种
         double fxToSelected = 1.0;
         if (r.currencyUsed.code != _selectedCurrency.code) {
           final fxCode = r.currencyUsed.code != 'USD'
@@ -106,7 +104,6 @@ class HomeTabPageState extends State<HomeTabPage> {
 
   // 获取总盈亏率（请用实际业务逻辑替换）
   Future<double> _getTotalProfitRate() async {
-    // 取得所有持仓记录
     final records = await widget.db.getAllAvailableBuyRecords();
     final stocks = await widget.db.getAllStocks();
     final stockMap = {for (var stock in stocks) stock.code: stock};
@@ -211,108 +208,8 @@ class HomeTabPageState extends State<HomeTabPage> {
               ),
             ),
             // 资产总览卡片
-            Container(
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 顶部tab切换
-                  Row(
-                    children: [
-                      _OverviewTabButton(
-                        label: '品種',
-                        selected: _overviewTabIndex == 0,
-                        onTap: () => setState(() => _overviewTabIndex = 0),
-                      ),
-                      _OverviewTabButton(
-                        label: '山',
-                        selected: _overviewTabIndex == 1,
-                        onTap: () => setState(() => _overviewTabIndex = 1),
-                      ),
-                      _OverviewTabButton(
-                        label: '分析',
-                        selected: _overviewTabIndex == 2,
-                        onTap: () => setState(() => _overviewTabIndex = 2),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // 环形图
-                  SizedBox(
-                    height: 180,
-                    child: PieChart(
-                      PieChartData(
-                        sections: [
-                          PieChartSectionData(
-                            color: const Color(0xFF4CAF50),
-                            value: 46.9,
-                            title: '',
-                            radius: 40,
-                          ),
-                          PieChartSectionData(
-                            color: const Color(0xFF2196F3),
-                            value: 28.1,
-                            title: '',
-                            radius: 40,
-                          ),
-                          PieChartSectionData(
-                            color: const Color(0xFFFF9800),
-                            value: 15.6,
-                            title: '',
-                            radius: 40,
-                          ),
-                          PieChartSectionData(
-                            color: const Color(0xFF9C27B0),
-                            value: 9.4,
-                            title: '',
-                            radius: 40,
-                          ),
-                        ],
-                        centerSpaceRadius: 50,
-                        sectionsSpace: 2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // 图例部分
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: const [
-                        _LegendDot(
-                          color: Color(0xFF4CAF50),
-                          label: '日本株',
-                          percent: '46.9%',
-                        ),
-                        SizedBox(width: 16),
-                        _LegendDot(
-                          color: Color(0xFF2196F3),
-                          label: '米国株',
-                          percent: '28.1%',
-                        ),
-                        SizedBox(width: 16),
-                        _LegendDot(
-                          color: Color(0xFFFF9800),
-                          label: '現金',
-                          percent: '15.6%',
-                        ),
-                        SizedBox(width: 16),
-                        _LegendDot(
-                          color: Color(0xFF9C27B0),
-                          label: 'その他',
-                          percent: '9.4%',
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            TotalAssetAnalysisCard(
+              onAssetAnalysisTap: widget.onAssetAnalysisTap,
             ),
             // 快捷操作
             Container(
@@ -409,44 +306,23 @@ class HomeTabPageState extends State<HomeTabPage> {
   }
 }
 
-// 顶部tab按钮
-class _OverviewTabButton extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _OverviewTabButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+// 图例每行两个
+class _LegendRow extends StatelessWidget {
+  final Widget left;
+  final Widget right;
+  const _LegendRow({required this.left, required this.right});
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF5F6FA) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? const Color(0xFF1976D2) : const Color(0xFFE5E6EA),
-            width: 1.5,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? const Color(0xFF1976D2) : Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+    return Row(
+      children: [
+        Expanded(child: left),
+        SizedBox(width: 16), // 中间空白
+        Expanded(child: right),
+      ],
     );
   }
 }
 
-// 图例
 class _LegendDot extends StatelessWidget {
   final Color color;
   final String label;
@@ -455,21 +331,30 @@ class _LegendDot extends StatelessWidget {
     required this.color,
     required this.label,
     required this.percent,
+    this.alignRight = false,
   });
+  final bool alignRight; // 兼容旧参数，但不再使用
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 13)),
-        const SizedBox(width: 2),
-        Text(percent, style: const TextStyle(fontSize: 13, color: Colors.grey)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8), // 左右增加空白
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 4),
+          Text(label, style: const TextStyle(fontSize: 13)),
+          const Spacer(),
+          Text(
+            percent,
+            style: const TextStyle(fontSize: 13, color: Colors.grey),
+            textAlign: TextAlign.right,
+          ),
+        ],
+      ),
     );
   }
 }

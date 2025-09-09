@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:money_nest_app/components/total_asset_analysis_card.dart';
+import 'package:money_nest_app/pages/asset_analysis/ranking_list_page.dart';
 
 class AssetAnalysisPage extends StatefulWidget {
-  const AssetAnalysisPage({super.key});
-
   @override
   State<AssetAnalysisPage> createState() => _AssetAnalysisPageState();
 }
 
 class _AssetAnalysisPageState extends State<AssetAnalysisPage> {
   int tabIndex = 0; // 0: 資産分析, 1: 損益分析
-  int stockTab = 1; // 0: 日本株, 1: 米国株
-  int calendarTab = 1; // 0: 月別, 1: 年別
+  int stockTab = 0; // 0: 日本株, 1: 米国株
+  int calendarTab = 0; // 0: 月別, 1: 年別
 
   @override
   Widget build(BuildContext context) {
@@ -18,27 +18,6 @@ class _AssetAnalysisPageState extends State<AssetAnalysisPage> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: bgColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: Colors.black87,
-            size: 20,
-          ),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        title: const Text(
-          '資産分析',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: false,
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         child: Column(
@@ -47,31 +26,76 @@ class _AssetAnalysisPageState extends State<AssetAnalysisPage> {
             // Tab切换
             Container(
               margin: const EdgeInsets.only(top: 8, bottom: 16),
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                color: const Color(0xFFF5F6FA), // 浅灰底
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: const Color(0xFFE5E6EA)),
               ),
               child: Row(
                 children: [
-                  _AnalysisTabButton(
-                    text: '資産分析',
-                    selected: tabIndex == 0,
-                    onTap: () => setState(() => tabIndex = 0),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => tabIndex = 0),
+                      child: Container(
+                        height: 30,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: tabIndex == 0
+                              ? Colors.white
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '資産分析',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                  _AnalysisTabButton(
-                    text: '損益分析',
-                    selected: tabIndex == 1,
-                    onTap: () => setState(() => tabIndex = 1),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => tabIndex = 1),
+                      child: Container(
+                        height: 30,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: tabIndex == 1
+                              ? Colors.white
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '損益分析',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
             if (tabIndex == 0) ...[
               // Pie Chart & Asset Trend
-              _AssetPieCard(),
+              // 资产总览卡片
+              TotalAssetAnalysisCard(isAssetAnalysisBtnDisplay: false),
               const SizedBox(height: 18),
               _AssetTrendCard(),
+              const SizedBox(height: 18),
+              _ProfitTrendCard(),
+              const SizedBox(height: 18),
+              _ProfitCalendarCard(
+                tab: calendarTab,
+                onTabChanged: (i) => setState(() => calendarTab = i),
+              ),
             ] else ...[
               // 損益分析
               _StockTabSwitcher(
@@ -84,13 +108,6 @@ class _AssetAnalysisPageState extends State<AssetAnalysisPage> {
               _ProfitTop5Card(isJapan: stockTab == 0),
               const SizedBox(height: 18),
               _LossTop5Card(isJapan: stockTab == 0),
-              const SizedBox(height: 18),
-              _ProfitTrendCard(),
-              const SizedBox(height: 18),
-              _ProfitCalendarCard(
-                tab: calendarTab,
-                onTabChanged: (i) => setState(() => calendarTab = i),
-              ),
             ],
             const SizedBox(height: 32),
           ],
@@ -144,10 +161,10 @@ class _StockTabSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE5E6EA)),
       ),
       child: Row(
@@ -157,6 +174,7 @@ class _StockTabSwitcher extends StatelessWidget {
             selected: selected == 0,
             onTap: () => onChanged(0),
           ),
+          const SizedBox(width: 12),
           _StockTabButton(
             text: '米国株',
             selected: selected == 1,
@@ -179,23 +197,22 @@ class _StockTabButton extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 38,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF1976D2) : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            text,
-            style: TextStyle(
-              color: selected ? Colors.white : Colors.black87,
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 100,
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF4385F5) : const Color(0xFFF5F6FA),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
           ),
         ),
       ),
@@ -333,6 +350,10 @@ class _ProfitTop5Card extends StatelessWidget {
             ['7203', 'トヨタ自動車', 50000],
             ['4689', 'Zホールディングス', 25000],
             ['9984', 'ソフトバンクグループ', 15000],
+            ['8306', '三菱UFJ', 10000],
+            ['4503', '住友製薬', 8000],
+            ['8316', '三井住友銀行', 6500],
+            ['2914', 'JT', 4200],
           ]
         : [
             ['AAPL', 'Apple Inc.', 30000],
@@ -356,11 +377,23 @@ class _ProfitTop5Card extends StatelessWidget {
             children: [
               const Text(
                 '利益 Top 5',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const Spacer(),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => RankingListPage(
+                        title: isJapan ? '利益ランキング - 日本株' : '利益ランキング - 米国株',
+                        isProfit: true,
+                        items: items,
+                        mainColor: const Color(0xFF43A047),
+                        bgColor: const Color(0xFFF4FCF7),
+                      ),
+                    ),
+                  );
+                },
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFF1976D2),
                   padding: EdgeInsets.zero,
@@ -374,7 +407,8 @@ class _ProfitTop5Card extends StatelessWidget {
               ),
             ],
           ),
-          ...List.generate(items.length, (i) {
+          const SizedBox(height: 12),
+          ...List.generate(5, (i) {
             final item = items[i];
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -398,12 +432,12 @@ class _ProfitTop5Card extends StatelessWidget {
                   item[0] as String,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                    fontSize: 14,
                   ),
                 ),
                 subtitle: Text(
                   item[1] as String,
-                  style: const TextStyle(fontSize: 13),
+                  style: const TextStyle(fontSize: 12),
                 ),
                 trailing: Text(
                   '¥${item[2].toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
@@ -437,10 +471,16 @@ class _LossTop5Card extends StatelessWidget {
         ? [
             ['9432', 'NTT', 15000],
             ['6501', '日立製作所', 10000],
+            ['8058', '三菱商事', 8000],
+            ['9202', 'ANAホールディングス', 6500],
+            ['1605', 'INPEX', 4200],
           ]
         : [
             ['9432', 'NTT', 15000],
             ['6501', '日立製作所', 10000],
+            ['8058', '三菱商事', 8000],
+            ['9202', 'ANAホールディングス', 6500],
+            ['1605', 'INPEX', 4200],
           ];
     return Container(
       decoration: BoxDecoration(
@@ -460,7 +500,19 @@ class _LossTop5Card extends StatelessWidget {
               ),
               const Spacer(),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => RankingListPage(
+                        title: isJapan ? '損失ランキング - 日本株' : '損失ランキング - 米国株',
+                        isProfit: false,
+                        items: items,
+                        mainColor: const Color(0xFFE53935),
+                        bgColor: const Color(0xFFFDF5F5),
+                      ),
+                    ),
+                  );
+                },
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFF1976D2),
                   padding: EdgeInsets.zero,
@@ -474,7 +526,8 @@ class _LossTop5Card extends StatelessWidget {
               ),
             ],
           ),
-          ...List.generate(items.length, (i) {
+          const SizedBox(height: 12),
+          ...List.generate(5, (i) {
             final item = items[i];
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -498,12 +551,12 @@ class _LossTop5Card extends StatelessWidget {
                   item[0] as String,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                    fontSize: 14,
                   ),
                 ),
                 subtitle: Text(
                   item[1] as String,
-                  style: const TextStyle(fontSize: 13),
+                  style: const TextStyle(fontSize: 12),
                 ),
                 trailing: Text(
                   '¥${item[2].toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
@@ -521,175 +574,6 @@ class _LossTop5Card extends StatelessWidget {
               ),
             );
           }),
-        ],
-      ),
-    );
-  }
-}
-
-// --- 资产分析tab内容 ---
-
-class _AssetPieCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    // 这里只用静态图和数据占位，实际可用fl_chart等库绘制
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E6EA)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                '資産総覧',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F6FA),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: const [
-                    Text(
-                      '品類別',
-                      style: TextStyle(fontSize: 13, color: Colors.black54),
-                    ),
-                    Icon(Icons.expand_more, size: 18, color: Colors.black54),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              // Pie chart placeholder
-              Container(
-                width: 110,
-                height: 110,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: SweepGradient(
-                    colors: [
-                      Color(0xFF43A047),
-                      Color(0xFF1976D2),
-                      Color(0xFFFFA726),
-                      Color(0xFF8E24AA),
-                      Color(0xFF43A047),
-                    ],
-                    stops: [0.0, 0.46, 0.74, 0.90, 1.0],
-                  ),
-                ),
-                child: Center(
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      '資産総額',
-                      style: TextStyle(fontSize: 13, color: Colors.black54),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      '¥1,600,000',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    _AssetPieLegend(
-                      color: Color(0xFF43A047),
-                      label: '日本株',
-                      value: '¥750,000',
-                      percent: '46.9%',
-                    ),
-                    _AssetPieLegend(
-                      color: Color(0xFF1976D2),
-                      label: '米国株',
-                      value: '¥450,000',
-                      percent: '28.1%',
-                    ),
-                    _AssetPieLegend(
-                      color: Color(0xFFFFA726),
-                      label: '現金',
-                      value: '¥250,000',
-                      percent: '15.6%',
-                    ),
-                    _AssetPieLegend(
-                      color: Color(0xFF8E24AA),
-                      label: 'その他',
-                      value: '¥150,000',
-                      percent: '9.4%',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AssetPieLegend extends StatelessWidget {
-  final Color color;
-  final String label;
-  final String value;
-  final String percent;
-  const _AssetPieLegend({
-    required this.color,
-    required this.label,
-    required this.value,
-    required this.percent,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontSize: 13)),
-          const Spacer(),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            percent,
-            style: const TextStyle(fontSize: 12, color: Colors.black54),
-          ),
         ],
       ),
     );

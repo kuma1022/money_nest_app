@@ -1,21 +1,15 @@
-import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/models/currency.dart';
-import 'package:money_nest_app/pages/account/account_tab_page.dart';
 import 'package:money_nest_app/pages/account/portfolio_tab.dart';
 import 'package:money_nest_app/pages/asset_analysis/asset_analysis_tab_page.dart';
-//import 'package:money_nest_app/pages/account/portfolio_tab_page.dart';
 import 'package:money_nest_app/pages/home/home_tab_page.dart';
 import 'package:money_nest_app/pages/setting/setting_tab_page.dart';
-import 'package:money_nest_app/pages/trade_detail/trade_tab_page.dart';
 import 'package:money_nest_app/pages/search_result/search_result_list.dart';
 import 'package:money_nest_app/pages/trade_history/trade_history_tab_page.dart';
 import 'package:money_nest_app/presentation/resources/app_resources.dart';
-import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/provider/portfolio_provider.dart';
 import 'package:money_nest_app/util/provider/total_asset_provider.dart';
 import 'package:provider/provider.dart';
@@ -66,6 +60,11 @@ class MainPageState extends State<MainPage> {
           _currentIndex = 1;
         });
       },
+      onAssetAnalysisTap: () {
+        setState(() {
+          _currentIndex = 3;
+        });
+      },
     ),
     PortfolioTabPage(),
     TradeHistoryPage(),
@@ -78,9 +77,9 @@ class MainPageState extends State<MainPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titles = [
       AppLocalizations.of(context)!.mainPageTopTitle,
-      AppLocalizations.of(context)!.mainPageAccountTitle,
+      '資産', //AppLocalizations.of(context)!.mainPageAccountTitle,
       AppLocalizations.of(context)!.mainPageTradeTitle,
-      AppLocalizations.of(context)!.mainPageMarketTitle,
+      '資産分析', //AppLocalizations.of(context)!.mainPageMarketTitle,
       AppLocalizations.of(context)!.mainPageMoreTitle,
     ];
 
@@ -134,11 +133,11 @@ class MainPageState extends State<MainPage> {
             actions: [],
             bottom: PreferredSize(
               preferredSize: Size.fromHeight(
-                _isSearching ? 0.5 : (_currentIndex == 2 ? 44 : 0.5),
+                _isSearching ? 0.5 : (_currentIndex == 20 ? 44 : 0.5),
               ),
               child: Column(
                 children: [
-                  if (_currentIndex == 2)
+                  if (_currentIndex == 20)
                     Padding(
                       padding: EdgeInsets.fromLTRB(
                         16,
@@ -266,7 +265,7 @@ class MainPageState extends State<MainPage> {
               ),
             ),
           ),
-          body: (_currentIndex == 2 && _isSearching)
+          body: (_currentIndex == 20 && _isSearching)
               ? SearchResultList(db: widget.db, keyword: _searchKeyword)
               : IndexedStack(index: _currentIndex, children: _pages),
           bottomNavigationBar: _CustomBottomNavBar(
@@ -314,14 +313,14 @@ class MainPageState extends State<MainPage> {
                 _currentIndex = index;
               });
 
-              if (needRefresh) {
-                if (index == 0) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    homeTabPageKey.currentState?.refreshController
-                        .requestRefresh();
-                  });
-                }
-              }
+              //if (needRefresh) {
+              //  if (index == 0) {
+              //    WidgetsBinding.instance.addPostFrameCallback((_) {
+              //      homeTabPageKey.currentState?.refreshController
+              //          .requestRefresh();
+              //    });
+              //  }
+              //}
             },
             isDark: isDark,
           ),
@@ -386,7 +385,7 @@ class _CustomBottomNavBarState extends State<_CustomBottomNavBar> {
           ),
         ),
       ),
-      padding: const EdgeInsets.only(top: 4, bottom: 8),
+      padding: const EdgeInsets.only(top: 4, bottom: 18),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: List.generate(icons.length, (index) {
@@ -396,7 +395,7 @@ class _CustomBottomNavBarState extends State<_CustomBottomNavBar> {
               onTap: () => widget.onTap(index),
               behavior: HitTestBehavior.opaque,
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
+                margin: const EdgeInsets.symmetric(horizontal: 6),
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 decoration: selected
                     ? BoxDecoration(
@@ -413,7 +412,7 @@ class _CustomBottomNavBarState extends State<_CustomBottomNavBar> {
                       size: 22, // 图标更小更细
                       // 若想更细，可用CupertinoIcons或自定义icon
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(
                       mainLabels[index],
                       style: TextStyle(
@@ -421,7 +420,7 @@ class _CustomBottomNavBarState extends State<_CustomBottomNavBar> {
                         fontWeight: selected
                             ? FontWeight.bold
                             : FontWeight.normal,
-                        fontSize: 12,
+                        fontSize: AppTexts.fontSizeMini,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

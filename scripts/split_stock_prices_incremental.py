@@ -27,7 +27,10 @@ def download_stock_csv(exchange: str, ticker: str):
     path = f"{SRC_PATH}{exchange}/{ticker}.csv"
     try:
         data = supabase.storage.from_(BUCKET).download(path)
-        return pd.read_csv(io.BytesIO(data))
+        df = pd.read_csv(io.BytesIO(data))
+        # 删除全 NA 列，避免 concat warning
+        df = df.dropna(axis=1, how='all')
+        return df
     except Exception:
         return pd.DataFrame(columns=["stock_id","ticker","exchange","price","price_at"])
 
@@ -61,13 +64,21 @@ def process_new_file(file_name: str, stats: dict):
     print(f"[PROCESS] {path}")
 
     for chunk in read_csv_from_storage(path):
+        # 删除 chunk 中全 NA 列，保证 concat 安全
+        chunk = chunk.dropna(axis=1, how='all')
+
         for (exchange, ticker), g in chunk.groupby(["exchange", "ticker"]):
             # 读旧数据
             df_old = download_stock_csv(exchange, ticker)
             old_rows = len(df_old)
 
+            # 确保列对齐
+            g = g.reindex(columns=df_old.columns)
+
             # 合并新数据
             df_new = pd.concat([df_old, g], ignore_index=True)
+
+            # 去重 + 按日期排序
             df_new.drop_duplicates(
                 subset=["stock_id", "ticker", "exchange", "price_at"], inplace=True
             )

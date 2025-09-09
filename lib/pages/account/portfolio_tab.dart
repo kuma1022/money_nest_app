@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:money_nest_app/pages/account/stock_detail_page.dart';
+import 'package:money_nest_app/pages/account/other_asset_manage_page.dart';
 
 class PortfolioTabPage extends StatefulWidget {
   const PortfolioTabPage({super.key});
@@ -285,7 +287,13 @@ class _PortfolioTabPageState extends State<PortfolioTabPage> {
                           ),
                           icon: const Icon(Icons.add, size: 18),
                           label: const Text('管理'),
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const OtherAssetManagePage(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -557,7 +565,13 @@ class _PortfolioTabPageState extends State<PortfolioTabPage> {
                           ),
                           icon: const Icon(Icons.add, size: 18),
                           label: const Text('管理'),
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const OtherAssetManagePage(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -764,42 +778,59 @@ class _AssetItem extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F6FA),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(code, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(
-                name,
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-            ],
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => StockDetailPage(
+              code: code,
+              name: name,
+              amount: amount,
+              profit: profit,
+            ),
           ),
-          const Spacer(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(amount, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(
-                profit,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: profitColor,
-                  fontWeight: FontWeight.bold,
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F6FA),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(code, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  name,
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
                 ),
-              ),
-            ],
-          ),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ],
+              ],
+            ),
+            const Spacer(),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  amount,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  profit,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: profitColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
