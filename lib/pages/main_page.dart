@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:money_nest_app/db/app_database.dart';
@@ -351,86 +353,209 @@ class _CustomBottomNavBar extends StatefulWidget {
   State<_CustomBottomNavBar> createState() => _CustomBottomNavBarState();
 }
 
-class _CustomBottomNavBarState extends State<_CustomBottomNavBar> {
+class _CustomBottomNavBarState extends State<_CustomBottomNavBar>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  late int _prevIndex;
+  late int _targetIndex;
+  bool _isAnimating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _prevIndex = widget.currentIndex;
+    _targetIndex = widget.currentIndex;
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutCubic,
+    );
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _prevIndex = _targetIndex;
+          _isAnimating = false;
+        });
+        widget.onTap(_targetIndex); // 动画结束后再切换页面
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _CustomBottomNavBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 如果外部切换了tab（比如程序主动跳转），同步状态
+    if (!_isAnimating && widget.currentIndex != _targetIndex) {
+      setState(() {
+        _prevIndex = widget.currentIndex;
+        _targetIndex = widget.currentIndex;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTap(int index) {
+    if (_isAnimating || index == _targetIndex) return;
+    setState(() {
+      _prevIndex = _targetIndex;
+      _targetIndex = index;
+      _isAnimating = true;
+    });
+    _controller.forward(from: 0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 使用更短的日文标签，并将「市場」改为「資産分析」
-    final mainLabels = ['TOP', '資産', '取引履歴', '資産分析', '設定'];
+    final icons = widget.icons;
+    final labels = widget.labels;
 
-    // 图标更细致，线条更细（推荐使用 CupertinoIcons 或 Outlined icons）
-    final icons = [
-      Icons.home_outlined,
-      Icons.pie_chart_outline, // 资产
-      Icons.list_alt_outlined,
-      Icons.analytics_outlined, // 资产分析（更细致的分析icon）
-      Icons.menu,
-    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+          child: Container(
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.22),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.32),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.07),
+                  blurRadius: 18,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final double itemWidth = constraints.maxWidth / icons.length;
+                const double indicatorWidth = 68;
+                const double indicatorHeight = 42;
+                const double barHeight = 60;
 
-    final bgColor = widget.isDark ? const Color(0xFF181A20) : Colors.white;
-    final selectedBg = widget.isDark
-        ? Colors.white.withOpacity(0.10)
-        : Colors.grey[200];
-    final selectedColor = widget.isDark ? Colors.white : Colors.black87;
-    final unselectedColor = widget.isDark ? Colors.white54 : Colors.grey;
+                final double start =
+                    _prevIndex * itemWidth + (itemWidth - indicatorWidth) / 2;
+                final double end =
+                    _targetIndex * itemWidth + (itemWidth - indicatorWidth) / 2;
+                final double left = start + (end - start) * _animation.value;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: bgColor,
-        border: Border(
-          top: BorderSide(
-            color: widget.isDark
-                ? const Color(0xFF23242A)
-                : const Color(0xFFDDDDDD),
-            width: 0.5,
-          ),
-        ),
-      ),
-      padding: const EdgeInsets.only(top: 4, bottom: 18),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(icons.length, (index) {
-          final selected = widget.currentIndex == index;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => widget.onTap(index),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 6),
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                decoration: selected
-                    ? BoxDecoration(
-                        color: selectedBg,
-                        borderRadius: BorderRadius.circular(8), // 圆角更小更扁
-                      )
-                    : null,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                final double width = TweenSequence([
+                  TweenSequenceItem(
+                    tween: Tween<double>(
+                      begin: indicatorWidth,
+                      end: indicatorWidth + 56,
+                    ).chain(CurveTween(curve: Curves.easeOut)),
+                    weight: 50,
+                  ),
+                  TweenSequenceItem(
+                    tween: Tween<double>(
+                      begin: indicatorWidth + 56,
+                      end: indicatorWidth,
+                    ).chain(CurveTween(curve: Curves.easeIn)),
+                    weight: 50,
+                  ),
+                ]).transform(_animation.value);
+
+                // 当前选中的index
+                final int effectiveIndex = _isAnimating
+                    ? _targetIndex
+                    : widget.currentIndex;
+
+                return Stack(
+                  alignment: Alignment.centerLeft,
                   children: [
-                    Icon(
-                      icons[index],
-                      color: selected ? selectedColor : unselectedColor,
-                      size: 22, // 图标更小更细
-                      // 若想更细，可用CupertinoIcons或自定义icon
+                    AnimatedBuilder(
+                      animation: _animation,
+                      builder: (context, child) {
+                        return Positioned(
+                          left: left - (width - indicatorWidth) / 2,
+                          top: (barHeight - indicatorHeight) / 2,
+                          child: Container(
+                            width: width,
+                            height: indicatorHeight,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.18),
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.04),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 1),
-                    Text(
-                      mainLabels[index],
-                      style: TextStyle(
-                        color: selected ? selectedColor : unselectedColor,
-                        fontWeight: selected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        fontSize: AppTexts.fontSizeMini,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: List.generate(icons.length, (index) {
+                        final selected = effectiveIndex == index;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () => _onTap(index),
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: double.infinity,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    icons[index],
+                                    color: selected
+                                        ? Colors.black87
+                                        : Colors.black54,
+                                    size: 20,
+                                  ),
+                                  //const SizedBox(height: 2),
+                                  Text(
+                                    labels[index],
+                                    style: TextStyle(
+                                      color: selected
+                                          ? Colors.black87
+                                          : Colors.black54,
+                                      fontWeight: selected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
                     ),
                   ],
-                ),
-              ),
+                );
+              },
             ),
-          );
-        }),
+          ),
+        ),
       ),
     );
   }

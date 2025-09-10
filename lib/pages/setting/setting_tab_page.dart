@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:money_nest_app/pages/setting/premium_login_page.dart';
 
 class SettingsTabPage extends StatefulWidget {
   const SettingsTabPage({super.key});
@@ -275,7 +276,11 @@ class _PremiumCard extends StatelessWidget {
                 'ログイン・新規登録',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PremiumLoginPage()),
+                );
+              },
             ),
           ),
           const SizedBox(height: 8),

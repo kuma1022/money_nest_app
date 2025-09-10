@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -147,159 +149,232 @@ class HomeTabPageState extends State<HomeTabPage> {
       );
     }
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 总资产卡片
-            Container(
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    '資産総額',
-                    style: TextStyle(fontSize: 15, color: Colors.black87),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '¥1,600,000',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE6F9F0),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.trending_up, color: Colors.green, size: 20),
-                        SizedBox(width: 4),
-                        Text(
-                          '+¥250,000 (25%)',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+      // 1. 背景渐变
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFB6D0E2), Color(0xFFD6EFFF), Color(0xFFE3E0F9)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 2. 毛玻璃卡片：总资产卡片
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.13),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.28),
+                          width: 1.5,
                         ),
-                      ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.08),
+                            blurRadius: 24,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            '資産総額',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '¥1,600,000',
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE6F9F0),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(
+                                  Icons.trending_up,
+                                  color: Colors.green,
+                                  size: 20,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  '+¥250,000 (25%)',
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            // 资产总览卡片
-            TotalAssetAnalysisCard(
-              onAssetAnalysisTap: widget.onAssetAnalysisTap,
-            ),
-            // 快捷操作
-            Container(
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
-              ),
-              child: GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: 2.6,
-                children: [
-                  _QuickActionButton(
-                    icon: Icons.add,
-                    label: '取引追加',
-                    onTap: () => setState(() => showAddTransaction = true),
-                    bgColor: const Color(0xFF1976D2),
-                    fontColor: Colors.white,
-                  ),
-                  _QuickActionButton(
-                    icon: Icons.pie_chart_outline,
-                    label: 'ポートフォリオ',
-                    onTap: () => widget.onPortfolioTap?.call(),
-                  ),
-                  _QuickActionButton(
-                    icon: Icons.download,
-                    label: 'レポート',
-                    onTap: () {},
-                  ),
-                  _QuickActionButton(
-                    icon: Icons.calculate,
-                    label: '損益計算',
-                    onTap: () {},
-                  ),
-                ],
-              ),
-            ),
-            // 今日のサマリー
-            Container(
-              margin: const EdgeInsets.only(bottom: 20),
-              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Padding(
-                    padding: EdgeInsets.only(left: 8, bottom: 8),
-                    child: Text(
-                      '今日のサマリー',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                // 3. 毛玻璃卡片：资产总览卡片
+                TotalAssetAnalysisCard(
+                  onAssetAnalysisTap: widget.onAssetAnalysisTap,
+                ),
+                // 4. 毛玻璃卡片：快捷操作
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 20,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.13),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.28),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.08),
+                            blurRadius: 24,
+                          ),
+                        ],
+                      ),
+                      child: GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        physics: const NeverScrollableScrollPhysics(),
+                        childAspectRatio: 2.6,
+                        children: [
+                          _GlassQuickActionButton(
+                            icon: Icons.add,
+                            label: '取引追加',
+                            onTap: () =>
+                                setState(() => showAddTransaction = true),
+                            bgColor: const Color(0xFF1976D2),
+                            fontColor: Colors.white,
+                          ),
+                          _GlassQuickActionButton(
+                            icon: Icons.pie_chart_outline,
+                            label: 'ポートフォリオ',
+                            onTap: () => widget.onPortfolioTap?.call(),
+                          ),
+                          _GlassQuickActionButton(
+                            icon: Icons.download,
+                            label: 'レポート',
+                            onTap: () {},
+                          ),
+                          _GlassQuickActionButton(
+                            icon: Icons.calculate,
+                            label: '損益計算',
+                            onTap: () {},
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  _SummaryRowStyled(
-                    label: '日本株',
-                    value: '+¥15,000 (+2.1%)',
-                    valueColor: Color(0xFF388E3C),
-                    bgColor: Color(0xFFE6F9F0),
+                ),
+                // 5. 毛玻璃卡片：今日のサマリー
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(28),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 20,
+                        horizontal: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.13),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.28),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withOpacity(0.08),
+                            blurRadius: 24,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Padding(
+                            padding: EdgeInsets.only(left: 8, bottom: 8),
+                            child: Text(
+                              '今日のサマリー',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          _SummaryRowStyled(
+                            label: '日本株',
+                            value: '+¥15,000 (+2.1%)',
+                            valueColor: Color(0xFF388E3C),
+                            bgColor: Color(0xFFE6F9F0),
+                          ),
+                          _SummaryRowStyled(
+                            label: '米国株',
+                            value: '¥8,500 (-1.2%)',
+                            valueColor: Color(0xFFD32F2F),
+                            bgColor: Color(0xFFFDEAEA),
+                          ),
+                          _SummaryRowStyled(
+                            label: '現金',
+                            value: '¥250,000',
+                            valueColor: Color(0xFF757575),
+                            bgColor: Color(0xFFF5F6FA),
+                          ),
+                          _SummaryRowStyled(
+                            label: 'その他',
+                            value: '+¥2,500 (+1.7%)',
+                            valueColor: Color(0xFF388E3C),
+                            bgColor: Color(0xFFE6F9F0),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  _SummaryRowStyled(
-                    label: '米国株',
-                    value: '¥8,500 (-1.2%)',
-                    valueColor: Color(0xFFD32F2F),
-                    bgColor: Color(0xFFFDEAEA),
-                  ),
-                  _SummaryRowStyled(
-                    label: '現金',
-                    value: '¥250,000',
-                    valueColor: Color(0xFF757575),
-                    bgColor: Color(0xFFF5F6FA),
-                  ),
-                  _SummaryRowStyled(
-                    label: 'その他',
-                    value: '+¥2,500 (+1.7%)',
-                    valueColor: Color(0xFF388E3C),
-                    bgColor: Color(0xFFE6F9F0),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -392,6 +467,82 @@ class _QuickActionButton extends StatelessWidget {
           const SizedBox(height: 4),
           Text(label, style: TextStyle(color: fontColor ?? Colors.black)),
         ],
+      ),
+    );
+  }
+}
+
+// 新增：毛玻璃风格按钮
+class _GlassQuickActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? bgColor;
+  final Color? fontColor;
+  const _GlassQuickActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.bgColor,
+    this.fontColor,
+    super.key,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: (bgColor ?? Colors.white).withOpacity(
+              bgColor != null ? 0.92 : 0.38,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.55),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.10),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4), // 再减小
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 22,
+                      color: fontColor ?? Colors.black87,
+                    ), // 再减小
+                    const SizedBox(height: 1), // 再减小
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: fontColor ?? Colors.black87,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12, // 再减小
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
