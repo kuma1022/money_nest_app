@@ -14,12 +14,16 @@ class HomeTabPage extends StatefulWidget {
   final AppDatabase db;
   final VoidCallback? onPortfolioTap;
   final VoidCallback? onAssetAnalysisTap;
+  final ValueChanged<double>? onScroll;
+  final ScrollController? scrollController;
 
   const HomeTabPage({
     super.key,
     required this.db,
     this.onPortfolioTap,
     this.onAssetAnalysisTap,
+    this.scrollController,
+    this.onScroll,
   });
 
   @override
@@ -47,8 +51,8 @@ class HomeTabPageState extends State<HomeTabPage> {
   Currency _selectedCurrency = Currency.values.first;
   double _totalProfit = 0;
   double _totalCost = 0;
-  bool _assetVisible = true; // 资产是否可见
-  int _overviewTabIndex = 0; // 资产总览tab切换
+  bool _assetVisible = true;
+  int _overviewTabIndex = 0;
 
   Future<void> _onRefresh() async {
     await _refreshData();
@@ -63,483 +67,534 @@ class HomeTabPageState extends State<HomeTabPage> {
     ).fetchTotalAsset(widget.db, _selectedCurrency);
   }
 
-  // 获取总盈亏金额（请用实际业务逻辑替换）
-  Future<double> _getTotalProfit() async {
-    final records = await widget.db.getAllAvailableBuyRecords();
-    final stocks = await widget.db.getAllStocks();
-    final stockMap = {for (var stock in stocks) stock.code: stock};
-
-    setState(
-      () => _totalProfit = records.fold<double>(0, (sum, r) {
-        final stock = stockMap[r.code];
-        final currentPrice = stock?.currentPrice ?? r.price;
-        final stockCurrency = stock?.currency ?? r.currencyUsed.code;
-
-        double fxToMoneyUsed = 1.0;
-        if (stockCurrency != r.currencyUsed.code) {
-          final fxCode = stockCurrency != 'USD'
-              ? '$stockCurrency${r.currencyUsed.code}'
-              : r.currencyUsed.code;
-          fxToMoneyUsed = stockMap[fxCode]?.currentPrice ?? 1.0;
-        }
-        final marketValueInMoneyUsed =
-            r.quantity * currentPrice * fxToMoneyUsed;
-
-        final profitInMoneyUsed = marketValueInMoneyUsed - r.moneyUsed;
-
-        double fxToSelected = 1.0;
-        if (r.currencyUsed.code != _selectedCurrency.code) {
-          final fxCode = r.currencyUsed.code != 'USD'
-              ? '${r.currencyUsed.code}${_selectedCurrency.code}'
-              : _selectedCurrency.code;
-          fxToSelected = stockMap[fxCode]?.currentPrice ?? 1.0;
-        }
-        final profitInSelected = profitInMoneyUsed * fxToSelected;
-
-        return sum + profitInSelected;
-      }),
-    );
-
-    // 计算总盈亏
-    return _totalProfit;
-  }
-
-  // 获取总盈亏率（请用实际业务逻辑替换）
-  Future<double> _getTotalProfitRate() async {
-    final records = await widget.db.getAllAvailableBuyRecords();
-    final stocks = await widget.db.getAllStocks();
-    final stockMap = {for (var stock in stocks) stock.code: stock};
-
-    setState(
-      () => _totalCost = records.fold<double>(
-        0,
-        (sum, r) =>
-            sum +
-            r.moneyUsed *
-                (r.currencyUsed.code != 'USD'
-                    ? (stockMap['${r.currencyUsed.code}${_selectedCurrency.code}']
-                              ?.currentPrice ??
-                          1)
-                    : (stockMap[_selectedCurrency.code]?.currentPrice ?? 1)),
-      ),
-    );
-
-    return _totalCost > 0 ? _totalProfit / _totalCost : 0;
-  }
-
-  String _formatProfit(double profit, Currency currency) {
-    final symbol = profit > 0 ? '+' : (profit < 0 ? '-' : '');
-    return '$symbol${NumberFormat.currency(locale: currency.locale, symbol: currency.symbol).format(profit.abs())}';
-  }
-
-  String _formatProfitRate(double rate) {
-    final symbol = rate > 0 ? '+' : (rate < 0 ? '-' : '');
-    return '$symbol${(rate.abs() * 100).toStringAsFixed(2)}%';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final totalAsset = context.watch<TotalAssetProvider>().totalAsset;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    if (showAddTransaction) {
-      // TODO: AddTransactionForm 替换为实际表单
-      return Scaffold(
-        appBar: AppBar(title: const Text('取引追加')),
-        body: const Center(child: Text('AddTransactionForm Placeholder')),
-      );
-    }
-    return Scaffold(
-      // 1. 背景渐变
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFB6D0E2), Color(0xFFD6EFFF), Color(0xFFE3E0F9)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 2. 毛玻璃卡片：总资产卡片
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 20),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 24,
-                        horizontal: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.13),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.28),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.08),
-                            blurRadius: 24,
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            '資産総額',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '¥1,600,000',
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE6F9F0),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(
-                                  Icons.trending_up,
-                                  color: Colors.green,
-                                  size: 20,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  '+¥250,000 (25%)',
-                                  style: TextStyle(
-                                    color: Colors.green,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                // 3. 毛玻璃卡片：资产总览卡片
-                TotalAssetAnalysisCard(
-                  onAssetAnalysisTap: widget.onAssetAnalysisTap,
-                ),
-                // 4. 毛玻璃卡片：快捷操作
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 20),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 20,
-                        horizontal: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.13),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.28),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.08),
-                            blurRadius: 24,
-                          ),
-                        ],
-                      ),
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        physics: const NeverScrollableScrollPhysics(),
-                        childAspectRatio: 2.6,
-                        children: [
-                          _GlassQuickActionButton(
-                            icon: Icons.add,
-                            label: '取引追加',
-                            onTap: () =>
-                                setState(() => showAddTransaction = true),
-                            bgColor: const Color(0xFF1976D2),
-                            fontColor: Colors.white,
-                          ),
-                          _GlassQuickActionButton(
-                            icon: Icons.pie_chart_outline,
-                            label: 'ポートフォリオ',
-                            onTap: () => widget.onPortfolioTap?.call(),
-                          ),
-                          _GlassQuickActionButton(
-                            icon: Icons.download,
-                            label: 'レポート',
-                            onTap: () {},
-                          ),
-                          _GlassQuickActionButton(
-                            icon: Icons.calculate,
-                            label: '損益計算',
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                // 5. 毛玻璃卡片：今日のサマリー
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 20),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 20,
-                        horizontal: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.13),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.28),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.white.withOpacity(0.08),
-                            blurRadius: 24,
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Padding(
-                            padding: EdgeInsets.only(left: 8, bottom: 8),
-                            child: Text(
-                              '今日のサマリー',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          _SummaryRowStyled(
-                            label: '日本株',
-                            value: '+¥15,000 (+2.1%)',
-                            valueColor: Color(0xFF388E3C),
-                            bgColor: Color(0xFFE6F9F0),
-                          ),
-                          _SummaryRowStyled(
-                            label: '米国株',
-                            value: '¥8,500 (-1.2%)',
-                            valueColor: Color(0xFFD32F2F),
-                            bgColor: Color(0xFFFDEAEA),
-                          ),
-                          _SummaryRowStyled(
-                            label: '現金',
-                            value: '¥250,000',
-                            valueColor: Color(0xFF757575),
-                            bgColor: Color(0xFFF5F6FA),
-                          ),
-                          _SummaryRowStyled(
-                            label: 'その他',
-                            value: '+¥2,500 (+1.7%)',
-                            valueColor: Color(0xFF388E3C),
-                            bgColor: Color(0xFFE6F9F0),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// 图例每行两个
-class _LegendRow extends StatelessWidget {
-  final Widget left;
-  final Widget right;
-  const _LegendRow({required this.left, required this.right});
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: left),
-        SizedBox(width: 16), // 中间空白
-        Expanded(child: right),
-      ],
-    );
-  }
-}
-
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-  final String percent;
-  const _LegendDot({
-    required this.color,
-    required this.label,
-    required this.percent,
-    this.alignRight = false,
-  });
-  final bool alignRight; // 兼容旧参数，但不再使用
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8), // 左右增加空白
-      child: Row(
+    return SizedBox.expand(
+      child: Stack(
         children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 4),
-          Text(label, style: const TextStyle(fontSize: 13)),
-          const Spacer(),
-          Text(
-            percent,
-            style: const TextStyle(fontSize: 13, color: Colors.grey),
-            textAlign: TextAlign.right,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// 快捷按钮
-class _QuickActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? bgColor;
-  final Color? fontColor;
-  const _QuickActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.bgColor,
-    this.fontColor,
-    super.key,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        backgroundColor: bgColor ?? Colors.white,
-        foregroundColor: fontColor ?? Colors.black,
-        side: BorderSide(color: bgColor ?? const Color(0xFFE5E6EA)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: EdgeInsets.zero,
-      ),
-      onPressed: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 28, color: fontColor ?? Colors.black),
-          const SizedBox(height: 4),
-          Text(label, style: TextStyle(color: fontColor ?? Colors.black)),
-        ],
-      ),
-    );
-  }
-}
-
-// 新增：毛玻璃风格按钮
-class _GlassQuickActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? bgColor;
-  final Color? fontColor;
-  const _GlassQuickActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.bgColor,
-    this.fontColor,
-    super.key,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: (bgColor ?? Colors.white).withOpacity(
-              bgColor != null ? 0.92 : 0.38,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.55),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.10),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFFE3E6F3),
+                    Color(0xFFB8BFD8),
+                    Color(0xFF9CA3BA),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
-            ],
+            ),
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4), // 再减小
+          Padding(
+            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPadding),
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                double pixels = 0.0;
+                if (notification is ScrollUpdateNotification ||
+                    notification is OverscrollNotification) {
+                  pixels = notification.metrics.pixels;
+                  if (pixels < 0) pixels = 0; // 只允许正数（如需overscroll缩放可不处理）
+                  widget.onScroll?.call(pixels);
+                }
+                return false;
+              },
+              child: SingleChildScrollView(
+                controller: widget.scrollController,
+                physics: const BouncingScrollPhysics(),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      icon,
-                      size: 22,
-                      color: fontColor ?? Colors.black87,
-                    ), // 再减小
-                    const SizedBox(height: 1), // 再减小
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: fontColor ?? Colors.black87,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12, // 再减小
-                        letterSpacing: 0.2,
+                    _GlassPanel(
+                      borderRadius: 32,
+                      margin: const EdgeInsets.only(bottom: 18),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 20,
+                          horizontal: 18,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.account_balance_wallet_outlined,
+                              color: Colors.black.withOpacity(0.7),
+                              size: 32,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  Text(
+                                    '資産総額',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.black87,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(height: 6),
+                                  Text(
+                                    '¥1,600,000',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                  SizedBox(height: 6),
+                                  Text(
+                                    '+¥250,000 (25%)',
+                                    style: TextStyle(
+                                      color: Color(0xFF43A047),
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    _GlassQuickBar(
+                      items: [
+                        _GlassQuickBarItem(
+                          icon: Icons.add,
+                          label: '取引追加',
+                          selected: false,
+                          onTap: () =>
+                              setState(() => showAddTransaction = true),
+                          iconColor: const Color(0xFF1976D2),
+                        ),
+                        _GlassQuickBarItem(
+                          icon: Icons.pie_chart_outline,
+                          label: '資産',
+                          selected: false,
+                          onTap: () => widget.onPortfolioTap?.call(),
+                          iconColor: const Color(0xFF1976D2),
+                        ),
+                        _GlassQuickBarItem(
+                          icon: Icons.download_outlined,
+                          label: 'レポート',
+                          selected: false,
+                          onTap: () {},
+                          iconColor: const Color(0xFF1976D2),
+                        ),
+                        _GlassQuickBarItem(
+                          icon: Icons.calculate_outlined,
+                          label: '損益計算',
+                          selected: false,
+                          onTap: () {},
+                          iconColor: const Color(0xFF1976D2),
+                        ),
+                      ],
+                    ),
+                    _GlassPanel(
+                      borderRadius: 24,
+                      margin: const EdgeInsets.only(top: 18, bottom: 18),
+                      child: ListTile(
+                        leading: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1976D2).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.analytics_outlined,
+                            color: Color(0xFF1976D2),
+                            size: 28,
+                          ),
+                        ),
+                        title: const Text(
+                          '資産分析',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          '資産の推移や損益をグラフで分析',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          color: Colors.black.withOpacity(0.3),
+                        ),
+                        onTap: widget.onAssetAnalysisTap,
+                      ),
+                    ),
+                    _GlassPanel(
+                      borderRadius: 24,
+                      margin: const EdgeInsets.only(bottom: 18),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 18,
+                          horizontal: 16,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '資産推移',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 140,
+                              child: LineChart(
+                                LineChartData(
+                                  gridData: FlGridData(show: false),
+                                  titlesData: FlTitlesData(
+                                    leftTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        reservedSize: 40,
+                                        getTitlesWidget: (value, meta) {
+                                          return Text(
+                                            '¥${(value ~/ 10000)}万',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.black54,
+                                            ),
+                                          );
+                                        },
+                                        interval: 200000,
+                                      ),
+                                    ),
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, meta) {
+                                          final months = [
+                                            '1月',
+                                            '2月',
+                                            '3月',
+                                            '4月',
+                                            '5月',
+                                            '6月',
+                                          ];
+                                          if (value.toInt() >= 0 &&
+                                              value.toInt() < months.length) {
+                                            return Text(
+                                              months[value.toInt()],
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.black54,
+                                              ),
+                                            );
+                                          }
+                                          return const SizedBox.shrink();
+                                        },
+                                      ),
+                                    ),
+                                    rightTitles: AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    topTitles: AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                  ),
+                                  borderData: FlBorderData(show: false),
+                                  minX: 0,
+                                  maxX: 5,
+                                  minY: 900000,
+                                  maxY: 1300000,
+                                  lineBarsData: [
+                                    LineChartBarData(
+                                      spots: [
+                                        FlSpot(0, 1000000),
+                                        FlSpot(1, 1050000),
+                                        FlSpot(2, 980000),
+                                        FlSpot(3, 1120000),
+                                        FlSpot(4, 1180000),
+                                        FlSpot(5, 1250000),
+                                      ],
+                                      isCurved: true,
+                                      color: const Color(0xFF1976D2),
+                                      barWidth: 3,
+                                      dotData: FlDotData(show: true),
+                                      belowBarData: BarAreaData(
+                                        show: true,
+                                        color: const Color(
+                                          0xFF1976D2,
+                                        ).withOpacity(0.08),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    _GlassPanel(
+                      borderRadius: 24,
+                      margin: const EdgeInsets.only(bottom: 18),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 18,
+                          horizontal: 16,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              '今日のサマリー',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                            SizedBox(height: 10),
+                            _SummaryRowStyled(
+                              label: '日本株',
+                              value: '+¥15,000 (+2.1%)',
+                              valueColor: Color(0xFF388E3C),
+                              bgColor: Color(0xFFE6F9F0),
+                            ),
+                            _SummaryRowStyled(
+                              label: '米国株',
+                              value: '¥8,500 (-1.2%)',
+                              valueColor: Color(0xFFD32F2F),
+                              bgColor: Color(0xFFFDEAEA),
+                            ),
+                            _SummaryRowStyled(
+                              label: '現金',
+                              value: '¥250,000',
+                              valueColor: Color(0xFF757575),
+                              bgColor: Color(0xFFF5F6FA),
+                            ),
+                            _SummaryRowStyled(
+                              label: 'その他',
+                              value: '+¥2,500 (+1.7%)',
+                              valueColor: Color(0xFF388E3C),
+                              bgColor: Color(0xFFE6F9F0),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _GlassCircleButton(
+                        child: Icon(Icons.search, color: Colors.black87),
+                        onTap: () {},
                       ),
                     ),
                   ],
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// 毛玻璃面板
+class _GlassPanel extends StatelessWidget {
+  final Widget child;
+  final double borderRadius;
+  final EdgeInsetsGeometry? margin;
+  const _GlassPanel({
+    required this.child,
+    this.borderRadius = 24,
+    this.margin,
+    super.key,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: margin,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Stack(
+          children: [
+            // 局部背景虚化
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(color: Colors.transparent),
+            ),
+            // 更通透的毛玻璃面板
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.13), // 更透明
+                borderRadius: BorderRadius.circular(borderRadius),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.16), // 更透明
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withOpacity(0.08),
+                    blurRadius: 0,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 0),
+                  ),
+                ],
+              ),
+              child: child,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 毛玻璃快捷操作栏
+class _GlassQuickBar extends StatelessWidget {
+  final List<_GlassQuickBarItem> items;
+  const _GlassQuickBar({required this.items, super.key});
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      borderRadius: 32,
+      margin: const EdgeInsets.only(bottom: 18),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: items
+              .map(
+                (item) => Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: item,
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassQuickBarItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color? iconColor;
+  const _GlassQuickBarItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.iconColor,
+    super.key,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        splashColor: Colors.white.withOpacity(0.12),
+        highlightColor: Colors.transparent,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: selected
+                ? Colors.white.withOpacity(0.18)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected
+                  ? (iconColor ?? const Color(0xFF1976D2)).withOpacity(0.12)
+                  : Colors.transparent,
+              width: 1.2,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 26, color: iconColor ?? Colors.black87),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  color: iconColor ?? Colors.black87,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// 毛玻璃水滴按钮
+class _GlassCircleButton extends StatelessWidget {
+  final Widget child;
+  final double size;
+  final VoidCallback? onTap;
+
+  const _GlassCircleButton({
+    required this.child,
+    this.size = 56,
+    this.onTap,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: ClipOval(
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Stack(
+              children: [
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                  child: Container(color: Colors.white.withOpacity(0.13)),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.16),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.10),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Center(child: child),
+                ),
+              ],
             ),
           ),
         ),

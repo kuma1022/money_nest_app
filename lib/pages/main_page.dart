@@ -27,23 +27,6 @@ class MainPage extends StatefulWidget {
 class MainPageState extends State<MainPage> {
   Currency _selectedCurrency = Currency.values.first;
 
-  @override
-  void initState() {
-    super.initState();
-    Provider.of<TotalAssetProvider>(
-      context,
-      listen: false,
-    ).fetchTotalAsset(widget.db, _selectedCurrency);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final l10n = AppLocalizations.of(context)!;
-    final provider = Provider.of<PortfolioProvider>(context, listen: false);
-    provider.fetchPortfolio(widget.db, l10n);
-  }
-
   int _currentIndex = 0;
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
@@ -52,6 +35,7 @@ class MainPageState extends State<MainPage> {
       GlobalKey<HomeTabPageState>();
 
   String _searchKeyword = '';
+  double _scrollPixels = 0.0;
 
   late final List<Widget> _pages = [
     HomeTabPage(
@@ -67,6 +51,11 @@ class MainPageState extends State<MainPage> {
           _currentIndex = 3;
         });
       },
+      onScroll: (pixels) {
+        setState(() {
+          _scrollPixels = pixels;
+        });
+      },
     ),
     PortfolioTabPage(),
     TradeHistoryPage(),
@@ -77,15 +66,16 @@ class MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mediaQuery = MediaQuery.of(context);
+    final double statusBarHeight = mediaQuery.padding.top;
+
     final titles = [
       AppLocalizations.of(context)!.mainPageTopTitle,
-      '資産', //AppLocalizations.of(context)!.mainPageAccountTitle,
+      '資産',
       AppLocalizations.of(context)!.mainPageTradeTitle,
-      '資産分析', //AppLocalizations.of(context)!.mainPageMarketTitle,
+      '資産分析',
       AppLocalizations.of(context)!.mainPageMoreTitle,
     ];
-
-    // 线条风格icon
     final icons = [
       Icons.home_outlined,
       Icons.pie_chart_outline,
@@ -94,19 +84,31 @@ class MainPageState extends State<MainPage> {
       Icons.menu,
     ];
 
-    // 状态栏颜色适配
-    SystemUiOverlayStyle overlayStyle = isDark
-        ? SystemUiOverlayStyle.light.copyWith(
-            statusBarColor: Colors.transparent,
-            systemNavigationBarColor: Colors.black,
-          )
-        : SystemUiOverlayStyle.dark.copyWith(
-            statusBarColor: Colors.transparent,
-            systemNavigationBarColor: Colors.white,
-          );
+    // Header参数
+    final double minTitleSize = 18;
+    final double maxTitleSize = 26;
+    final double topPosition = statusBarHeight + 10.0;
+    final double headerHeight = statusBarHeight + 50.0;
+    final double shrinkOffset = 0.0;
+    //final double t = shrinkOffset / 60;
+    final double t = (_scrollPixels / 60).clamp(0, 1);
+    final double titleFontSize =
+        maxTitleSize - (maxTitleSize - minTitleSize) * t;
+
+    final Color headerBgColor = isDark
+        ? const Color(0xFF23242A)
+        : const Color(0xFFE3E6F3);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: overlayStyle,
+      value: isDark
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarColor: Colors.transparent,
+              systemNavigationBarColor: Colors.black,
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+              systemNavigationBarColor: Colors.white,
+            ),
       child: Theme(
         data: Theme.of(context).copyWith(
           splashFactory: NoSplash.splashFactory,
@@ -117,159 +119,48 @@ class MainPageState extends State<MainPage> {
           backgroundColor: isDark
               ? const Color(0xFF181A20)
               : const Color(0xFFF5F6FA),
-          appBar: AppBar(
-            centerTitle: true,
-            title: !_isSearching
-                ? Text(
-                    titles[_currentIndex],
-                    style: const TextStyle(
-                      fontSize: AppTexts.fontSizeLarge,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                : null,
-            backgroundColor: isDark
-                ? const Color(0xFF181A20)
-                : const Color(0xFFF2F2F2),
-            elevation: 0,
-            actions: [],
-            bottom: PreferredSize(
-              preferredSize: Size.fromHeight(
-                _isSearching ? 0.5 : (_currentIndex == 20 ? 44 : 0.5),
-              ),
-              child: Column(
-                children: [
-                  if (_currentIndex == 20)
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        _isSearching ? 4 : 0,
-                        16,
-                        12,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.ease,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF23242A)
-                                    : const Color(0xFFE0E0E0),
-                                borderRadius: BorderRadius.circular(16),
+          body: SizedBox.expand(
+            // 关键：让Stack填满整个屏幕
+            child: Stack(
+              children: [
+                // 顶部header
+                Container(
+                  height: headerHeight,
+                  width: double.infinity,
+                  color: headerBgColor,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: Padding(
+                            padding: EdgeInsets.only(top: topPosition),
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 180),
+                              style: TextStyle(
+                                fontSize: titleFontSize,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : Colors.black87,
                               ),
-                              child: TextField(
-                                controller: _searchController,
-                                focusNode: _searchFocusNode,
-                                style: TextStyle(
-                                  fontSize: AppTexts.fontSizeSmall,
-                                  color: isDark ? Colors.white : Colors.black,
-                                ),
-                                cursorColor: AppColors.appGreen,
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  prefixIcon: Icon(
-                                    Icons.search,
-                                    color: AppColors.appGrey,
-                                    size: 20,
-                                  ),
-                                  hintText: AppLocalizations.of(
-                                    context,
-                                  )!.mainPageSearchHint,
-                                  border: InputBorder.none,
-                                  hintStyle: TextStyle(
-                                    color: AppColors.appGrey,
-                                    fontSize: AppTexts.fontSizeSmall,
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 6,
-                                  ),
-                                  suffixIcon: _searchController.text.isNotEmpty
-                                      ? IconButton(
-                                          icon: const Icon(
-                                            Icons.close,
-                                            color: AppColors.appGrey,
-                                            size: 18,
-                                          ),
-                                          onPressed: () {
-                                            setState(() {
-                                              _searchController.clear();
-                                              _searchKeyword = '';
-                                            });
-                                          },
-                                        )
-                                      : null,
-                                ),
-                                onTap: () {
-                                  setState(() {
-                                    _searchKeyword = '';
-                                    _isSearching = true;
-                                  });
-                                },
-                                onSubmitted: (value) {
-                                  setState(() {
-                                    _searchKeyword = value;
-                                  });
-                                },
-                                onChanged: (value) {
-                                  setState(() {
-                                    _searchKeyword = value;
-                                  });
-                                },
-                              ),
+                              child: Text(titles[_currentIndex]),
                             ),
                           ),
-                          if (_isSearching)
-                            Padding(
-                              padding: const EdgeInsets.only(left: 8),
-                              child: SizedBox(
-                                height: 32,
-                                width: 48,
-                                child: TextButton(
-                                  style: TextButton.styleFrom(
-                                    minimumSize: const Size(48, 32),
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _isSearching = false;
-                                      _searchController.clear();
-                                      _searchFocusNode.unfocus();
-                                    });
-                                  },
-                                  child: Text(
-                                    AppLocalizations.of(
-                                      context,
-                                    )!.mainPageSearchCancel,
-                                    style: TextStyle(
-                                      color: AppColors.appGreen,
-                                      fontSize: AppTexts.fontSizeSmall,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
+                        ),
                       ),
-                    ),
-                  Divider(
-                    color: isDark
-                        ? const Color(0xFF23242A)
-                        : const Color(0xFFDDDDDD),
-                    thickness: 0.5,
-                    height: 0.5,
-                    indent: 0,
-                    endIndent: 0,
+                    ],
                   ),
-                ],
-              ),
+                ),
+                // 页面内容（headerHeight以下区域）
+                Positioned.fill(
+                  top: headerHeight,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: IndexedStack(index: _currentIndex, children: _pages),
+                ),
+              ],
             ),
           ),
-          body: (_currentIndex == 20 && _isSearching)
-              ? SearchResultList(db: widget.db, keyword: _searchKeyword)
-              : IndexedStack(index: _currentIndex, children: _pages),
           bottomNavigationBar: _CustomBottomNavBar(
             currentIndex: _currentIndex,
             icons: icons,
@@ -280,54 +171,32 @@ class MainPageState extends State<MainPage> {
                 _searchController.clear();
                 _searchFocusNode.unfocus();
               }
-
-              bool needRefresh = false;
-              if (_currentIndex == index) {
-                needRefresh = true;
-              } else if (index == 0 || index == 1) {
-                final stockDataList = await widget.db.getAllStocksRecords();
-                List<Stock> newStockDataList = List.from(stockDataList);
-                if (stockDataList.isNotEmpty &&
-                    !newStockDataList.every(
-                      (stock) => stock.marketCode == 'FOREX',
-                    )) {
-                  bool allWeekend =
-                      stockDataList.isNotEmpty &&
-                      stockDataList.every((stock) {
-                        final dt = stock.priceUpdatedAt;
-                        if (dt == null) return false;
-                        return dt.weekday == DateTime.saturday ||
-                            dt.weekday == DateTime.sunday;
-                      });
-                  needRefresh =
-                      !allWeekend &&
-                      stockDataList.any(
-                        (stock) =>
-                            stock.priceUpdatedAt == null ||
-                            stock.priceUpdatedAt!.isBefore(
-                              DateTime.now().subtract(const Duration(hours: 1)),
-                            ),
-                      );
-                }
-              }
-
               setState(() {
                 _currentIndex = index;
               });
-
-              //if (needRefresh) {
-              //  if (index == 0) {
-              //    WidgetsBinding.instance.addPostFrameCallback((_) {
-              //      homeTabPageKey.currentState?.refreshController
-              //          .requestRefresh();
-              //    });
-              //  }
-              //}
             },
             isDark: isDark,
           ),
         ),
       ),
+    );
+  }
+}
+
+// 关键：让每个页面内容有高度约束，避免嵌套滚动冲突
+class _PageWrapper extends StatelessWidget {
+  final Widget child;
+  const _PageWrapper({required this.child});
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minHeight:
+            MediaQuery.of(context).size.height -
+            80 - // header
+            80, // bottom nav
+      ),
+      child: child,
     );
   }
 }
