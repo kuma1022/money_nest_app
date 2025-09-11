@@ -28,13 +28,20 @@
 
 ---
 
+## 共用key值
+
+| key      | 值   |
+|-----------|--------|
+| YOUR_EDGE_DOMAIN         | yeciaqfdlznrstjhqfxu.supabase.co/functions/v1/money_grow_api |
+| SERVICE_ROLE_KEY  | eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllY2lhcWZkbHpucnN0amhxZnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDE3NTIsImV4cCI6MjA3MTk3Nzc1Mn0.QXWNGKbr9qjeBLYRWQHEEBMT1nfNKZS3vne-Za38bOc |
+
+---
+
 ## 1️⃣ 股票搜索 `/stock-search` (POST)
 
 ```bash
-curl -L -X POST 'https://<YOUR_EDGE_DOMAIN>/stock-search' \
--H 'Authorization: Bearer <SERVICE_ROLE_KEY>' \
--H 'Content-Type: application/json' \
---data '{"q":"ACN","exchange":"US","limit":10}'
+curl -L -X GET 'https://<YOUR_EDGE_DOMAIN>/stock-search?q={q}&exchange={exchange}&limit={limit}' \
+-H 'Authorization: Bearer <SERVICE_ROLE_KEY>'
 ```
 
 **请求参数**
