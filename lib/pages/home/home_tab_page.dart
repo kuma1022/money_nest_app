@@ -5,6 +5,7 @@ import 'package:money_nest_app/components/glass_panel.dart';
 import 'package:money_nest_app/components/glass_quick_bar.dart';
 import 'package:money_nest_app/components/glass_quick_bar_item.dart';
 import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
@@ -57,11 +58,7 @@ class HomeTabPageState extends State<HomeTabPage> {
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Color(0xFFE3E6F3),
-                    Color(0xFFB8BFD8),
-                    Color(0xFF9CA3BA),
-                  ],
+                  colors: [AppColors.appLightBlue, AppColors.appLightBlue],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -87,6 +84,7 @@ class HomeTabPageState extends State<HomeTabPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const SizedBox(height: 16),
                     GlassPanel(
                       borderRadius: 24,
                       margin: const EdgeInsets.only(bottom: 18),
@@ -362,13 +360,6 @@ class HomeTabPageState extends State<HomeTabPage> {
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: GlassCircleButton(
-                        child: Icon(Icons.search, color: Colors.black87),
-                        onTap: () {},
                       ),
                     ),
                     const SizedBox(height: 80),

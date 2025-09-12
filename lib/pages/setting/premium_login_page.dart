@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:money_nest_app/components/glass_tab.dart';
 
 class PremiumLoginPage extends StatefulWidget {
   const PremiumLoginPage({super.key});
@@ -130,92 +131,16 @@ class _PremiumLoginPageState extends State<PremiumLoginPage>
                   ),
                   const SizedBox(height: 24),
                   // 毛玻璃卡片
-                  Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(32),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-                        child: Container(
-                          width: 380,
-                          padding: const EdgeInsets.symmetric(vertical: 0),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(32),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.35),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.white.withOpacity(0.10),
-                                blurRadius: 32,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: DefaultTabController(
-                            length: 2,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // TabBar
-                                Theme(
-                                  data: Theme.of(context).copyWith(
-                                    splashColor: Colors.transparent,
-                                    highlightColor: Colors.transparent,
-                                  ),
-                                  child: TabBar(
-                                    controller: _tabController,
-                                    indicator: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.85),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    indicatorPadding:
-                                        const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 6,
-                                        ), // 横向padding加大
-                                    indicatorSize: TabBarIndicatorSize.tab,
-                                    labelColor: Colors.black87,
-                                    unselectedLabelColor: Colors.black87,
-                                    labelStyle: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    unselectedLabelStyle: const TextStyle(
-                                      fontWeight: FontWeight.normal,
-                                    ),
-                                    tabs: [
-                                      Tab(
-                                        child: Container(
-                                          alignment: Alignment.center,
-                                          height: 36,
-                                          width: 100,
-                                          child: const Text('ログイン'),
-                                        ),
-                                      ),
-                                      Tab(
-                                        child: Container(
-                                          alignment: Alignment.center,
-                                          height: 36,
-                                          width: 100,
-                                          child: const Text('新規登録'),
-                                        ),
-                                      ),
-                                    ],
-                                    overlayColor: MaterialStateProperty.all(
-                                      Colors.transparent,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                // Tab内容
-                                _buildTabBarContent(context),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                  GlassTab(
+                    borderRadius: 24,
+                    margin: const EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      bottom: 18,
                     ),
+                    tabController: _tabController,
+                    tabs: ['ログイン', '新規登録'],
+                    tabBarContent: _buildTabBarContent(context),
                   ),
                   const SizedBox(height: 24),
                   // 下面是“スキップ（デモモード）”

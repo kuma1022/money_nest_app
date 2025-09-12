@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
+  // APP绿色组
+  static const Color appGreen0 = Color(0xFFF2FBF4); // 0 - 超浅
+  static const Color appGreen1 = Color(0xFFDFF5E1); // 1 - 极浅
+  static const Color appGreen2 = Color(0xFFA9E1A1); // 2 - 浅
+  static const Color appGreen3 = Color(0xFF6DD56B); // 3 - 中浅
+  static const Color appGreen4 = Color(0xFF39A14A); // 4 - 主色
+  static const Color appGreen5 = Color(0xFF2F853C); // 5 - 中深
+  static const Color appGreen6 = Color(0xFF246630); // 6 - 深
+  static const Color appGreen7 = Color(0xFF18441D); // 7 - 极深
+
   static const Color appWhite = Color(0xFFFFFFFF);
   static const Color appBlue = Color(0xFF1976D2);
+  static const Color appLightBlue = Color(0xFF9CA3BA);
   static const Color appGreen = Color(0xFF4CAF50);
   static const Color appOrange = Color(0xFFFF683B);
   static const Color appPurple = Color(0xFF6E1BFF);

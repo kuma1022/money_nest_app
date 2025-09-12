@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background square -->
+  <!-- Left bar (medium) -->
+  <rect x="222" y="412" width="140" height="420" rx="70" ry="70" fill="#39A14A"/>
+
+  <!-- Center bar (tall) -->
+  <rect x="442" y="232" width="140" height="600" rx="70" ry="70" fill="#39A14A"/>
+
+  <!-- Right bar (small) -->
+  <rect x="662" y="532" width="140" height="300" rx="70" ry="70" fill="#39A14A"/>
+</svg>

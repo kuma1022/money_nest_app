@@ -1,6 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:money_nest_app/components/custom_bottom_nav_bar.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
@@ -83,14 +83,17 @@ class MainPageState extends State<MainPage> {
     final double minTitleSize = 18;
     final double maxTitleSize = 26;
     final double topPosition = statusBarHeight + 10.0;
-    final double headerHeight = statusBarHeight + 50.0;
+    final double maxHeaderHeight = statusBarHeight + 50.0;
+    final double minHeaderHeight = statusBarHeight + 40.0;
     final double t = (_scrollPixels / 60).clamp(0, 1);
     final double titleFontSize =
         maxTitleSize - (maxTitleSize - minTitleSize) * t;
+    final double headerHeight =
+        maxHeaderHeight - (maxHeaderHeight - minHeaderHeight) * t;
 
     final Color headerBgColor = isDark
         ? const Color(0xFF23242A)
-        : const Color(0xFFE3E6F3);
+        : const Color(0xFF9CA3BA); //const Color(0xFFE3E6F3);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark
@@ -123,7 +126,9 @@ class MainPageState extends State<MainPage> {
                   color: headerBgColor,
                   child: Stack(
                     children: [
+                      // 标题居中
                       Positioned.fill(
+                        // 标题
                         child: Align(
                           alignment: Alignment.topCenter,
                           child: Padding(

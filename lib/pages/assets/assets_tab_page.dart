@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:money_nest_app/components/glass_panel.dart';
+import 'package:money_nest_app/components/glass_tab.dart';
 import 'package:money_nest_app/components/total_asset_analysis_card.dart';
 import 'package:money_nest_app/pages/assets/stock_detail_page.dart';
 import 'package:money_nest_app/pages/assets/other_asset_manage_page.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
 
 class AssetsTabPage extends StatefulWidget {
@@ -16,9 +18,20 @@ class AssetsTabPage extends StatefulWidget {
   State<AssetsTabPage> createState() => _AssetsTabPageState();
 }
 
-class _AssetsTabPageState extends State<AssetsTabPage> {
+class _AssetsTabPageState extends State<AssetsTabPage>
+    with SingleTickerProviderStateMixin {
   int _tabIndex = 0; // 0:概要 1:日本株 2:米国株 3:その他
+  late TabController _tabController;
   String _overviewType = '品類';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,11 +44,7 @@ class _AssetsTabPageState extends State<AssetsTabPage> {
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Color(0xFFE3E6F3),
-                    Color(0xFFB8BFD8),
-                    Color(0xFF9CA3BA),
-                  ],
+                  colors: [AppColors.appLightBlue, AppColors.appLightBlue],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -61,6 +70,7 @@ class _AssetsTabPageState extends State<AssetsTabPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const SizedBox(height: 16),
                     // 总资产额卡片
                     GlassPanel(
                       margin: const EdgeInsets.only(bottom: 18),
@@ -120,6 +130,17 @@ class _AssetsTabPageState extends State<AssetsTabPage> {
                     // 资产总览区块
                     TotalAssetAnalysisCard(),
                     // tab切换栏（独立于资产总览）
+                    GlassTab(
+                      borderRadius: 24,
+                      margin: const EdgeInsets.only(
+                        left: 0,
+                        right: 0,
+                        bottom: 18,
+                      ),
+                      tabController: _tabController,
+                      tabs: ['概要', '日本株', '米国株', 'その他'],
+                      tabBarContent: const SizedBox.shrink(),
+                    ),
                     Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       child: Row(
@@ -610,6 +631,22 @@ class _AssetsTabPageState extends State<AssetsTabPage> {
           ),
         ],
       ),
+    );
+  }
+
+  // 替换Tab内容部分
+  Widget _buildTabBarContent(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      child: _tabController.index == 0
+          ? SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(), // 不出现滚动条
+              child: _buildLoginTab(context),
+            )
+          : SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              child: _buildRegisterTab(context),
+            ),
     );
   }
 }
