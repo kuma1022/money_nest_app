@@ -633,22 +633,6 @@ class _AssetsTabPageState extends State<AssetsTabPage>
       ),
     );
   }
-
-  // 替换Tab内容部分
-  Widget _buildTabBarContent(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      child: _tabController.index == 0
-          ? SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(), // 不出现滚动条
-              child: _buildLoginTab(context),
-            )
-          : SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
-              child: _buildRegisterTab(context),
-            ),
-    );
-  }
 }
 
 // 卡片通用外框

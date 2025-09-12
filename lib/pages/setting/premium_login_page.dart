@@ -130,7 +130,7 @@ class _PremiumLoginPageState extends State<PremiumLoginPage>
                     style: TextStyle(fontSize: 15, color: Colors.black54),
                   ),
                   const SizedBox(height: 24),
-                  // 毛玻璃卡片
+                  // 毛玻璃卡片　ログイン・新規登録
                   GlassTab(
                     borderRadius: 24,
                     margin: const EdgeInsets.only(
