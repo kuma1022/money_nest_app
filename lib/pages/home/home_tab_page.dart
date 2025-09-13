@@ -156,7 +156,7 @@ class HomeTabPageState extends State<HomeTabPage> {
                           icon: Icons.download_outlined,
                           label: '資産分析',
                           selected: false,
-                          onTap: () {},
+                          onTap: () => widget.onAssetAnalysisTap?.call(),
                           iconColor: const Color(0xFF1976D2),
                         ),
                         GlassQuickBarItem(
@@ -169,37 +169,43 @@ class HomeTabPageState extends State<HomeTabPage> {
                       ],
                     ),
                     CardSection(
-                      child: ListTile(
-                        leading: Container(
-                          decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF1976D2,
-                            ).withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          child: const Icon(
-                            Icons.analytics_outlined,
-                            color: Color(0xFF1976D2),
-                            size: 28,
-                          ),
-                        ),
-                        title: const Text(
-                          '資産分析',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        subtitle: const Text(
-                          '資産の推移や損益をグラフで分析',
-                          style: TextStyle(fontSize: 13),
-                        ),
-                        trailing: Icon(
-                          Icons.chevron_right,
-                          color: Colors.black.withValues(alpha: 0.3),
-                        ),
+                      child: _ClickableCardTile(
                         onTap: widget.onAssetAnalysisTap,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 0,
+                            vertical: 0,
+                          ), // 新增
+                          leading: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF1976D2,
+                              ).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.all(8),
+                            child: const Icon(
+                              Icons.analytics_outlined,
+                              color: Color(0xFF1976D2),
+                              size: 28,
+                            ),
+                          ),
+                          title: const Text(
+                            '資産分析',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            '資産の推移や損益をグラフで分析',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                          trailing: Icon(
+                            Icons.chevron_right,
+                            color: Colors.black.withValues(alpha: 0.3),
+                          ),
+                        ),
                       ),
                     ),
                     GlassTab(
@@ -261,6 +267,92 @@ class HomeTabPageState extends State<HomeTabPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ClickableCardTile extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  const _ClickableCardTile({required this.child, this.onTap, super.key});
+  @override
+  State<_ClickableCardTile> createState() => _ClickableCardTileState();
+}
+
+class _ClickableCardTileState extends State<_ClickableCardTile> {
+  bool _pressed = false;
+  bool _tapping = false;
+
+  void _handleTapDown(TapDownDetails details) {
+    if (_tapping) return;
+    setState(() => _pressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    if (_tapping) return;
+    setState(() => _pressed = false);
+    _tapping = true;
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (mounted && widget.onTap != null) widget.onTap!();
+      _tapping = false;
+    });
+  }
+
+  void _handleTapCancel() {
+    setState(() => _pressed = false);
+    _tapping = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool highlight = _pressed;
+    const Color borderColor = Color(0xFF1976D2);
+    final Color iconAndTextColor = _pressed ? borderColor : Colors.black87;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: highlight
+                ? Colors.white.withOpacity(0.18)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: //highlight
+                  //? borderColor.withOpacity(0.22)
+                  //:
+                  Colors.transparent,
+              width: 1.2,
+            ),
+          ),
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(
+              top: _pressed ? 6 : 0,
+              bottom: _pressed ? 0 : 6,
+            ),
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                iconTheme: IconThemeData(color: iconAndTextColor),
+                textTheme: Theme.of(context).textTheme.apply(
+                  bodyColor: iconAndTextColor,
+                  displayColor: iconAndTextColor,
+                ),
+              ),
+              child: widget.child,
+            ),
+          ),
+        ),
       ),
     );
   }

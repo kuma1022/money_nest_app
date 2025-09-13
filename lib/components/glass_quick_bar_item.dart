@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// 毛玻璃快捷操作栏项
 class GlassQuickBarItem extends StatefulWidget {
   final IconData icon;
   final String label;
@@ -20,84 +21,80 @@ class GlassQuickBarItem extends StatefulWidget {
 }
 
 class _GlassQuickBarItemState extends State<GlassQuickBarItem> {
-  bool _highlight = false;
+  bool _pressed = false;
+  bool _tapping = false;
 
   void _handleTapDown(TapDownDetails details) {
-    setState(() => _highlight = true);
+    if (_tapping) return;
+    setState(() => _pressed = true);
   }
 
   void _handleTapUp(TapUpDetails details) {
-    setState(() => _highlight = false);
-    // 延长到250ms，动画更明显
+    if (_tapping) return;
+    setState(() => _pressed = false);
+    _tapping = true;
     Future.delayed(const Duration(milliseconds: 250), () {
-      if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          widget.onTap();
-        });
-      }
+      if (mounted) widget.onTap();
+      _tapping = false;
     });
   }
 
   void _handleTapCancel() {
-    setState(() => _highlight = false);
+    setState(() => _pressed = false);
+    _tapping = false;
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool showGreen = _highlight || widget.selected;
+    final bool highlight = widget.selected || _pressed;
+    final Color borderColor = highlight
+        ? (widget.iconColor ?? const Color(0xFF1976D2)).withOpacity(0.22)
+        : Colors.transparent;
+    final Color iconAndTextColor = _pressed
+        ? (widget.iconColor ?? Theme.of(context).primaryColor)
+        : (widget.iconColor ?? Colors.black87);
+
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () {}, // 必须有，否则 onTapUp 不会触发
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTapDown: _handleTapDown,
         onTapUp: _handleTapUp,
         onTapCancel: _handleTapCancel,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250), // 动画时间同步延长
+          duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
           decoration: BoxDecoration(
-            color: showGreen ? const Color(0xFFF3FBF5) : Colors.white,
+            color: highlight
+                ? Colors.white.withOpacity(0.18)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: showGreen ? const Color(0xFFB7E6C6) : Colors.transparent,
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            border: Border.all(color: borderColor, width: 1.2),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 2),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                widget.icon,
-                size: 26,
-                color: showGreen
-                    ? const Color(0xFFB7E6C6)
-                    : (widget.iconColor ?? Colors.black87),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: showGreen
-                      ? const Color(0xFFB7E6C6)
-                      : (widget.iconColor ?? Colors.black87),
-                  //fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                  letterSpacing: 0.2,
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(
+              top: _pressed ? 6 : 0,
+              bottom: _pressed ? 0 : 6,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(widget.icon, size: 24, color: iconAndTextColor),
+                const SizedBox(height: 2),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: iconAndTextColor,
+                    fontWeight: _pressed ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 13,
+                    letterSpacing: 0.2,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
