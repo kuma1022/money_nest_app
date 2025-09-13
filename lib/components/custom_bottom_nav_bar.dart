@@ -89,15 +89,15 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
           child: Container(
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.22),
+              color: Colors.white.withValues(alpha: 0.02),
               borderRadius: BorderRadius.circular(32),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.32),
+                color: Colors.white.withValues(alpha: 0.12),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.07),
+                  color: Colors.black.withValues(alpha: 0.10),
                   blurRadius: 18,
                   spreadRadius: 2,
                   offset: const Offset(0, 2),

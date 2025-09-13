@@ -9,9 +9,7 @@ class PremiumLoginPage extends StatefulWidget {
   State<PremiumLoginPage> createState() => _PremiumLoginPageState();
 }
 
-class _PremiumLoginPageState extends State<PremiumLoginPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _PremiumLoginPageState extends State<PremiumLoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController regEmailController = TextEditingController();
@@ -23,15 +21,6 @@ class _PremiumLoginPageState extends State<PremiumLoginPage>
   bool regPasswordObscure = true;
   bool regPasswordConfirmObscure = true;
   String? regEmailError;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
-    });
-  }
 
   void _onLogin() async {
     // 登录逻辑
@@ -138,9 +127,8 @@ class _PremiumLoginPageState extends State<PremiumLoginPage>
                       right: 16,
                       bottom: 18,
                     ),
-                    tabController: _tabController,
                     tabs: ['ログイン', '新規登録'],
-                    tabBarContent: _buildTabBarContent(context),
+                    tabBarContentList: _buildTabBarContent(context),
                   ),
                   const SizedBox(height: 24),
                   // 下面是“スキップ（デモモード）”
@@ -538,19 +526,17 @@ class _PremiumLoginPageState extends State<PremiumLoginPage>
   }
 
   // 替换Tab内容部分
-  Widget _buildTabBarContent(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      child: _tabController.index == 0
-          ? SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(), // 不出现滚动条
-              child: _buildLoginTab(context),
-            )
-          : SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
-              child: _buildRegisterTab(context),
-            ),
-    );
+  List<Widget> _buildTabBarContent(BuildContext context) {
+    return [
+      SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(), // 不出现滚动条
+        child: _buildLoginTab(context),
+      ),
+      SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        child: _buildRegisterTab(context),
+      ),
+    ];
   }
 }
 

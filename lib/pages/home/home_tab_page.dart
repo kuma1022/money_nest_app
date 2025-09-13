@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/glass_circle_button.dart';
 import 'package:money_nest_app/components/glass_panel.dart';
 import 'package:money_nest_app/components/glass_quick_bar.dart';
 import 'package:money_nest_app/components/glass_quick_bar_item.dart';
+import 'package:money_nest_app/components/glass_tab.dart';
+import 'package:money_nest_app/components/summary_row_styled.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
@@ -58,7 +61,7 @@ class HomeTabPageState extends State<HomeTabPage> {
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.appLightBlue, AppColors.appLightBlue],
+                  colors: [Color(0xFFF5F6FA), Color(0xFFF5F6FA)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -85,60 +88,52 @@ class HomeTabPageState extends State<HomeTabPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 16),
-                    GlassPanel(
-                      borderRadius: 24,
-                      margin: const EdgeInsets.only(bottom: 18),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 20,
-                          horizontal: 18,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: const [
-                                  Text(
-                                    '資産総額',
-                                    style: TextStyle(
-                                      fontSize: AppTexts.fontSizeLarge,
-                                      color: Colors.black87,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                    CardSection(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: const [
+                                Text(
+                                  '💰 総資産',
+                                  style: TextStyle(
+                                    fontSize: AppTexts.fontSizeLarge,
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  SizedBox(height: 6),
-                                  Text(
-                                    '¥1,600,000',
-                                    style: TextStyle(
-                                      fontSize: AppTexts.fontSizeHuge,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1,
-                                    ),
+                                ),
+                                SizedBox(height: 6),
+                                Text(
+                                  '¥1,600,000',
+                                  style: TextStyle(
+                                    fontSize: AppTexts.fontSizeHuge,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1,
                                   ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.trending_up,
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.trending_up,
+                                      color: Color(0xFF43A047),
+                                      size: AppTexts.fontSizeMedium,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      '¥250,000 (+25%)',
+                                      style: TextStyle(
                                         color: Color(0xFF43A047),
-                                        size: AppTexts.fontSizeMedium,
+                                        fontSize: AppTexts.fontSizeMedium,
                                       ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        '¥250,000 (+25%)',
-                                        style: TextStyle(
-                                          color: Color(0xFF43A047),
-                                          fontSize: AppTexts.fontSizeMedium,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                     GlassQuickBar(
@@ -152,14 +147,14 @@ class HomeTabPageState extends State<HomeTabPage> {
                         ),
                         GlassQuickBarItem(
                           icon: Icons.pie_chart_outline,
-                          label: '資産',
+                          label: '資産一覧',
                           selected: false,
                           onTap: () => widget.onPortfolioTap?.call(),
                           iconColor: const Color(0xFF1976D2),
                         ),
                         GlassQuickBarItem(
                           icon: Icons.download_outlined,
-                          label: 'レポート',
+                          label: '資産分析',
                           selected: false,
                           onTap: () {},
                           iconColor: const Color(0xFF1976D2),
@@ -173,13 +168,13 @@ class HomeTabPageState extends State<HomeTabPage> {
                         ),
                       ],
                     ),
-                    GlassPanel(
-                      borderRadius: 24,
-                      margin: const EdgeInsets.only(top: 0, bottom: 18),
+                    CardSection(
                       child: ListTile(
                         leading: Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1976D2).withOpacity(0.12),
+                            color: const Color(
+                              0xFF1976D2,
+                            ).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           padding: const EdgeInsets.all(8),
@@ -207,159 +202,56 @@ class HomeTabPageState extends State<HomeTabPage> {
                         onTap: widget.onAssetAnalysisTap,
                       ),
                     ),
-                    GlassPanel(
+                    GlassTab(
                       borderRadius: 24,
-                      margin: const EdgeInsets.only(bottom: 18),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 18,
-                          horizontal: 16,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '資産推移',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              height: 140,
-                              child: LineChart(
-                                LineChartData(
-                                  gridData: FlGridData(show: false),
-                                  titlesData: FlTitlesData(
-                                    leftTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
-                                        reservedSize: 40,
-                                        getTitlesWidget: (value, meta) {
-                                          return Text(
-                                            '¥${(value ~/ 10000)}万',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.black54,
-                                            ),
-                                          );
-                                        },
-                                        interval: 200000,
-                                      ),
-                                    ),
-                                    bottomTitles: AxisTitles(
-                                      sideTitles: SideTitles(
-                                        showTitles: true,
-                                        getTitlesWidget: (value, meta) {
-                                          final months = [
-                                            '1月',
-                                            '2月',
-                                            '3月',
-                                            '4月',
-                                            '5月',
-                                            '6月',
-                                          ];
-                                          if (value.toInt() >= 0 &&
-                                              value.toInt() < months.length) {
-                                            return Text(
-                                              months[value.toInt()],
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.black54,
-                                              ),
-                                            );
-                                          }
-                                          return const SizedBox.shrink();
-                                        },
-                                      ),
-                                    ),
-                                    rightTitles: AxisTitles(
-                                      sideTitles: SideTitles(showTitles: false),
-                                    ),
-                                    topTitles: AxisTitles(
-                                      sideTitles: SideTitles(showTitles: false),
-                                    ),
-                                  ),
-                                  borderData: FlBorderData(show: false),
-                                  minX: 0,
-                                  maxX: 5,
-                                  minY: 900000,
-                                  maxY: 1300000,
-                                  lineBarsData: [
-                                    LineChartBarData(
-                                      spots: [
-                                        FlSpot(0, 1000000),
-                                        FlSpot(1, 1050000),
-                                        FlSpot(2, 980000),
-                                        FlSpot(3, 1120000),
-                                        FlSpot(4, 1180000),
-                                        FlSpot(5, 1250000),
-                                      ],
-                                      isCurved: true,
-                                      color: const Color(0xFF1976D2),
-                                      barWidth: 3,
-                                      dotData: FlDotData(show: true),
-                                      belowBarData: BarAreaData(
-                                        show: true,
-                                        color: const Color(
-                                          0xFF1976D2,
-                                        ).withOpacity(0.08),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      margin: const EdgeInsets.only(
+                        left: 0,
+                        right: 0,
+                        bottom: 18,
                       ),
+                      tabs: ['資産', '負債'],
+                      tabBarContentList: const [
+                        SizedBox.shrink(),
+                        SizedBox.shrink(),
+                      ],
                     ),
-                    GlassPanel(
-                      borderRadius: 24,
-                      margin: const EdgeInsets.only(bottom: 18),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 18,
-                          horizontal: 16,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              '今日のサマリー',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
+                    CardSection(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            '今日のサマリー',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
                             ),
-                            SizedBox(height: 10),
-                            _SummaryRowStyled(
-                              label: '日本株',
-                              value: '+¥15,000 (+2.1%)',
-                              valueColor: Color(0xFF388E3C),
-                              bgColor: Color(0xFFE6F9F0),
-                            ),
-                            _SummaryRowStyled(
-                              label: '米国株',
-                              value: '¥8,500 (-1.2%)',
-                              valueColor: Color(0xFFD32F2F),
-                              bgColor: Color(0xFFFDEAEA),
-                            ),
-                            _SummaryRowStyled(
-                              label: '現金',
-                              value: '¥250,000',
-                              valueColor: Color(0xFF757575),
-                              bgColor: Color(0xFFF5F6FA),
-                            ),
-                            _SummaryRowStyled(
-                              label: 'その他',
-                              value: '+¥2,500 (+1.7%)',
-                              valueColor: Color(0xFF388E3C),
-                              bgColor: Color(0xFFE6F9F0),
-                            ),
-                          ],
-                        ),
+                          ),
+                          SizedBox(height: 10),
+                          SummaryRowStyled(
+                            label: '日本株',
+                            value: '+¥15,000 (+2.1%)',
+                            valueColor: Color(0xFF388E3C),
+                            bgColor: Color(0xFFE6F9F0),
+                          ),
+                          SummaryRowStyled(
+                            label: '米国株',
+                            value: '¥8,500 (-1.2%)',
+                            valueColor: Color(0xFFD32F2F),
+                            bgColor: Color(0xFFFDEAEA),
+                          ),
+                          SummaryRowStyled(
+                            label: '現金',
+                            value: '¥250,000',
+                            valueColor: Color(0xFF757575),
+                            bgColor: Color(0xFFF5F6FA),
+                          ),
+                          SummaryRowStyled(
+                            label: 'その他',
+                            value: '+¥2,500 (+1.7%)',
+                            valueColor: Color(0xFF388E3C),
+                            bgColor: Color(0xFFE6F9F0),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 80),
@@ -367,43 +259,6 @@ class HomeTabPageState extends State<HomeTabPage> {
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// 今日のサマリー行
-class _SummaryRowStyled extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color valueColor;
-  final Color bgColor;
-  const _SummaryRowStyled({
-    required this.label,
-    required this.value,
-    required this.valueColor,
-    required this.bgColor,
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-          Text(
-            value,
-            style: TextStyle(color: valueColor, fontWeight: FontWeight.bold),
           ),
         ],
       ),

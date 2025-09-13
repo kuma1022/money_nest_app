@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
 import 'package:money_nest_app/pages/trade_history/trade_detail_page.dart';
 
@@ -52,14 +53,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
             ),
             const SizedBox(height: 16),
             // 筛选卡片
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
-              ),
+            CardSection(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

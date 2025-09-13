@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-// 毛玻璃快捷操作栏项
-class GlassQuickBarItem extends StatelessWidget {
+class GlassQuickBarItem extends StatefulWidget {
   final IconData icon;
   final String label;
   final bool selected;
@@ -17,44 +16,84 @@ class GlassQuickBarItem extends StatelessWidget {
   });
 
   @override
+  State<GlassQuickBarItem> createState() => _GlassQuickBarItemState();
+}
+
+class _GlassQuickBarItemState extends State<GlassQuickBarItem> {
+  bool _highlight = false;
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _highlight = true);
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _highlight = false);
+    // 延长到250ms，动画更明显
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.onTap();
+        });
+      }
+    });
+  }
+
+  void _handleTapCancel() {
+    setState(() => _highlight = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final bool showGreen = _highlight || widget.selected;
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        splashColor: Colors.white.withValues(alpha: 0.12),
+        onTap: () {}, // 必须有，否则 onTapUp 不会触发
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
+        splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: const Duration(milliseconds: 250), // 动画时间同步延长
           curve: Curves.easeOut,
           decoration: BoxDecoration(
-            color: selected
-                ? Colors.white.withValues(alpha: 0.18)
-                : Colors.transparent,
+            color: showGreen ? const Color(0xFFF3FBF5) : Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: selected
-                  ? (iconColor ?? const Color(0xFF1976D2)).withValues(
-                      alpha: 0.12,
-                    )
-                  : Colors.transparent,
-              width: 1.2,
+              color: showGreen ? const Color(0xFFB7E6C6) : Colors.transparent,
+              width: 2,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 2),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 26, color: iconColor ?? Colors.black87),
-              const SizedBox(height: 2),
+              Icon(
+                widget.icon,
+                size: 26,
+                color: showGreen
+                    ? const Color(0xFFB7E6C6)
+                    : (widget.iconColor ?? Colors.black87),
+              ),
+              const SizedBox(height: 4),
               Text(
-                label,
+                widget.label,
                 style: TextStyle(
-                  color: iconColor ?? Colors.black87,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
+                  color: showGreen
+                      ? const Color(0xFFB7E6C6)
+                      : (widget.iconColor ?? Colors.black87),
+                  //fontWeight: FontWeight.w700,
+                  fontSize: 15,
                   letterSpacing: 0.2,
                 ),
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/glass_panel.dart';
 import 'package:money_nest_app/components/glass_tab.dart';
 import 'package:money_nest_app/components/total_asset_analysis_card.dart';
@@ -18,20 +19,9 @@ class AssetsTabPage extends StatefulWidget {
   State<AssetsTabPage> createState() => _AssetsTabPageState();
 }
 
-class _AssetsTabPageState extends State<AssetsTabPage>
-    with SingleTickerProviderStateMixin {
+class _AssetsTabPageState extends State<AssetsTabPage> {
   int _tabIndex = 0; // 0:概要 1:日本株 2:米国株 3:その他
-  late TabController _tabController;
   String _overviewType = '品類';
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +119,106 @@ class _AssetsTabPageState extends State<AssetsTabPage>
                     ),
                     // 资产总览区块
                     TotalAssetAnalysisCard(),
+                    CardSection(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '資産推移',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 140,
+                            child: LineChart(
+                              LineChartData(
+                                gridData: FlGridData(show: false),
+                                titlesData: FlTitlesData(
+                                  leftTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      reservedSize: 40,
+                                      getTitlesWidget: (value, meta) {
+                                        return Text(
+                                          '¥${(value ~/ 10000)}万',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.black54,
+                                          ),
+                                        );
+                                      },
+                                      interval: 200000,
+                                    ),
+                                  ),
+                                  bottomTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      getTitlesWidget: (value, meta) {
+                                        final months = [
+                                          '1月',
+                                          '2月',
+                                          '3月',
+                                          '4月',
+                                          '5月',
+                                          '6月',
+                                        ];
+                                        if (value.toInt() >= 0 &&
+                                            value.toInt() < months.length) {
+                                          return Text(
+                                            months[value.toInt()],
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.black54,
+                                            ),
+                                          );
+                                        }
+                                        return const SizedBox.shrink();
+                                      },
+                                    ),
+                                  ),
+                                  rightTitles: AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false),
+                                  ),
+                                  topTitles: AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false),
+                                  ),
+                                ),
+                                borderData: FlBorderData(show: false),
+                                minX: 0,
+                                maxX: 5,
+                                minY: 900000,
+                                maxY: 1300000,
+                                lineBarsData: [
+                                  LineChartBarData(
+                                    spots: [
+                                      FlSpot(0, 1000000),
+                                      FlSpot(1, 1050000),
+                                      FlSpot(2, 980000),
+                                      FlSpot(3, 1120000),
+                                      FlSpot(4, 1180000),
+                                      FlSpot(5, 1250000),
+                                    ],
+                                    isCurved: true,
+                                    color: const Color(0xFF1976D2),
+                                    barWidth: 3,
+                                    dotData: FlDotData(show: true),
+                                    belowBarData: BarAreaData(
+                                      show: true,
+                                      color: const Color(
+                                        0xFF1976D2,
+                                      ).withOpacity(0.08),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     // tab切换栏（独立于资产总览）
                     GlassTab(
                       borderRadius: 24,
@@ -137,9 +227,13 @@ class _AssetsTabPageState extends State<AssetsTabPage>
                         right: 0,
                         bottom: 18,
                       ),
-                      tabController: _tabController,
                       tabs: ['概要', '日本株', '米国株', 'その他'],
-                      tabBarContent: const SizedBox.shrink(),
+                      tabBarContentList: [
+                        SizedBox.shrink(),
+                        SizedBox.shrink(),
+                        SizedBox.shrink(),
+                        SizedBox.shrink(),
+                      ],
                     ),
                     Container(
                       margin: const EdgeInsets.only(bottom: 16),

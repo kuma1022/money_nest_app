@@ -93,7 +93,7 @@ class MainPageState extends State<MainPage> {
 
     final Color headerBgColor = isDark
         ? const Color(0xFF23242A)
-        : const Color(0xFF9CA3BA); //const Color(0xFFE3E6F3);
+        : const Color(0xFFF5F6FA);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark
