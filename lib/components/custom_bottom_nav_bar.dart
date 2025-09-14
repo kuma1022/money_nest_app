@@ -206,7 +206,6 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                                             ? Colors.black87
                                             : Colors.black54,
                                         size: 24,
-                                        fontWeight: FontWeight.w100,
                                       ),
                                       AnimatedSwitcher(
                                         duration: const Duration(

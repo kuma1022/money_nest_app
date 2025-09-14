@@ -8,12 +8,14 @@ class GlassTab extends StatefulWidget {
   final EdgeInsetsGeometry? margin;
   final List<Widget> tabBarContentList;
   final List<String> tabs;
+  final ValueChanged<int>? onTabChanged; // 新增
 
   const GlassTab({
     this.borderRadius = 24,
     this.margin,
     required this.tabs,
     required this.tabBarContentList,
+    this.onTabChanged, // 新增
     super.key,
   });
   @override
@@ -33,6 +35,11 @@ class _GlassTabState extends State<GlassTab>
 
   void _handleTabChange() {
     if (mounted) setState(() {});
+    // 新增：回调
+    if (widget.onTabChanged != null &&
+        _tabController.indexIsChanging == false) {
+      widget.onTabChanged!(_tabController.index);
+    }
   }
 
   @override
@@ -103,9 +110,9 @@ class _GlassTabState extends State<GlassTab>
               ),
               const SizedBox(height: 8),
               // Tab内容
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: widget.tabBarContentList[_tabController.index],
+              IndexedStack(
+                index: _tabController.index,
+                children: widget.tabBarContentList,
               ),
             ],
           ),

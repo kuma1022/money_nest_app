@@ -107,17 +107,59 @@ class SummaryCategoryCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                          // 金额
-                          Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: Text(
-                              value,
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              // 金额
+                              Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Text(
+                                  value,
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
                               ),
-                            ),
+                              // 涨跌信息靠右显示
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 6,
+                                    right: 6,
+                                  ),
+                                  child: Wrap(
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    spacing: 4,
+                                    children: [
+                                      Icon(
+                                        Icons.trending_up,
+                                        color: profitColor,
+                                        size: 16,
+                                      ),
+                                      Text(
+                                        profitText,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: profitColor,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        profitRateText,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: profitColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           // 箭头
                           Icon(
@@ -126,39 +168,6 @@ class SummaryCategoryCard extends StatelessWidget {
                             size: 26,
                           ),
                         ],
-                      ),
-                      // 涨跌信息靠右显示
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 6, right: 32),
-                          child: Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 4,
-                            children: [
-                              Icon(
-                                Icons.trending_up,
-                                color: profitColor,
-                                size: 16,
-                              ),
-                              Text(
-                                profitText,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: profitColor,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                profitRateText,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: profitColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ],
                   ),

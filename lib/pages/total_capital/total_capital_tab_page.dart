@@ -280,7 +280,11 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
       text: text,
       isSquare: false,
       size: isTouched ? 18 : 16,
-      textColor: isTouched ? AppColors.appGreen : Colors.black,
+      textStyle: TextStyle(
+        fontSize: isTouched ? AppTexts.fontSizeLarge : AppTexts.fontSizeSmall,
+        fontWeight: isTouched ? FontWeight.bold : FontWeight.normal,
+        color: Colors.black,
+      ),
     );
   }
 }

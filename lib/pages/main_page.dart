@@ -95,6 +95,19 @@ class MainPageState extends State<MainPage> {
         ? const Color(0xFF23242A)
         : const Color(0xFFF5F6FA);
 
+    void onTabChanged(int index) {
+      setState(() {
+        _currentIndex = index;
+      });
+      // 切换到首页且首页当前是资产tab时，触发动画
+      if (index == 0) {
+        // 这里加一个延迟，确保页面已build
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          homeTabPageKey.currentState?.animatePieChartIfAssetTab();
+        });
+      }
+    }
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark
           ? SystemUiOverlayStyle.light.copyWith(
@@ -167,12 +180,7 @@ class MainPageState extends State<MainPage> {
                       currentIndex: _currentIndex,
                       icons: icons,
                       labels: titles,
-                      onTap: (index) async {
-                        // 只在动画结束后才切换
-                        setState(() {
-                          _currentIndex = index;
-                        });
-                      },
+                      onTap: onTabChanged,
                       isDark: isDark,
                     ),
                   ),
