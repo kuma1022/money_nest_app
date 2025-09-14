@@ -6,7 +6,9 @@ import 'package:money_nest_app/components/glass_panel.dart';
 import 'package:money_nest_app/components/glass_quick_bar.dart';
 import 'package:money_nest_app/components/glass_quick_bar_item.dart';
 import 'package:money_nest_app/components/glass_tab.dart';
+import 'package:money_nest_app/components/summary_category_card.dart';
 import 'package:money_nest_app/components/summary_row_styled.dart';
+import 'package:money_nest_app/components/summary_sub_category_card.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
@@ -217,48 +219,248 @@ class HomeTabPageState extends State<HomeTabPage> {
                       ),
                       tabs: ['資産', '負債'],
                       tabBarContentList: const [
-                        SizedBox.shrink(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SummaryCategoryCard(
+                              label: '株式',
+                              dotColor: AppColors.appChartGreen,
+                              rateLabel: '11.9%',
+                              value: '¥1,350,000',
+                              profitText: '¥125,000',
+                              profitRateText: '(+10.2%)',
+                              profitColor: AppColors.appUpGreen,
+                              subCategories: [
+                                SummarySubCategoryCard(
+                                  label: '国内株式（ETF含む）',
+                                  rateLabel: '48.1%',
+                                  value: '¥650,000',
+                                  profitText: '¥65,000',
+                                  profitRateText: '(+11.1%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: '米国株式（ETF含む）',
+                                  rateLabel: '35.6%',
+                                  value: '¥480,000',
+                                  profitText: '¥48,000',
+                                  profitRateText: '(+11.1%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: 'その他（海外株式など）',
+                                  rateLabel: '16.3%',
+                                  value: '¥220,000',
+                                  profitText: '¥12,000',
+                                  profitRateText: '(+5.8%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                              ],
+                            ),
+                            SummaryCategoryCard(
+                              label: 'FX（為替）',
+                              dotColor: AppColors.appChartBlue,
+                              rateLabel: '0.7%',
+                              value: '¥85,000',
+                              profitText: '¥5,000',
+                              profitRateText: '(-5.6%)',
+                              profitColor: AppColors.appDownRed,
+                              subCategories: [
+                                SummarySubCategoryCard(
+                                  label: 'USD/JPY',
+                                  rateLabel: '52.9%',
+                                  value: '¥45,000',
+                                  profitText: '¥2,000',
+                                  profitRateText: '(-4.3%)',
+                                  profitColor: AppColors.appDownRed,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: 'EUR/JPY',
+                                  rateLabel: '29.4%',
+                                  value: '¥25,000',
+                                  profitText: '¥1,500',
+                                  profitRateText: '(-5.7%)',
+                                  profitColor: AppColors.appDownRed,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: 'その他通貨ペア',
+                                  rateLabel: '17.6%',
+                                  value: '¥15,000',
+                                  profitText: '¥1,500',
+                                  profitRateText: '(-9.1%)',
+                                  profitColor: AppColors.appDownRed,
+                                ),
+                              ],
+                            ),
+                            SummaryCategoryCard(
+                              label: '暗号資産',
+                              dotColor: AppColors.appChartPurple,
+                              rateLabel: '1.1%',
+                              value: '¥120,000',
+                              profitText: '¥15,000',
+                              profitRateText: '(+14.3%)',
+                              profitColor: AppColors.appUpGreen,
+                              subCategories: [
+                                SummarySubCategoryCard(
+                                  label: 'ビットコイン',
+                                  rateLabel: '62.5%',
+                                  value: '¥75,000',
+                                  profitText: '¥12,000',
+                                  profitRateText: '(+19%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: 'イーサリアム',
+                                  rateLabel: '25%',
+                                  value: '¥30,000',
+                                  profitText: '¥2,000',
+                                  profitRateText: '(+7.1%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: 'その他',
+                                  rateLabel: '12.5%',
+                                  value: '¥15,000',
+                                  profitText: '¥1,000',
+                                  profitRateText: '(+7.1%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                              ],
+                            ),
+                            SummaryCategoryCard(
+                              label: '貴金属',
+                              dotColor: AppColors.appChartOrange,
+                              rateLabel: '0.7%',
+                              value: '¥85,000',
+                              profitText: '¥5,000',
+                              profitRateText: '(+6.3%)',
+                              profitColor: AppColors.appUpGreen,
+                              subCategories: [
+                                SummarySubCategoryCard(
+                                  label: '金',
+                                  rateLabel: '70.6%',
+                                  value: '¥60,000',
+                                  profitText: '¥4,000',
+                                  profitRateText: '(+7.1%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: '銀',
+                                  rateLabel: '17.6%',
+                                  value: '¥15,000',
+                                  profitText: '¥500',
+                                  profitRateText: '(+3.4%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: 'プラチナ',
+                                  rateLabel: '11.8%',
+                                  value: '¥10,000',
+                                  profitText: '¥500',
+                                  profitRateText: '(+5.3%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                              ],
+                            ),
+                            SummaryCategoryCard(
+                              label: 'その他資産',
+                              dotColor: AppColors.appChartLightBlue,
+                              rateLabel: '85.6%',
+                              value: '¥9,725,000',
+                              profitText: '¥0',
+                              profitRateText: '(0%)',
+                              profitColor: AppColors.appUpGreen,
+                              subCategories: [
+                                SummarySubCategoryCard(
+                                  label: '銀行預金',
+                                  rateLabel: '97.7%',
+                                  value: '¥9,500,000',
+                                  profitText: '¥0',
+                                  profitRateText: '(+0%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: '現金',
+                                  rateLabel: '2.3%',
+                                  value: '¥225,000',
+                                  profitText: '¥0',
+                                  profitRateText: '(+0%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: '不動産',
+                                  rateLabel: '0%',
+                                  value: '¥0',
+                                  profitText: '¥0',
+                                  profitRateText: '(+0%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: '投資信託',
+                                  rateLabel: '0%',
+                                  value: '¥0',
+                                  profitText: '¥0',
+                                  profitRateText: '(+0%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: '債券',
+                                  rateLabel: '0%',
+                                  value: '¥0',
+                                  profitText: '¥0',
+                                  profitRateText: '(+0%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                                SummarySubCategoryCard(
+                                  label: 'その他（カスタム追加可）',
+                                  rateLabel: '0%',
+                                  value: '¥0',
+                                  profitText: '¥0',
+                                  profitRateText: '(+0%)',
+                                  profitColor: AppColors.appUpGreen,
+                                ),
+                              ],
+                            ),
+                          ],
+
+                          /*const [
+                            Text(
+                              '株式 >',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                            SizedBox(height: 10),
+                            SummaryRowStyled(
+                              label: '国内株式（ETF含む）',
+                              value: '¥750,000',
+                              subValue: '+¥15,000 (+2.1%)',
+                              valueColor: Color(0xFF388E3C),
+                              bgColor: Color(0xFFE6F9F0),
+                            ),
+                            SummaryRowStyled(
+                              label: '米国株',
+                              value: '¥8,500 (-1.2%)',
+                              valueColor: Color(0xFFD32F2F),
+                              bgColor: Color(0xFFFDEAEA),
+                            ),
+                            SummaryRowStyled(
+                              label: '現金',
+                              value: '¥250,000',
+                              valueColor: Color(0xFF757575),
+                              bgColor: Color(0xFFF5F6FA),
+                            ),
+                            SummaryRowStyled(
+                              label: 'その他',
+                              value: '+¥2,500 (+1.7%)',
+                              valueColor: Color(0xFF388E3C),
+                              bgColor: Color(0xFFE6F9F0),
+                            ),
+                          ],*/
+                        ),
                         SizedBox.shrink(),
                       ],
-                    ),
-                    CardSection(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            '今日のサマリー',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                          ),
-                          SizedBox(height: 10),
-                          SummaryRowStyled(
-                            label: '日本株',
-                            value: '+¥15,000 (+2.1%)',
-                            valueColor: Color(0xFF388E3C),
-                            bgColor: Color(0xFFE6F9F0),
-                          ),
-                          SummaryRowStyled(
-                            label: '米国株',
-                            value: '¥8,500 (-1.2%)',
-                            valueColor: Color(0xFFD32F2F),
-                            bgColor: Color(0xFFFDEAEA),
-                          ),
-                          SummaryRowStyled(
-                            label: '現金',
-                            value: '¥250,000',
-                            valueColor: Color(0xFF757575),
-                            bgColor: Color(0xFFF5F6FA),
-                          ),
-                          SummaryRowStyled(
-                            label: 'その他',
-                            value: '+¥2,500 (+1.7%)',
-                            valueColor: Color(0xFF388E3C),
-                            bgColor: Color(0xFFE6F9F0),
-                          ),
-                        ],
-                      ),
                     ),
                     const SizedBox(height: 80),
                   ],

@@ -28,6 +28,13 @@ class AppColors {
   static const Color appLightGreen = Color.fromRGBO(232, 245, 233, 1);
   static const Color appLightRed = Color.fromRGBO(255, 205, 210, 1);
 
+  // 图示颜色
+  static const Color appChartGreen = Color(0xFF34C759);
+  static const Color appChartBlue = Color(0xFF007AFF);
+  static const Color appChartPurple = Color(0xFFAF52DE);
+  static const Color appChartOrange = Color(0xFFFFA500);
+  static const Color appChartLightBlue = Color(0xFF5AC8FA);
+
   static const Color primary = contentColorCyan;
   static const Color menuBackground = Color(0xFF090912);
   static const Color itemsBackground = Color(0xFF1B2339);

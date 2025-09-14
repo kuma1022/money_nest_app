@@ -114,7 +114,7 @@ class MainPageState extends State<MainPage> {
         child: Scaffold(
           backgroundColor: isDark
               ? const Color(0xFF181A20)
-              : const Color(0xFF9CA3BA), //Color(0xFFF5F6FA),
+              : const Color(0xFFF5F6FA), //Color(0xFFF5F6FA),
           body: SizedBox.expand(
             // 关键：让Stack填满整个屏幕
             child: Stack(
