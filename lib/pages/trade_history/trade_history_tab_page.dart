@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/card_section.dart';
-import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
 import 'package:money_nest_app/pages/trade_history/trade_detail_page.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 
 class TradeHistoryPage extends StatefulWidget {
-  const TradeHistoryPage({super.key});
+  final VoidCallback? onAddPressed;
+  const TradeHistoryPage({super.key, this.onAddPressed});
 
   @override
   State<TradeHistoryPage> createState() => _TradeHistoryPageState();
@@ -14,7 +15,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: AppColors.appBackground,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         child: Column(
@@ -41,13 +42,9 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                     ),
                     elevation: 0,
                   ),
+                  onPressed: widget.onAddPressed, // 用回调
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('追加'),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const TradeAddPage()),
-                    );
-                  },
                 ),
               ],
             ),
@@ -75,7 +72,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                   // 搜索框
                   Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F6FA),
+                      color: AppColors.appBackground,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -150,7 +147,7 @@ class _FilterDropdown extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F6FA),
+        color: AppColors.appBackground,
         borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButton<String>(

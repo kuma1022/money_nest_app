@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/glass_tab.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 
 class PremiumLoginPage extends StatefulWidget {
   const PremiumLoginPage({super.key});
@@ -546,7 +547,7 @@ class PremiumSubscribePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: AppColors.appBackground,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

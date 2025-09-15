@@ -1,489 +1,335 @@
 import 'package:flutter/material.dart';
+import 'package:money_nest_app/components/glass_tab.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'trade_history_tab_page.dart'; // 导入 TradeRecord/TradeType
 
 class TradeAddPage extends StatefulWidget {
-  final TradeRecord? record; // 新增：支持编辑模式
-
-  const TradeAddPage({super.key, this.record});
+  final TradeRecord? record; // 支持编辑模式
+  final VoidCallback? onClose;
+  const TradeAddPage({super.key, this.onClose, this.record});
 
   @override
   State<TradeAddPage> createState() => _TradeAddPageState();
 }
 
 class _TradeAddPageState extends State<TradeAddPage> {
-  int? tradeType;
-  int? category;
-  DateTime selectedDate = DateTime.now();
-  final TextEditingController codeController = TextEditingController();
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController unitPriceController = TextEditingController();
-  final TextEditingController feeController = TextEditingController();
-  final TextEditingController memoController = TextEditingController();
-  String feeCurrency = 'JPY';
+  int tabIndex = 0; // 0: 資産, 1: 負債
 
-  @override
-  void initState() {
-    super.initState();
-    // 编辑模式下填充初始值
-    if (widget.record != null) {
-      final r = widget.record!;
-      tradeType = r.type == TradeType.buy
-          ? 0
-          : r.type == TradeType.sell
-          ? 1
-          : null;
-      category = (r.code == 'AAPL' || r.code == 'MSFT') ? 1 : 0;
-      codeController.text = r.code;
-      nameController.text = r.name;
-      selectedDate = DateTime.tryParse(r.date) ?? DateTime.now();
-      // 假设 detail 格式为 "5株*17500円"
-      final detail = r.detail.split('*');
-      if (detail.isNotEmpty) {
-        // 数量
-        // unitPriceController 只填单价
-        if (detail.length > 1) {
-          unitPriceController.text = detail[1].replaceAll(RegExp(r'\D'), '');
-        }
-      }
-      // 假设手续费和币种可从 r 取出或用默认
-      feeController.text = r.code == 'AAPL' ? '500' : '300';
-      feeCurrency = 'JPY';
-      memoController.text = '';
-    }
-  }
+  // 資産用
+  String? assetCategory;
+  String? assetSubCategory;
 
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      locale: const Locale('ja'),
-    );
-    if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-      });
-    }
-  }
+  // 負債用
+  String? debtCategory;
+  String? debtSubCategory;
+
+  // 下拉选项
+  final assetCategories = {
+    '株式': ['国内株式（ETF含む）', '米国株式（ETF含む）', 'その他（海外株式など）'],
+    'FX（為替）': ['FX'],
+    '暗号資産': ['暗号資産'],
+    '貴金属': ['金', '銀', 'プラチナ'],
+    'その他資産': ['銀行預金', '現金', '不動産', '投資信託', '債券', 'その他'],
+  };
+
+  final debtCategories = {
+    'ローン': ['住宅ローン', '自動車ローン', '教育ローン', 'その他ローン'],
+    '借金': ['クレジットカード', '消費者金融/その他'],
+  };
 
   @override
   Widget build(BuildContext context) {
-    final isEdit = widget.record != null;
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          isEdit ? '取引編集' : '取引追加',
-          style: const TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: false,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    return Material(
+      color: AppColors.appBackground,
+      child: SafeArea(
+        bottom: false,
         child: Column(
           children: [
-            // 取引種別
-            _SectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // 顶部关闭与标题
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
                 children: [
-                  const Text(
-                    '取引種別',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.black87),
+                    onPressed: widget.onClose ?? () => Navigator.pop(context),
                   ),
-                  const SizedBox(height: 16),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F6FA),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: tradeType,
-                        hint: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            '取引種別を選択',
-                            style: TextStyle(color: Color(0xFF757575)),
-                          ),
-                        ),
-                        isExpanded: true,
-                        borderRadius: BorderRadius.circular(12),
-                        icon: const Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: Icon(Icons.keyboard_arrow_down_rounded),
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 0,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text('買付'),
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: 1,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text('売却'),
-                            ),
-                          ),
-                        ],
-                        onChanged: (v) => setState(() => tradeType = v),
-                      ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '取引追加',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
                     ),
                   ),
                 ],
               ),
             ),
-            // 銘柄情報
-            _SectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '銘柄情報',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '銘柄コード',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  const SizedBox(height: 6),
-                  _InputField(
-                    controller: codeController,
-                    hintText: '例: 7203, AAPL',
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '銘柄名',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  const SizedBox(height: 6),
-                  _InputField(
-                    controller: nameController,
-                    hintText: '例: トヨタ自動車',
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'カテゴリ',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F6FA),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        value: category,
-                        hint: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            'カテゴリを選択',
-                            style: TextStyle(color: Color(0xFF757575)),
-                          ),
-                        ),
-                        isExpanded: true,
-                        borderRadius: BorderRadius.circular(12),
-                        icon: const Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: Icon(Icons.keyboard_arrow_down_rounded),
-                        ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 0,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text('日本株'),
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: 1,
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 12),
-                              child: Text('米国株'),
-                            ),
-                          ),
-                        ],
-                        onChanged: (v) => setState(() => category = v),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            const Divider(height: 1),
+            // glass_tab
+            GlassTab(
+              tabs: const ['資産', '負債'],
+              //initialIndex: tabIndex,
+              //onChanged: (i) {
+              //  setState(() {
+              //    tabIndex = i;
+              //    // 切换tab时重置选择
+              //    assetCategory = null;
+              //    assetSubCategory = null;
+              //    debtCategory = null;
+              //    debtSubCategory = null;
+              //  });
+              //},
+              tabBarContentList: [_buildAssetForm(), _buildDebtForm()],
             ),
-            // 取引詳細
-            _SectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '取引詳細',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '取引日',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: _pickDate,
-                    child: Container(
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F6FA),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children: [
-                          Text(
-                            '${selectedDate.year}/${selectedDate.month.toString().padLeft(2, '0')}/${selectedDate.day.toString().padLeft(2, '0')}',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          const Spacer(),
-                          const Icon(
-                            Icons.calendar_today,
-                            size: 20,
-                            color: Color(0xFF757575),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '単価',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  const SizedBox(height: 6),
-                  _InputField(
-                    controller: unitPriceController,
-                    hintText: '例: 2500',
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '手数料（任意）',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            _InputField(
-                              controller: feeController,
-                              hintText: '例: 500',
-                              keyboardType: TextInputType.number,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '手数料通貨',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF5F6FA),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: feeCurrency,
-                                  isExpanded: true,
-                                  borderRadius: BorderRadius.circular(12),
-                                  icon: const Padding(
-                                    padding: EdgeInsets.only(right: 12),
-                                    child: Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                    ),
-                                  ),
-                                  items: const [
-                                    DropdownMenuItem(
-                                      value: 'JPY',
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                        ),
-                                        child: Text('JPY'),
-                                      ),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: 'USD',
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                        ),
-                                        child: Text('USD'),
-                                      ),
-                                    ),
-                                  ],
-                                  onChanged: (v) =>
-                                      setState(() => feeCurrency = v ?? 'JPY'),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'メモ（任意）',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  const SizedBox(height: 6),
-                  _InputField(
-                    controller: memoController,
-                    hintText: '取引に関するメモを入力',
-                    maxLines: 2,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF5F6FA),
-                      foregroundColor: Colors.black87,
-                      side: const BorderSide(color: Color(0xFFF5F6FA)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'キャンセル',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4385F5),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 0,
-                    ),
-                    icon: const Icon(Icons.save_alt, size: 22),
-                    label: Text(
-                      isEdit ? '保存' : '保存',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    onPressed: () {
-                      // 保存或更新逻辑
-                      // 可根据 isEdit 判断是新增还是编辑
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+            //const SizedBox(height: 12),
+            //Expanded(
+            //  child: SingleChildScrollView(
+            //    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            //   child: tabIndex == 0 ? _buildAssetForm() : _buildDebtForm(),
+            // ),
+            //),
           ],
         ),
       ),
     );
   }
-}
 
-class _SectionCard extends StatelessWidget {
-  final Widget child;
-  const _SectionCard({required this.child});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE5E6EA)),
-      ),
-      child: child,
+  // 資産tab内容
+  Widget _buildAssetForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // カテゴリ
+        const Text('カテゴリ', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          value: assetCategory,
+          items: assetCategories.keys
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .toList(),
+          onChanged: (v) {
+            setState(() {
+              assetCategory = v;
+              assetSubCategory = null;
+            });
+          },
+          decoration: const InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // サブカテゴリ
+        if (assetCategory != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'サブカテゴリ',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                value: assetSubCategory,
+                items: assetCategories[assetCategory]!
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (v) {
+                  setState(() {
+                    assetSubCategory = v;
+                  });
+                },
+                decoration: const InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        // 动态表单内容
+        if (assetCategory != null && assetSubCategory != null)
+          _buildAssetDynamicFields(),
+      ],
     );
   }
-}
 
-class _InputField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hintText;
-  final int maxLines;
-  final TextInputType? keyboardType;
-  const _InputField({
-    required this.controller,
-    required this.hintText,
-    this.maxLines = 1,
-    this.keyboardType,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 16),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Color(0xFFB0B0B0)),
-        filled: true,
-        fillColor: const Color(0xFFF5F6FA),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+  // 負債tab内容
+  Widget _buildDebtForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // カテゴリ
+        const Text('カテゴリ', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          value: debtCategory,
+          items: debtCategories.keys
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .toList(),
+          onChanged: (v) {
+            setState(() {
+              debtCategory = v;
+              debtSubCategory = null;
+            });
+          },
+          decoration: const InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+        const SizedBox(height: 16),
+        // サブカテゴリ
+        if (debtCategory != null)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'サブカテゴリ',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              DropdownButtonFormField<String>(
+                value: debtSubCategory,
+                items: debtCategories[debtCategory]!
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (v) {
+                  setState(() {
+                    debtSubCategory = v;
+                  });
+                },
+                decoration: const InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        // 动态表单内容
+        if (debtCategory != null && debtSubCategory != null)
+          _buildDebtDynamicFields(),
+      ],
+    );
+  }
+
+  // 动态生成資産tab下的表单内容
+  Widget _buildAssetDynamicFields() {
+    // 这里只举例：株式（国内株式（ETF含む））的买入
+    if (assetCategory == '株式' &&
+        (assetSubCategory == '国内株式（ETF含む）' ||
+            assetSubCategory == '米国株式（ETF含む）')) {
+      // 取引種別
+      String? tradeType;
+      return StatefulBuilder(
+        builder: (context, setInnerState) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('取引種別', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              value: tradeType,
+              items: const [
+                DropdownMenuItem(value: '買い', child: Text('買い')),
+                DropdownMenuItem(value: '売り', child: Text('売り')),
+              ],
+              onChanged: (v) => setInnerState(() => tradeType = v),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFFF5F6FA), // 浅灰色背景
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16), // 圆角
+                  borderSide: BorderSide.none, // 无边框
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ), // 内边距
+              ),
+              icon: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Color(0xFFB0B0B0),
+              ), // 下拉箭头
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
+              dropdownColor: const Color(0xFFF5F6FA), // 下拉菜单背景色
+            ),
+            const SizedBox(height: 16),
+            if (tradeType == '買い')
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '銘柄情報',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  // ...后续表单内容...
+                ],
+              ),
+            if (tradeType == '売り')
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '売却する株式を選択',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  // ...后续表单内容...
+                ],
+              ),
+          ],
         ),
-        isDense: true,
-      ),
+      );
+    }
+    // 其它类型可按需补充
+    return const SizedBox.shrink();
+  }
+
+  // 动态生成負債tab下的表单内容
+  Widget _buildDebtDynamicFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        Text('日時', style: TextStyle(fontWeight: FontWeight.bold)),
+        SizedBox(height: 6),
+        // ...日期选择控件...
+        SizedBox(height: 16),
+        Text('負債額', style: TextStyle(fontWeight: FontWeight.bold)),
+        SizedBox(height: 6),
+        // ...金额输入框...
+        SizedBox(height: 16),
+        Text('メモ（任意）', style: TextStyle(fontWeight: FontWeight.bold)),
+        SizedBox(height: 6),
+        // ...memo输入框...
+      ],
     );
   }
 }

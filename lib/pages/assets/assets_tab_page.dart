@@ -252,7 +252,7 @@ class _AssetsTabPageState extends State<AssetsTabPage> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: _tabIndex == i
-                                      ? const Color(0xFFF5F6FA)
+                                      ? AppColors.appBackground
                                       : Colors.white,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
@@ -347,7 +347,7 @@ class _AssetsTabPageState extends State<AssetsTabPage> {
                         amount: '¥250,000',
                         profit: '+¥0 (0%)',
                         profitColor: const Color(0xFF757575),
-                        profitBg: const Color(0xFFF5F6FA),
+                        profitBg: AppColors.appBackground,
                         items: const [],
                       ),
                       _CardSection(
@@ -767,7 +767,7 @@ class _OverviewTabButton extends StatelessWidget {
         margin: const EdgeInsets.only(left: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFF5F6FA) : Colors.white,
+          color: selected ? AppColors.appBackground : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? const Color(0xFF1976D2) : const Color(0xFFE5E6EA),
@@ -914,7 +914,7 @@ class _AssetItem extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F6FA),
+          color: AppColors.appBackground,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -974,7 +974,7 @@ class _OtherAssetItem extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F6FA),
+        color: AppColors.appBackground,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

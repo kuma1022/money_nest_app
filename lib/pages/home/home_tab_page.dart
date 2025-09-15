@@ -86,7 +86,7 @@ class HomeTabPageState extends State<HomeTabPage> {
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFF5F6FA), Color(0xFFF5F6FA)],
+                  colors: [AppColors.appBackground, AppColors.appBackground],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),

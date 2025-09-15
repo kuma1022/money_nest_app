@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
+  static const Color appBackground = Color(0xFFF5F6FA);
+
   // APP绿色组
   static const Color appGreen0 = Color(0xFFF2FBF4); // 0 - 超浅
   static const Color appGreen1 = Color(0xFFDFF5E1); // 1 - 极浅

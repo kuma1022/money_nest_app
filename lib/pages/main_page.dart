@@ -8,7 +8,9 @@ import 'package:money_nest_app/pages/assets/assets_tab_page.dart';
 import 'package:money_nest_app/pages/asset_analysis/asset_analysis_tab_page.dart';
 import 'package:money_nest_app/pages/home/home_tab_page.dart';
 import 'package:money_nest_app/pages/setting/setting_tab_page.dart';
+import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
 import 'package:money_nest_app/pages/trade_history/trade_history_tab_page.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 
 class MainPage extends StatefulWidget {
   final AppDatabase db;
@@ -18,8 +20,11 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => MainPageState();
 }
 
-class MainPageState extends State<MainPage> {
+class MainPageState extends State<MainPage> with TickerProviderStateMixin {
   int _currentIndex = 0;
+  Widget? _overlayPage;
+  late AnimationController _headerAnimController;
+  late Animation<double> _headerAnim;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final GlobalKey<HomeTabPageState> homeTabPageKey =
@@ -52,11 +57,41 @@ class MainPageState extends State<MainPage> {
           _scrollPixels = pixels;
         });
       },
+      scrollController: ScrollController(),
     ),
-    TradeHistoryPage(),
+    TradeHistoryPage(
+      onAddPressed: _showTradeAddPage, // 传递回调
+    ),
     AssetAnalysisPage(),
     SettingsTabPage(),
   ];
+
+  void _showTradeAddPage() {
+    setState(() {
+      _overlayPage = TradeAddPage(
+        onClose: () {
+          _headerAnimController.reverse();
+          setState(() {
+            _overlayPage = null;
+          });
+        },
+      );
+    });
+    _headerAnimController.forward(from: 0);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _headerAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _headerAnim = CurvedAnimation(
+      parent: _headerAnimController,
+      curve: Curves.easeInOut,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +128,7 @@ class MainPageState extends State<MainPage> {
 
     final Color headerBgColor = isDark
         ? const Color(0xFF23242A)
-        : const Color(0xFFF5F6FA);
+        : AppColors.appBackground;
 
     void onTabChanged(int index) {
       setState(() {
@@ -127,66 +162,107 @@ class MainPageState extends State<MainPage> {
         child: Scaffold(
           backgroundColor: isDark
               ? const Color(0xFF181A20)
-              : const Color(0xFFF5F6FA), //Color(0xFFF5F6FA),
-          body: SizedBox.expand(
-            // 关键：让Stack填满整个屏幕
-            child: Stack(
-              children: [
-                // 顶部header
-                Container(
-                  height: headerHeight,
-                  width: double.infinity,
-                  color: headerBgColor,
-                  child: Stack(
-                    children: [
-                      // 标题居中
-                      Positioned.fill(
-                        // 标题
-                        child: Align(
-                          alignment: Alignment.topCenter,
-                          child: Padding(
-                            padding: EdgeInsets.only(top: topPosition),
-                            child: AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 180),
-                              style: TextStyle(
-                                fontSize: titleFontSize,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : Colors.black87,
+              : AppColors.appBackground,
+          body: Column(
+            children: [
+              AnimatedBuilder(
+                animation: _headerAnim,
+                builder: (context, child) {
+                  // headerHeight: 动画期间从正常高度到0
+                  final double animatedHeight = (_overlayPage == null)
+                      ? headerHeight
+                      : headerHeight * (1 - _headerAnim.value);
+                  final double animatedOpacity = (_overlayPage == null)
+                      ? 1.0
+                      : 1.0 - _headerAnim.value;
+                  if (animatedHeight < 1) return const SizedBox.shrink();
+                  return Opacity(
+                    opacity: animatedOpacity,
+                    child: Container(
+                      height: animatedHeight,
+                      width: double.infinity,
+                      color: headerBgColor,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: Padding(
+                                padding: EdgeInsets.only(top: topPosition),
+                                child: AnimatedDefaultTextStyle(
+                                  duration: const Duration(milliseconds: 180),
+                                  style: TextStyle(
+                                    fontSize: titleFontSize,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black87,
+                                  ),
+                                  child: Text(titles[_currentIndex]),
+                                ),
                               ),
-                              child: Text(titles[_currentIndex]),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                // 页面内容（headerHeight以下区域）
-                Positioned.fill(
-                  top: headerHeight,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: IndexedStack(index: _currentIndex, children: _pages),
-                ),
-                // 悬浮底栏
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 4,
-                  child: IgnorePointer(
-                    ignoring: false, // 允许点击
-                    child: CustomBottomNavBar(
-                      currentIndex: _currentIndex,
-                      icons: icons,
-                      labels: titles,
-                      onTap: onTabChanged,
-                      isDark: isDark,
                     ),
-                  ),
+                  );
+                },
+              ),
+              // 页面内容
+              Expanded(
+                child: Stack(
+                  children: [
+                    IndexedStack(
+                      index: (_currentIndex < _pages.length)
+                          ? _currentIndex
+                          : 0,
+                      children: _pages,
+                    ),
+                    // 动画显示 overlayPage
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (child, animation) {
+                        final offsetAnimation =
+                            Tween<Offset>(
+                              begin: const Offset(1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutCubic,
+                              ),
+                            );
+                        return SlideTransition(
+                          position: offsetAnimation,
+                          child: child,
+                        );
+                      },
+                      child: _overlayPage != null
+                          ? SizedBox(
+                              key: const ValueKey('trade_add_page'),
+                              width: double.infinity,
+                              height: double.infinity,
+                              child: _overlayPage!,
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
+          bottomNavigationBar: CustomBottomNavBar(
+            currentIndex: _currentIndex,
+            icons: icons,
+            labels: titles,
+            onTap: (index) {
+              setState(() {
+                _currentIndex = index.clamp(0, _pages.length - 1);
+                _overlayPage = null;
+              });
+            },
+            isDark: isDark,
           ),
         ),
       ),

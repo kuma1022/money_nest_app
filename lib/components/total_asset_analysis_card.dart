@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/glass_panel.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 
 class TotalAssetAnalysisCard extends StatefulWidget {
   final VoidCallback? onAssetAnalysisTap;
@@ -46,7 +47,7 @@ class TotalAssetAnalysisCardState extends State<TotalAssetAnalysisCard> {
                   height: 38,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF5F6FA),
+                    color: AppColors.appBackground,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: const Color(0xFFE5E6EA),
@@ -66,7 +67,7 @@ class TotalAssetAnalysisCardState extends State<TotalAssetAnalysisCard> {
                         color: Color(0xFF333333),
                         fontSize: 15,
                       ),
-                      dropdownColor: const Color(0xFFF5F6FA),
+                      dropdownColor: AppColors.appBackground,
                       items: const [
                         DropdownMenuItem(value: 0, child: Text('カテゴリ')),
                         DropdownMenuItem(value: 1, child: Text('日本株')),
