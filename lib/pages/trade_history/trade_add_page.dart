@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/glass_tab.dart';
+import 'package:money_nest_app/models/categories.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'trade_history_tab_page.dart'; // 导入 TradeRecord/TradeType
 
@@ -24,6 +26,13 @@ class _TradeAddPageState extends State<TradeAddPage> {
   String? debtSubCategory;
 
   // 下拉选项
+  final List assetCategoryList = Categoryies.values
+      .where((cat) => cat.type == 'asset')
+      .toList();
+  final List liabilityCategoryList = Categoryies.values
+      .where((cat) => cat.type == 'liability')
+      .toList();
+
   final assetCategories = {
     '株式': ['国内株式（ETF含む）', '米国株式（ETF含む）', 'その他（海外株式など）'],
     'FX（為替）': ['FX'],
@@ -68,28 +77,15 @@ class _TradeAddPageState extends State<TradeAddPage> {
             ),
             const Divider(height: 1),
             // glass_tab
-            GlassTab(
-              tabs: const ['資産', '負債'],
-              //initialIndex: tabIndex,
-              //onChanged: (i) {
-              //  setState(() {
-              //    tabIndex = i;
-              //    // 切换tab时重置选择
-              //    assetCategory = null;
-              //    assetSubCategory = null;
-              //    debtCategory = null;
-              //    debtSubCategory = null;
-              //  });
-              //},
-              tabBarContentList: [_buildAssetForm(), _buildDebtForm()],
+            Expanded(
+              child: GlassTab(
+                tabs: const ['資産', '負債'],
+                tabBarContentList: [
+                  _buildAssetForm(), // 直接传Column
+                  _buildDebtForm(),
+                ],
+              ),
             ),
-            //const SizedBox(height: 12),
-            //Expanded(
-            //  child: SingleChildScrollView(
-            //    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            //   child: tabIndex == 0 ? _buildAssetForm() : _buildDebtForm(),
-            // ),
-            //),
           ],
         ),
       ),
@@ -105,7 +101,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
         const Text('カテゴリ', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: assetCategory,
+          initialValue: assetCategory,
           items: assetCategories.keys
               .map((e) => DropdownMenuItem(value: e, child: Text(e)))
               .toList(),
@@ -178,7 +174,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
         const Text('カテゴリ', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: debtCategory,
+          initialValue: debtCategory,
           items: debtCategories.keys
               .map((e) => DropdownMenuItem(value: e, child: Text(e)))
               .toList(),
@@ -188,15 +184,24 @@ class _TradeAddPageState extends State<TradeAddPage> {
               debtSubCategory = null;
             });
           },
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.white,
+            fillColor: const Color(0xFFF5F6FA), // 浅灰色背景
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(12)),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(16), // 圆角
+              borderSide: BorderSide.none, // 无边框
             ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ), // 内边距
           ),
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: Color(0xFFB0B0B0),
+          ), // 下拉箭头
+          style: const TextStyle(fontSize: 16, color: Colors.black87),
+          dropdownColor: const Color(0xFFF5F6FA), // 下拉菜单背景色
         ),
         const SizedBox(height: 16),
         // サブカテゴリ
@@ -210,7 +215,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
               ),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: debtSubCategory,
+                initialValue: debtSubCategory,
                 items: debtCategories[debtCategory]!
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -219,18 +224,24 @@ class _TradeAddPageState extends State<TradeAddPage> {
                     debtSubCategory = v;
                   });
                 },
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: const Color(0xFFF5F6FA), // 浅灰色背景
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.circular(16), // 圆角
+                    borderSide: BorderSide.none, // 无边框
                   ),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ), // 内边距
                 ),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Color(0xFFB0B0B0),
+                ), // 下拉箭头
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
+                dropdownColor: const Color(0xFFF5F6FA), // 下拉菜单背景色
               ),
               const SizedBox(height: 16),
             ],
@@ -249,7 +260,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
         (assetSubCategory == '国内株式（ETF含む）' ||
             assetSubCategory == '米国株式（ETF含む）')) {
       // 取引種別
-      String? tradeType;
+      String tradeType = 'buy'; // 默认买入
       return StatefulBuilder(
         builder: (context, setInnerState) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,12 +268,12 @@ class _TradeAddPageState extends State<TradeAddPage> {
             const Text('取引種別', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
-              value: tradeType,
+              initialValue: tradeType,
               items: const [
-                DropdownMenuItem(value: '買い', child: Text('買い')),
-                DropdownMenuItem(value: '売り', child: Text('売り')),
+                DropdownMenuItem(value: 'buy', child: Text('買い')),
+                DropdownMenuItem(value: 'sell', child: Text('売り')),
               ],
-              onChanged: (v) => setInnerState(() => tradeType = v),
+              onChanged: (v) => setInnerState(() => tradeType = v!),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: const Color(0xFFF5F6FA), // 浅灰色背景
@@ -283,7 +294,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
               dropdownColor: const Color(0xFFF5F6FA), // 下拉菜单背景色
             ),
             const SizedBox(height: 16),
-            if (tradeType == '買い')
+            if (tradeType == 'buy')
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -291,10 +302,211 @@ class _TradeAddPageState extends State<TradeAddPage> {
                     '銘柄情報',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  // ...后续表单内容...
+                  const SizedBox(height: 8),
+                  // 銘柄コード（自动补全）
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '銘柄コード',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    // TODO: 实现输入后自动补全、选中后自动填充銘柄名
+                  ),
+                  const SizedBox(height: 12),
+                  // 銘柄名
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '銘柄名',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '取引詳細',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  // 取引日
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '取引日',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    readOnly: true,
+                    onTap: () async {
+                      // TODO: 弹出日期选择
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // 口座区分
+                  DropdownButtonFormField<String>(
+                    value: null,
+                    items: const [
+                      DropdownMenuItem(value: '一般', child: Text('一般')),
+                      DropdownMenuItem(value: 'NISA', child: Text('NISA')),
+                      DropdownMenuItem(value: '特定', child: Text('特定')),
+                    ],
+                    onChanged: (v) {},
+                    decoration: InputDecoration(
+                      labelText: '口座区分',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // 数量
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '数量',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                    // TODO: onChanged时动态计算金额
+                  ),
+                  const SizedBox(height: 12),
+                  // 単価
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '単価',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                    // TODO: onChanged时动态计算金额
+                  ),
+                  const SizedBox(height: 12),
+                  // 金額（自动计算显示，不可编辑）
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '金額（自動計算）',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    readOnly: true,
+                    controller: /* TODO: 金额controller */
+                        TextEditingController(),
+                  ),
+                  const SizedBox(height: 12),
+                  // 手数料（任意）
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '手数料（任意）',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 12),
+                  // 手数料通貨
+                  DropdownButtonFormField<String>(
+                    value: null,
+                    items: const [
+                      DropdownMenuItem(value: 'JPY', child: Text('JPY')),
+                      DropdownMenuItem(value: 'USD', child: Text('USD')),
+                    ],
+                    onChanged: (v) {},
+                    decoration: InputDecoration(
+                      labelText: '手数料通貨',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // メモ（任意）
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'メモ（任意）',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    maxLines: 2,
+                  ),
                 ],
               ),
-            if (tradeType == '売り')
+            if (tradeType == 'sell')
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -302,7 +514,200 @@ class _TradeAddPageState extends State<TradeAddPage> {
                     '売却する株式を選択',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  // ...后续表单内容...
+                  const SizedBox(height: 8),
+                  // TODO: 下拉选择持有的股票
+                  DropdownButtonFormField<String>(
+                    value: null,
+                    items: const [
+                      // TODO: 用实际持仓数据填充
+                      DropdownMenuItem(value: 'AAPL', child: Text('AAPL')),
+                      DropdownMenuItem(value: '7203', child: Text('7203')),
+                    ],
+                    onChanged: (v) {},
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // 銘柄名（自动显示）
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '銘柄名',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    readOnly: true,
+                    controller: /* TODO: 銘柄名controller */
+                        TextEditingController(),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    '取引詳細',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  // 取引日
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '取引日',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    readOnly: true,
+                    onTap: () async {
+                      // TODO: 弹出日期选择
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // 売却数量を選択（多批次选择，动态计算总数量）
+                  // TODO: 用ListView或自定义控件展示所有买入批次，用户输入每批卖出数量
+                  const Text(
+                    '売却数量を選択（複数ロット対応）',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  // ...批次选择控件...
+                  const SizedBox(height: 12),
+                  // 総売却数量（自动计算显示）
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '総売却数量（自動計算）',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    readOnly: true,
+                    controller: /* TODO: 总数量controller */
+                        TextEditingController(),
+                  ),
+                  const SizedBox(height: 12),
+                  // 単価
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '単価',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 12),
+                  // 売却金額（自动计算显示，不可编辑）
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '売却金額（自動計算）',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    readOnly: true,
+                    controller: /* TODO: 金额controller */
+                        TextEditingController(),
+                  ),
+                  const SizedBox(height: 12),
+                  // 手数料（任意）
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: '手数料（任意）',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 12),
+                  // 手数料通貨
+                  DropdownButtonFormField<String>(
+                    value: null,
+                    items: const [
+                      DropdownMenuItem(value: 'JPY', child: Text('JPY')),
+                      DropdownMenuItem(value: 'USD', child: Text('USD')),
+                    ],
+                    onChanged: (v) {},
+                    decoration: InputDecoration(
+                      labelText: '手数料通貨',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // メモ（任意）
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'メモ（任意）',
+                      filled: true,
+                      fillColor: const Color(0xFFF5F6FA),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                    ),
+                    maxLines: 2,
+                  ),
                 ],
               ),
           ],
