@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
 
 class CustomBottomNavBar extends StatefulWidget {
@@ -38,7 +37,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
     _targetIndex = widget.currentIndex;
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 320),
+      duration: const Duration(milliseconds: 300),
     );
     _animation = CurvedAnimation(
       parent: _controller,
@@ -50,7 +49,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
           _prevIndex = _targetIndex;
           _isAnimating = false;
         });
-        widget.onTap(_targetIndex);
+        widget.onTap(_targetIndex); // 动画结束后才通知父组件切换
       }
     });
   }
@@ -58,6 +57,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
   @override
   void didUpdateWidget(covariant CustomBottomNavBar oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // 外部切换tab时同步状态
     if (!_isAnimating && widget.currentIndex != _targetIndex) {
       setState(() {
         _prevIndex = widget.currentIndex;
@@ -66,11 +66,10 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
     }
   }
 
-  // 1. 动画只做“收缩”或“展开”单向动画
   void _onTap(int index) {
     if (_isAnimating || index == _targetIndex) return;
     setState(() {
-      _prevIndex = widget.currentIndex;
+      _prevIndex = _targetIndex;
       _targetIndex = index;
       _isAnimating = true;
     });
@@ -81,171 +80,166 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
   Widget build(BuildContext context) {
     final icons = widget.icons;
     final labels = widget.labels;
-    final int itemCount = icons.length;
-
     return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 0, 6, 18),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: ClipRRect(
-        //borderRadius: BorderRadius.circular(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 模糊背景
-            BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-              child: SizedBox(
-                height: 72,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final double totalWidth = constraints.maxWidth;
-                    final int itemCount = icons.length;
-                    const double minItemWidth = 56;
-                    double maxItemWidth = 140;
-                    const double itemHeight = 56;
-                    double gap = 4;
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+          child: Container(
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.02),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.12),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.10),
+                  blurRadius: 18,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return AnimatedBuilder(
+                  animation: _animation,
+                  builder: (context, child) {
+                    final double itemWidth =
+                        constraints.maxWidth / icons.length;
+                    const double indicatorWidth = 64;
+                    const double indicatorHeight = 42;
+                    const double barHeight = 60;
 
-                    // 动态调整maxItemWidth
-                    double maxPossible =
-                        (totalWidth -
-                        gap * (itemCount - 1) -
-                        minItemWidth * (itemCount - 1));
-                    if (maxPossible < minItemWidth) maxPossible = minItemWidth;
-                    if (maxItemWidth > maxPossible) maxItemWidth = maxPossible;
+                    final double start =
+                        _prevIndex * itemWidth +
+                        (itemWidth - indicatorWidth) / 2;
+                    final double end =
+                        _targetIndex * itemWidth +
+                        (itemWidth - indicatorWidth) / 2;
+                    final double left =
+                        start + (end - start) * _animation.value;
 
-                    List<double> widths = List.filled(itemCount, minItemWidth);
+                    final double width = TweenSequence([
+                      TweenSequenceItem(
+                        tween: Tween<double>(
+                          begin: indicatorWidth,
+                          end: indicatorWidth + 56,
+                        ).chain(CurveTween(curve: Curves.easeOut)),
+                        weight: 60,
+                      ),
+                      TweenSequenceItem(
+                        tween: Tween<double>(
+                          begin: indicatorWidth + 56,
+                          end: indicatorWidth,
+                        ).chain(CurveTween(curve: Curves.easeIn)),
+                        weight: 40,
+                      ),
+                    ]).transform(_animation.value);
 
-                    if (_isAnimating) {
-                      widths[_prevIndex] =
-                          minItemWidth +
-                          (maxItemWidth - minItemWidth) *
-                              (1 - _animation.value);
-                    } else {
-                      widths[widget.currentIndex] = maxItemWidth;
-                    }
+                    final double radius = TweenSequence([
+                      TweenSequenceItem(
+                        tween: Tween<double>(
+                          begin: 18,
+                          end: 28,
+                        ).chain(CurveTween(curve: Curves.easeOut)),
+                        weight: 60,
+                      ),
+                      TweenSequenceItem(
+                        tween: Tween<double>(
+                          begin: 28,
+                          end: 18,
+                        ).chain(CurveTween(curve: Curves.easeIn)),
+                        weight: 40,
+                      ),
+                    ]).transform(_animation.value);
 
-                    // gap不取整，直接用double
-                    double usedWidth = widths.reduce((a, b) => a + b);
-                    double totalGap = totalWidth - usedWidth;
-                    gap = (itemCount > 1)
-                        ? (totalGap / (itemCount - 1)).clamp(0.0, 8.0)
-                        : 0.0;
+                    // 动画期间保持旧的选中项
+                    final int effectiveIndex = _isAnimating
+                        ? _prevIndex
+                        : widget.currentIndex;
 
-                    // 最后一个按钮宽度强制补齐
-                    double widthSum = 0;
-                    List<double> realWidths = [];
-                    for (int i = 0; i < itemCount; i++) {
-                      if (i < itemCount - 1) {
-                        realWidths.add(widths[i]);
-                        widthSum += widths[i];
-                      } else {
-                        // 最后一个
-                        realWidths.add(
-                          (totalWidth - widthSum - gap * (itemCount - 1)).clamp(
-                            0.0,
-                            double.infinity,
-                          ),
-                        );
-                      }
-                    }
-
-                    // 字号插值
-                    double minFontSize = 1;
-                    double maxFontSize = AppTexts.fontSizeSmall;
-
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(itemCount, (i) {
-                        return Padding(
-                          padding: EdgeInsets.only(left: i == 0 ? 0 : gap),
-                          child: TweenAnimationBuilder<double>(
-                            tween: Tween<double>(
-                              begin: minItemWidth,
-                              end: realWidths[i],
-                            ),
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeInOutCubic,
-                            builder: (context, animatedWidth, child) {
-                              final bool selected =
-                                  animatedWidth > minItemWidth + 1;
-                              double fontSize = minFontSize;
-                              if (animatedWidth > minItemWidth + 1) {
-                                fontSize =
-                                    minFontSize +
-                                    (maxFontSize - minFontSize) *
-                                        ((animatedWidth - minItemWidth) /
-                                                (maxItemWidth - minItemWidth))
-                                            .clamp(0.0, 1.0);
-                              }
-                              return Container(
-                                width: animatedWidth,
-                                height: itemHeight,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(28),
-                                  border: Border.all(
-                                    color: const Color(0xFFE5E6EA),
-                                    width: 1,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.10),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
+                    return Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        // 1. 水滴indicator
+                        Positioned(
+                          left: left - (width - indicatorWidth) / 2,
+                          top: (barHeight - indicatorHeight) / 2 - 2,
+                          child: Container(
+                            width: width,
+                            height: indicatorHeight,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(radius),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.10),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 2),
                                 ),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(28),
-                                  onTap: () => _onTap(i),
-                                  child: Row(
+                              ],
+                            ),
+                          ),
+                        ),
+                        // 2. 菜单按钮
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: List.generate(icons.length, (index) {
+                            final selected = effectiveIndex == index;
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: () => _onTap(index),
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  height: double.infinity,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
+                                      const SizedBox(height: 2),
                                       Icon(
-                                        icons[i],
+                                        icons[index],
                                         color: selected
                                             ? Colors.black87
                                             : Colors.black54,
-                                        size: 24,
+                                        size: 22,
                                       ),
-                                      AnimatedSwitcher(
-                                        duration: const Duration(
-                                          milliseconds: 220,
+                                      Text(
+                                        labels[index],
+                                        style: TextStyle(
+                                          color: selected
+                                              ? Colors.black87
+                                              : Colors.black54,
+                                          fontWeight: selected
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                          fontSize: AppTexts.fontSizeSmall,
                                         ),
-                                        child:
-                                            selected &&
-                                                fontSize > minFontSize + 1
-                                            ? Padding(
-                                                padding: const EdgeInsets.only(
-                                                  left: 6,
-                                                ),
-                                                child: Text(
-                                                  labels[i],
-                                                  style: TextStyle(
-                                                    color: Colors.black87,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: fontSize,
-                                                  ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  maxLines: 1,
-                                                ),
-                                              )
-                                            : const SizedBox.shrink(),
                                       ),
                                     ],
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        );
-                      }),
+                              ),
+                            );
+                          }),
+                        ),
+                      ],
                     );
                   },
-                ),
-              ),
+                );
+              },
             ),
-          ],
+          ),
         ),
       ),
     );

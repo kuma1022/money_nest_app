@@ -101,7 +101,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
         const Text('カテゴリ', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          initialValue: assetCategory,
+          value: assetCategory,
           items: assetCategories.keys
               .map((e) => DropdownMenuItem(value: e, child: Text(e)))
               .toList(),
@@ -174,7 +174,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
         const Text('カテゴリ', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          initialValue: debtCategory,
+          value: debtCategory,
           items: debtCategories.keys
               .map((e) => DropdownMenuItem(value: e, child: Text(e)))
               .toList(),
@@ -215,7 +215,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
               ),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                initialValue: debtSubCategory,
+                value: debtSubCategory,
                 items: debtCategories[debtCategory]!
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -268,7 +268,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
             const Text('取引種別', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
-              initialValue: tradeType,
+              value: tradeType,
               items: const [
                 DropdownMenuItem(value: 'buy', child: Text('買い')),
                 DropdownMenuItem(value: 'sell', child: Text('売り')),
