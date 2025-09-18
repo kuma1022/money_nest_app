@@ -160,9 +160,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
           splashColor: Colors.transparent,
         ),
         child: Scaffold(
-          backgroundColor: isDark
-              ? const Color(0xFF181A20)
-              : AppColors.appBackground,
+          backgroundColor: Colors.transparent,
           body: Column(
             children: [
               AnimatedBuilder(
@@ -247,12 +245,29 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             )
                           : const SizedBox.shrink(),
                     ),
+                    // 底部浮动毛玻璃导航栏
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: CustomBottomNavBar(
+                        currentIndex: _currentIndex,
+                        icons: icons,
+                        labels: titles,
+                        onTap: (index) {
+                          setState(() {
+                            _currentIndex = index;
+                          });
+                        },
+                        isDark: isDark,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-          bottomNavigationBar: CustomBottomNavBar(
+          /*bottomNavigationBar: CustomBottomNavBar(
             currentIndex: _currentIndex,
             icons: icons,
             labels: titles,
@@ -263,7 +278,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
               });
             },
             isDark: isDark,
-          ),
+          ),*/
         ),
       ),
     );

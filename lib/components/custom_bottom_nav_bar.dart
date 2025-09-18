@@ -24,222 +24,268 @@ class CustomBottomNavBar extends StatefulWidget {
 
 class _CustomBottomNavBarState extends State<CustomBottomNavBar>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-  late int _prevIndex;
-  late int _targetIndex;
-  bool _isAnimating = false;
+  late int _currentIndex;
+  bool _isPressing = false;
+  double? _pressX; // 手指目标x
+  double? _magnifierX; // 动画中的实际x
+  late AnimationController _moveController;
+  late Animation<double> _moveAnim;
 
   @override
   void initState() {
     super.initState();
-    _prevIndex = widget.currentIndex;
-    _targetIndex = widget.currentIndex;
-    _controller = AnimationController(
+    _currentIndex = widget.currentIndex;
+    _moveController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 260),
     );
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOutCubic,
+    _moveAnim = Tween<double>(begin: 0, end: 0).animate(
+      CurvedAnimation(parent: _moveController, curve: Curves.easeOutCubic),
     );
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        setState(() {
-          _prevIndex = _targetIndex;
-          _isAnimating = false;
-        });
-        widget.onTap(_targetIndex); // 动画结束后才通知父组件切换
-      }
-    });
+  }
+
+  @override
+  void dispose() {
+    _moveController.dispose();
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(covariant CustomBottomNavBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 外部切换tab时同步状态
-    if (!_isAnimating && widget.currentIndex != _targetIndex) {
+    if (widget.currentIndex != _currentIndex) {
       setState(() {
-        _prevIndex = widget.currentIndex;
-        _targetIndex = widget.currentIndex;
+        _currentIndex = widget.currentIndex;
       });
     }
   }
 
-  void _onTap(int index) {
-    if (_isAnimating || index == _targetIndex) return;
+  void _animateMagnifierTo(double targetX) {
+    if (_magnifierX == null) {
+      _magnifierX = targetX;
+      _moveAnim = AlwaysStoppedAnimation(targetX);
+      return;
+    }
+    _moveController.stop();
+    _moveAnim = Tween<double>(begin: _magnifierX!, end: targetX).animate(
+      CurvedAnimation(parent: _moveController, curve: Curves.easeOutCubic),
+    );
+    _moveController.forward(from: 0);
+    _magnifierX = targetX;
+  }
+
+  void _onPanDown(DragDownDetails details, double barWidth) {
     setState(() {
-      _prevIndex = _targetIndex;
-      _targetIndex = index;
-      _isAnimating = true;
+      _isPressing = true;
+      _pressX = details.localPosition.dx.clamp(0.0, barWidth);
     });
-    _controller.forward(from: 0);
+    _animateMagnifierTo(_pressX!);
+  }
+
+  void _onPanUpdate(DragUpdateDetails details, double barWidth) {
+    setState(() {
+      _pressX = details.localPosition.dx.clamp(0.0, barWidth);
+    });
+    _animateMagnifierTo(_pressX!);
+  }
+
+  void _onPanEnd(double barWidth) {
+    if (_pressX == null) {
+      setState(() {
+        _isPressing = false;
+        _pressX = null;
+      });
+      return;
+    }
+    final itemWidth = barWidth / widget.icons.length;
+    final magnifierCenter = _pressX!;
+    int tabIndex = (magnifierCenter / itemWidth).floor().clamp(
+      0,
+      widget.icons.length - 1,
+    );
+    setState(() {
+      _isPressing = false;
+      _pressX = null;
+      _currentIndex = tabIndex;
+    });
+    widget.onTap(tabIndex);
+    // 放大镜动画直接跳到目标tab
+    final targetX = tabIndex * itemWidth + itemWidth / 2;
+    _animateMagnifierTo(targetX);
+  }
+
+  void _onPanCancel() {
+    setState(() {
+      _isPressing = false;
+      _pressX = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final icons = widget.icons;
     final labels = widget.labels;
+    const double barHeight = 64;
+    const double barRadius = 40;
+    const double indicatorWidth = 70;
+    const double indicatorHeight = 55;
+    const double indicatorRadius = 32;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
-          child: Container(
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.02),
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.12),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.10),
-                  blurRadius: 18,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return AnimatedBuilder(
-                  animation: _animation,
-                  builder: (context, child) {
-                    final double itemWidth =
-                        constraints.maxWidth / icons.length;
-                    const double indicatorWidth = 64;
-                    const double indicatorHeight = 42;
-                    const double barHeight = 60;
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 32),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final barWidth = constraints.maxWidth;
+          final itemWidth = barWidth / icons.length;
 
-                    final double start =
-                        _prevIndex * itemWidth +
-                        (itemWidth - indicatorWidth) / 2;
-                    final double end =
-                        _targetIndex * itemWidth +
-                        (itemWidth - indicatorWidth) / 2;
-                    final double left =
-                        start + (end - start) * _animation.value;
+          // 非按压时，放大镜在选中tab正中
+          final defaultMagnifierX = _currentIndex * itemWidth + itemWidth / 2;
 
-                    final double width = TweenSequence([
-                      TweenSequenceItem(
-                        tween: Tween<double>(
-                          begin: indicatorWidth,
-                          end: indicatorWidth + 56,
-                        ).chain(CurveTween(curve: Curves.easeOut)),
-                        weight: 60,
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanDown: (details) => _onPanDown(details, barWidth),
+            onPanUpdate: (details) => _onPanUpdate(details, barWidth),
+            onPanEnd: (_) => _onPanEnd(barWidth),
+            onPanCancel: _onPanCancel,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(barRadius),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                child: Container(
+                  height: barHeight,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(barRadius),
+                    border: Border.all(
+                      color: Colors.black.withOpacity(0.04),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 18,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 2),
                       ),
-                      TweenSequenceItem(
-                        tween: Tween<double>(
-                          begin: indicatorWidth + 56,
-                          end: indicatorWidth,
-                        ).chain(CurveTween(curve: Curves.easeIn)),
-                        weight: 40,
-                      ),
-                    ]).transform(_animation.value);
-
-                    final double radius = TweenSequence([
-                      TweenSequenceItem(
-                        tween: Tween<double>(
-                          begin: 18,
-                          end: 28,
-                        ).chain(CurveTween(curve: Curves.easeOut)),
-                        weight: 60,
-                      ),
-                      TweenSequenceItem(
-                        tween: Tween<double>(
-                          begin: 28,
-                          end: 18,
-                        ).chain(CurveTween(curve: Curves.easeIn)),
-                        weight: 40,
-                      ),
-                    ]).transform(_animation.value);
-
-                    // 动画期间保持旧的选中项
-                    final int effectiveIndex = _isAnimating
-                        ? _prevIndex
-                        : widget.currentIndex;
-
-                    return Stack(
-                      alignment: Alignment.centerLeft,
-                      children: [
-                        // 1. 水滴indicator
-                        Positioned(
-                          left: left - (width - indicatorWidth) / 2,
-                          top: (barHeight - indicatorHeight) / 2 - 2,
-                          child: Container(
-                            width: width,
-                            height: indicatorHeight,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.22),
-                              borderRadius: BorderRadius.circular(radius),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.18),
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.10),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                    ],
+                  ),
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      // 放大镜
+                      AnimatedBuilder(
+                        animation: _moveAnim,
+                        builder: (context, child) {
+                          double magnifierLeft;
+                          if (_isPressing && _pressX != null) {
+                            // 动画跟随手指
+                            magnifierLeft =
+                                _moveAnim.value - indicatorWidth / 2;
+                          } else {
+                            // 非按压时，放大镜在选中tab正中
+                            magnifierLeft =
+                                defaultMagnifierX - indicatorWidth / 2;
+                          }
+                          // 边界限制
+                          magnifierLeft = magnifierLeft.clamp(
+                            0.0,
+                            barWidth - indicatorWidth,
+                          );
+                          return Positioned(
+                            left: magnifierLeft,
+                            top: -(indicatorHeight - barHeight) / 2,
+                            child: _MagnifierIndicator(
+                              width: indicatorWidth,
+                              height: indicatorHeight,
+                              radius: indicatorRadius,
                             ),
-                          ),
-                        ),
-                        // 2. 菜单按钮
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: List.generate(icons.length, (index) {
-                            final selected = effectiveIndex == index;
-                            return Expanded(
-                              child: GestureDetector(
-                                onTap: () => _onTap(index),
-                                behavior: HitTestBehavior.opaque,
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  height: double.infinity,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const SizedBox(height: 2),
-                                      Icon(
-                                        icons[index],
-                                        color: selected
-                                            ? Colors.black87
-                                            : Colors.black54,
-                                        size: 22,
-                                      ),
-                                      Text(
-                                        labels[index],
-                                        style: TextStyle(
-                                          color: selected
-                                              ? Colors.black87
-                                              : Colors.black54,
-                                          fontWeight: selected
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
-                                          fontSize: AppTexts.fontSizeSmall,
-                                        ),
-                                      ),
-                                    ],
+                          );
+                        },
+                      ),
+                      // 菜单按钮
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: List.generate(icons.length, (index) {
+                          final selected =
+                              !_isPressing && _currentIndex == index;
+                          return Expanded(
+                            child: Container(
+                              alignment: Alignment.center,
+                              height: barHeight,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  //const SizedBox(height: 6),
+                                  Icon(
+                                    icons[index],
+                                    color: selected
+                                        ? const Color(0xFF1976D2)
+                                        : Colors.black87,
+                                    size: 24,
                                   ),
-                                ),
+                                  //const SizedBox(height: 2),
+                                  Text(
+                                    labels[index],
+                                    style: TextStyle(
+                                      color: selected
+                                          ? const Color(0xFF1976D2)
+                                          : Colors.black87,
+                                      fontWeight: FontWeight.normal,
+                                      fontSize: AppTexts.fontSizeSmall,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            );
-                          }),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _MagnifierIndicator extends StatelessWidget {
+  final double width;
+  final double height;
+  final double radius;
+  const _MagnifierIndicator({
+    required this.width,
+    required this.height,
+    required this.radius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.32),
+          borderRadius: BorderRadius.circular(radius),
+          border: Border.all(color: Colors.white.withOpacity(0.38), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.white.withOpacity(0.18),
+              blurRadius: 0,
+              spreadRadius: 2,
+              offset: const Offset(0, 0),
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.10),
+              blurRadius: 18,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
       ),
     );
