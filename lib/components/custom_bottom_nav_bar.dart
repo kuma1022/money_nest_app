@@ -30,6 +30,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
   double? _magnifierX; // 动画中的实际x
   late AnimationController _moveController;
   late Animation<double> _moveAnim;
+  double? _downX; // 新增：记录按下时的x
 
   @override
   void initState() {
@@ -37,7 +38,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
     _currentIndex = widget.currentIndex;
     _moveController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 260),
+      duration: const Duration(milliseconds: 260), // 由260改为680
     );
     _moveAnim = Tween<double>(begin: 0, end: 0).animate(
       CurvedAnimation(parent: _moveController, curve: Curves.easeOutCubic),
@@ -57,27 +58,46 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
       setState(() {
         _currentIndex = widget.currentIndex;
       });
+      // 新增：自动动画到新tab
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final barWidth = context.size?.width ?? 0;
+        if (barWidth > 0) {
+          final itemWidth = barWidth / widget.icons.length;
+          final targetX = _currentIndex * itemWidth + itemWidth / 2;
+          _animateMagnifierTo(targetX);
+        }
+      });
     }
   }
 
-  void _animateMagnifierTo(double targetX) {
+  void _animateMagnifierTo(double targetX, {VoidCallback? onCompleted}) {
     if (_magnifierX == null) {
       _magnifierX = targetX;
       _moveAnim = AlwaysStoppedAnimation(targetX);
+      if (onCompleted != null) onCompleted();
       return;
     }
     _moveController.stop();
     _moveAnim = Tween<double>(begin: _magnifierX!, end: targetX).animate(
       CurvedAnimation(parent: _moveController, curve: Curves.easeOutCubic),
     );
-    _moveController.forward(from: 0);
-    _magnifierX = targetX;
+    _moveController.forward(from: 0).whenCompleteOrCancel(() {
+      _magnifierX = targetX;
+      if (onCompleted != null) onCompleted();
+    });
   }
 
   void _onPanDown(DragDownDetails details, double barWidth) {
     setState(() {
       _isPressing = true;
-      _pressX = details.localPosition.dx.clamp(0.0, barWidth);
+      _downX = details.localPosition.dx; // 记录按下的x
+      // 计算按下的是哪个tab
+      final itemWidth = barWidth / widget.icons.length;
+      final tabIndex = (_downX! / itemWidth).floor().clamp(
+        0,
+        widget.icons.length - 1,
+      );
+      _pressX = tabIndex * itemWidth + itemWidth / 2;
     });
     _animateMagnifierTo(_pressX!);
   }
@@ -90,28 +110,45 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
   }
 
   void _onPanEnd(double barWidth) {
-    if (_pressX == null) {
-      setState(() {
-        _isPressing = false;
-        _pressX = null;
-      });
-      return;
-    }
     final itemWidth = barWidth / widget.icons.length;
-    final magnifierCenter = _pressX!;
-    int tabIndex = (magnifierCenter / itemWidth).floor().clamp(
-      0,
-      widget.icons.length - 1,
-    );
+    double? targetX = _pressX;
+    int tabIndex;
+
+    if (_downX != null &&
+        (_pressX == null ||
+            (_pressX! - (_currentIndex * itemWidth + itemWidth / 2)).abs() <
+                2)) {
+      tabIndex = (_downX! / itemWidth).floor().clamp(
+        0,
+        widget.icons.length - 1,
+      );
+      targetX = tabIndex * itemWidth + itemWidth / 2;
+    } else if (_pressX != null) {
+      tabIndex = (_pressX! / itemWidth).floor().clamp(
+        0,
+        widget.icons.length - 1,
+      );
+      targetX = tabIndex * itemWidth + itemWidth / 2;
+    } else {
+      tabIndex = _currentIndex;
+      targetX = _currentIndex * itemWidth + itemWidth / 2;
+    }
+
     setState(() {
-      _isPressing = false;
       _pressX = null;
+      _downX = null;
       _currentIndex = tabIndex;
+      // 不在这里设 _isPressing = false
     });
     widget.onTap(tabIndex);
-    // 放大镜动画直接跳到目标tab
-    final targetX = tabIndex * itemWidth + itemWidth / 2;
-    _animateMagnifierTo(targetX);
+    _animateMagnifierTo(
+      targetX!,
+      onCompleted: () {
+        setState(() {
+          _isPressing = false;
+        });
+      },
+    );
   }
 
   void _onPanCancel() {
@@ -138,9 +175,10 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
           final barWidth = constraints.maxWidth;
           final itemWidth = barWidth / icons.length;
 
-          // 非按压时，放大镜在选中tab正中
+          // 默认放大镜位置
           final defaultMagnifierX = _currentIndex * itemWidth + itemWidth / 2;
 
+          // 修正：始终用 _moveAnim.value 控制放大镜
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanDown: (details) => _onPanDown(details, barWidth),
@@ -176,28 +214,71 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                       AnimatedBuilder(
                         animation: _moveAnim,
                         builder: (context, child) {
-                          double magnifierLeft;
-                          if (_isPressing && _pressX != null) {
-                            // 动画跟随手指
-                            magnifierLeft =
-                                _moveAnim.value - indicatorWidth / 2;
-                          } else {
-                            // 非按压时，放大镜在选中tab正中
-                            magnifierLeft =
-                                defaultMagnifierX - indicatorWidth / 2;
-                          }
-                          // 边界限制
+                          double magnifierLeft =
+                              (_moveAnim.value == 0 && !_isPressing)
+                              ? defaultMagnifierX - indicatorWidth / 2
+                              : _moveAnim.value - indicatorWidth / 2;
                           magnifierLeft = magnifierLeft.clamp(
                             0.0,
                             barWidth - indicatorWidth,
                           );
+
+                          // 动画参数
+                          final bool pressing = _isPressing;
+                          final double width = pressing
+                              ? indicatorWidth + 15
+                              : indicatorWidth;
+                          final double height = pressing
+                              ? indicatorHeight + 15
+                              : indicatorHeight;
+                          final double radius = pressing
+                              ? indicatorRadius + 6
+                              : indicatorRadius;
+                          final double opacity = pressing ? 0.18 : 0.32;
+                          final double borderOpacity = pressing ? 0.22 : 0.38;
+                          final double blurSigma = pressing ? 10 : 4;
+
                           return Positioned(
-                            left: magnifierLeft,
-                            top: -(indicatorHeight - barHeight) / 2,
-                            child: _MagnifierIndicator(
-                              width: indicatorWidth,
-                              height: indicatorHeight,
-                              radius: indicatorRadius,
+                            left: magnifierLeft - (width - indicatorWidth) / 2,
+                            top: -(height - barHeight) / 2,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 520),
+                              curve: Curves.easeOutCubic,
+                              width: width,
+                              height: height,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(opacity),
+                                borderRadius: BorderRadius.circular(radius),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(
+                                    borderOpacity,
+                                  ),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.18),
+                                    blurRadius: 0,
+                                    spreadRadius: 2,
+                                    offset: const Offset(0, 0),
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.10),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(radius),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: blurSigma,
+                                    sigmaY: blurSigma,
+                                  ),
+                                  child: Container(color: Colors.transparent),
+                                ),
+                              ),
                             ),
                           );
                         },
