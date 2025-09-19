@@ -1,0 +1,62 @@
+// 新建文件 glass_tab_bar_only.dart 或直接在本文件底部添加
+import 'package:flutter/material.dart';
+import 'package:money_nest_app/components/card_section.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
+
+class GlassTabBarOnly extends StatelessWidget {
+  final List<String> tabs;
+  const GlassTabBarOnly({required this.tabs, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: CardSection(
+        child: DefaultTabController(
+          length: 2,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // TabBar
+              Theme(
+                data: Theme.of(context).copyWith(
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                ),
+                child: TabBar(
+                  //controller: _tabController,
+                  indicator: BoxDecoration(
+                    color: AppColors.appGrey.withValues(alpha: 0.30),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  indicatorPadding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 6,
+                  ), // 横向padding加大
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelColor: Colors.black87,
+                  unselectedLabelColor: Colors.black87,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.normal,
+                  ),
+                  tabs: [],
+                  overlayColor: WidgetStateProperty.all(Colors.transparent),
+                ),
+              ),
+              //const SizedBox(height: 8),
+              // Tab内容
+              //IndexedStack(
+              //  index: _tabController.index,
+              //  children: widget.tabBarContentList,
+              //),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+
+

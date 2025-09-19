@@ -189,7 +189,8 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
               borderRadius: BorderRadius.circular(barRadius),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 520),
                   height: barHeight,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.10),

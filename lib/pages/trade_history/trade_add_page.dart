@@ -1,6 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/glass_tab.dart';
+import 'package:money_nest_app/components/glass_tab_bar_only';
 import 'package:money_nest_app/models/categories.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'trade_history_tab_page.dart'; // 导入 TradeRecord/TradeType
@@ -24,6 +30,9 @@ class _TradeAddPageState extends State<TradeAddPage> {
   // 負債用
   String? debtCategory;
   String? debtSubCategory;
+
+  String? _selectedStockCode;
+  String? _selectedStockName;
 
   // 下拉选项
   final List assetCategoryList = Categoryies.values
@@ -52,41 +61,135 @@ class _TradeAddPageState extends State<TradeAddPage> {
       color: AppColors.appBackground,
       child: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            // 顶部关闭与标题
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.black87),
-                    onPressed: widget.onClose ?? () => Navigator.pop(context),
+        child: SingleChildScrollView(
+          // 允许内容溢出时可滚动
+          child: Padding(
+            padding: const EdgeInsets.only(
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 24,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, // 靠左对齐
+              children: [
+                // 顶部关闭与标题
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    '取引追加',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.black87,
+                        ),
+                        onPressed:
+                            widget.onClose ?? () => Navigator.pop(context),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        '取引追加',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 主内容卡片
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: GlassTab(
+                    tabs: const ['資産', '負債'],
+                    tabBarContentList: [_buildAssetForm(), _buildDebtForm()],
+                  ),
+                ),
+
+                /*Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(36),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 32,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                    child: GlassTab(
+                      tabs: const ['資産', '負債'],
+                      tabBarContentList: [_buildAssetForm(), _buildDebtForm()],
                     ),
                   ),
-                ],
-              ),
+                ),*/
+                const SizedBox(height: 32),
+                // 底部按钮
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed:
+                              widget.onClose ?? () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            side: const BorderSide(color: Colors.transparent),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            backgroundColor: Colors.white,
+                          ),
+                          child: const Text(
+                            'キャンセル',
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            // TODO: 保存逻辑
+                          },
+                          icon: const Icon(Icons.save_alt_rounded, size: 20),
+                          label: const Text(
+                            '保存',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            backgroundColor: const Color(0xFF4F8CFF),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const Divider(height: 1),
-            // glass_tab
-            Expanded(
-              child: GlassTab(
-                tabs: const ['資産', '負債'],
-                tabBarContentList: [
-                  _buildAssetForm(), // 直接传Column
-                  _buildDebtForm(),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -304,7 +407,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                   ),
                   const SizedBox(height: 8),
                   // 銘柄コード（自动补全）
-                  TextFormField(
+                  /*TextFormField(
                     decoration: InputDecoration(
                       labelText: '銘柄コード',
                       filled: true,
@@ -319,6 +422,15 @@ class _TradeAddPageState extends State<TradeAddPage> {
                       ),
                     ),
                     // TODO: 实现输入后自动补全、选中后自动填充銘柄名
+                  ),*/
+                  // 銘柄コード（自动补全）
+                  StockCodeAutocomplete(
+                    onSelected: (stock) {
+                      setState(() {
+                        _selectedStockCode = stock.code;
+                        _selectedStockName = stock.name;
+                      });
+                    },
                   ),
                   const SizedBox(height: 12),
                   // 銘柄名
@@ -336,6 +448,8 @@ class _TradeAddPageState extends State<TradeAddPage> {
                         vertical: 16,
                       ),
                     ),
+                    controller: TextEditingController(text: _selectedStockName),
+                    readOnly: true,
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -735,6 +849,190 @@ class _TradeAddPageState extends State<TradeAddPage> {
         SizedBox(height: 6),
         // ...memo输入框...
       ],
+    );
+  }
+}
+
+// 这个类必须放在最外层，不能放在任何类的内部！
+class _TabBarSliverDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  _TabBarSliverDelegate({required this.child});
+  @override
+  double get minExtent => 64;
+  @override
+  double get maxExtent => 64;
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return child;
+  }
+
+  @override
+  bool shouldRebuild(covariant _TabBarSliverDelegate oldDelegate) => false;
+}
+
+class StockInfo {
+  final String code;
+  final String name;
+  StockInfo(this.code, this.name);
+}
+
+class StockCodeAutocomplete extends StatefulWidget {
+  final void Function(StockInfo) onSelected;
+  const StockCodeAutocomplete({super.key, required this.onSelected});
+
+  @override
+  State<StockCodeAutocomplete> createState() => _StockCodeAutocompleteState();
+}
+
+class _StockCodeAutocompleteState extends State<StockCodeAutocomplete> {
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  OverlayEntry? _overlayEntry;
+  List<StockInfo> _suggestions = [];
+  bool _loading = false;
+
+  Timer? _debounceTimer;
+  String _lastQueriedValue = '';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    _removeOverlay();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  void _showOverlay() {
+    _removeOverlay();
+    final RenderBox box = context.findRenderObject() as RenderBox;
+    final Offset position = box.localToGlobal(Offset.zero);
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        left: position.dx,
+        top: position.dy + box.size.height,
+        width: box.size.width,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(16),
+          child: _loading
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : ListView(
+                  shrinkWrap: true,
+                  children: _suggestions.map((stock) {
+                    return ListTile(
+                      title: Text(stock.code),
+                      subtitle: Text(stock.name),
+                      onTap: () {
+                        _controller.text = stock.code;
+                        widget.onSelected(stock);
+                        _removeOverlay();
+                        FocusScope.of(context).unfocus();
+                      },
+                    );
+                  }).toList(),
+                ),
+        ),
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_overlayEntry!);
+  }
+
+  Future<void> _fetchSuggestions(String value) async {
+    if (value.isEmpty) {
+      setState(() => _suggestions = []);
+      _removeOverlay();
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _suggestions = [];
+    });
+    _showOverlay();
+
+    final url = Uri.parse(
+      'https://yeciaqfdlznrstjhqfxu.supabase.co/functions/v1/money_grow_api/stock-search?q=$value&exchange=US&limit=5',
+    );
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization':
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllY2lhcWZkbHpucnN0amhxZnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDE3NTIsImV4cCI6MjA3MTk3Nzc1Mn0.QXWNGKbr9qjeBLYRWQHEEBMT1nfNKZS3vne-Za38bOc',
+      },
+    );
+
+    List<StockInfo> result = [];
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['results'] is List) {
+        result = (data['results'] as List)
+            .map((item) => StockInfo(item['ticker'] ?? '', item['name'] ?? ''))
+            .toList();
+      }
+    }
+
+    setState(() {
+      _loading = false;
+      _suggestions = result;
+    });
+    _showOverlay();
+  }
+
+  void _onChanged(String value) {
+    _debounceTimer?.cancel();
+    if (value.isEmpty) {
+      setState(() => _suggestions = []);
+      _removeOverlay();
+      return;
+    }
+    // 1秒防抖
+    _debounceTimer = Timer(const Duration(seconds: 1), () {
+      _lastQueriedValue = value;
+      _fetchSuggestions(value);
+    });
+  }
+
+  void _onFocusChange(bool hasFocus) {
+    if (!hasFocus) {
+      _debounceTimer?.cancel();
+      _removeOverlay(); // 只关闭下拉，不再请求API
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      onFocusChange: _onFocusChange,
+      child: TextFormField(
+        controller: _controller,
+        focusNode: _focusNode,
+        decoration: InputDecoration(
+          labelText: '銘柄コード',
+          filled: true,
+          fillColor: const Color(0xFFF5F6FA),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
+        ),
+        onChanged: _onChanged,
+      ),
     );
   }
 }
