@@ -11,33 +11,33 @@ class TradeDetailPage extends StatelessWidget {
 
   Color get typeColor {
     switch (record.type) {
-      case TradeType.buy:
+      case ActionType.buy:
         return const Color(0xFFEF5350);
-      case TradeType.sell:
+      case ActionType.sell:
         return const Color(0xFF43A047);
-      case TradeType.dividend:
+      case ActionType.dividend:
         return const Color(0xFF1976D2);
     }
   }
 
   IconData get typeIcon {
     switch (record.type) {
-      case TradeType.buy:
+      case ActionType.buy:
         return Icons.arrow_downward;
-      case TradeType.sell:
+      case ActionType.sell:
         return Icons.arrow_upward;
-      case TradeType.dividend:
+      case ActionType.dividend:
         return Icons.card_giftcard;
     }
   }
 
   String get typeLabel {
     switch (record.type) {
-      case TradeType.buy:
+      case ActionType.buy:
         return '買い';
-      case TradeType.sell:
+      case ActionType.sell:
         return '売り';
-      case TradeType.dividend:
+      case ActionType.dividend:
         return '配当';
     }
   }
@@ -52,10 +52,10 @@ class TradeDetailPage extends StatelessWidget {
     final unit = detail.length > 1
         ? detail[1].replaceAll(RegExp(r'\D'), '')
         : '';
-    final fee = record.type == TradeType.dividend
+    final fee = record.type == ActionType.dividend
         ? '¥0'
         : (record.code == 'AAPL' ? '¥500' : '¥300');
-    final total = record.type == TradeType.dividend
+    final total = record.type == ActionType.dividend
         ? record.amount
         : record.code == 'AAPL'
         ? '¥88,000'

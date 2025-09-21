@@ -7,6 +7,17 @@ enum TradeType {
 }
 
 extension TradeTypeExtension on TradeType {
+  String get code {
+    switch (this) {
+      case TradeType.normal:
+        return 'normal';
+      case TradeType.specific:
+        return 'specific';
+      case TradeType.nisa:
+        return 'nisa';
+    }
+  }
+
   String get displayName {
     switch (this) {
       case TradeType.normal:

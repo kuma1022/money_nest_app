@@ -109,10 +109,12 @@ class _GlassTabState extends State<GlassTab>
                 ),
               ),
               const SizedBox(height: 8),
-              // Tab内容
-              IndexedStack(
-                index: _tabController.index,
-                children: widget.tabBarContentList,
+              // Tab内容动画
+              AnimatedSize(
+                duration: const Duration(milliseconds: 450),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: widget.tabBarContentList[_tabController.index],
               ),
             ],
           ),

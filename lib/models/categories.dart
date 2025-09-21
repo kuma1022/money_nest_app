@@ -1,21 +1,134 @@
 // カテゴリ（資産・負債共通）
-enum Categoryies {
-  stock(id: 1, name: '株式', type: 'asset', displayOrder: 1),
-  fx(id: 2, name: 'FX（為替）', type: 'asset', displayOrder: 2),
-  crypto(id: 3, name: '暗号資産', type: 'asset', displayOrder: 3),
-  metal(id: 4, name: '貴金属', type: 'asset', displayOrder: 4),
-  otherAsset(id: 5, name: 'その他資産', type: 'asset', displayOrder: 5),
-  loan(id: 6, name: 'ローン', type: 'liability', displayOrder: 6),
-  debt(id: 7, name: '借金', type: 'liability', displayOrder: 7);
+import 'dart:convert';
+
+enum Categories {
+  stock(id: 1, code: 'stock', name: '株式', type: 'asset', displayOrder: 1),
+  fx(id: 2, code: 'fx', name: 'FX（為替）', type: 'asset', displayOrder: 2),
+  crypto(id: 3, code: 'crypto', name: '暗号資産', type: 'asset', displayOrder: 3),
+  metal(id: 4, code: 'metal', name: '貴金属', type: 'asset', displayOrder: 4),
+  otherAsset(
+    id: 5,
+    code: 'other_asset',
+    name: 'その他資産',
+    type: 'asset',
+    displayOrder: 5,
+  ),
+  loan(id: 6, code: 'loan', name: 'ローン', type: 'liability', displayOrder: 6),
+  debt(id: 7, code: 'debt', name: '借金', type: 'liability', displayOrder: 7);
 
   final int id;
+  final String code;
   final String name;
   final String type;
   final int displayOrder;
-  const Categoryies({
+  const Categories({
     required this.id,
+    required this.code,
     required this.name,
     required this.type,
+    required this.displayOrder,
+  });
+}
+
+// サブカテゴリ（資産・負債共通）
+enum Subcategories {
+  jpStock(
+    id: 2,
+    categoryId: 1,
+    code: 'jp_stock',
+    name: '国内株式（ETF含む）',
+    displayOrder: 1,
+  ),
+  usStock(
+    id: 3,
+    categoryId: 1,
+    code: 'us_stock',
+    name: '米国株式（ETF含む）',
+    displayOrder: 2,
+  ),
+  otherStock(
+    id: 4,
+    categoryId: 1,
+    code: 'other_stock',
+    name: 'その他（海外株式など）',
+    displayOrder: 3,
+  ),
+  fx(id: 5, categoryId: 2, code: 'fx', name: 'FX', displayOrder: 1),
+  crypto(id: 6, categoryId: 3, code: 'crypto', name: '暗号資産', displayOrder: 1),
+  gold(id: 7, categoryId: 4, code: 'gold', name: '金', displayOrder: 1),
+  silver(id: 8, categoryId: 4, code: 'silver', name: '銀', displayOrder: 2),
+  platinum(
+    id: 9,
+    categoryId: 4,
+    code: 'platinum',
+    name: 'プラチナ',
+    displayOrder: 3,
+  ),
+  bank(id: 10, categoryId: 5, code: 'bank', name: '銀行預金', displayOrder: 1),
+  cash(id: 11, categoryId: 5, code: 'cash', name: '現金', displayOrder: 2),
+  realEstate(
+    id: 12,
+    categoryId: 5,
+    code: 'real_estate',
+    name: '不動産',
+    displayOrder: 3,
+  ),
+  fund(id: 13, categoryId: 5, code: 'fund', name: '投資信託', displayOrder: 4),
+  bond(id: 14, categoryId: 5, code: 'bond', name: '債券', displayOrder: 5),
+  mortgage(
+    id: 15,
+    categoryId: 6,
+    code: 'mortgage',
+    name: '住宅ローン',
+    displayOrder: 1,
+  ),
+  autoLoan(
+    id: 16,
+    categoryId: 6,
+    code: 'auto_loan',
+    name: '自動車ローン',
+    displayOrder: 2,
+  ),
+  educationLoan(
+    id: 17,
+    categoryId: 6,
+    code: 'education_loan',
+    name: '教育ローン',
+    displayOrder: 3,
+  ),
+  otherLoan(
+    id: 18,
+    categoryId: 6,
+    code: 'other_loan',
+    name: 'その他ローン',
+    displayOrder: 4,
+  ),
+  creditCard(
+    id: 19,
+    categoryId: 7,
+    code: 'credit_card',
+    name: 'クレジットカード',
+    displayOrder: 1,
+  ),
+  consumerFinance(
+    id: 20,
+    categoryId: 6,
+    code: 'consumer_finance',
+    name: '消費者金融/その他',
+    displayOrder: 2,
+  );
+
+  final int id;
+  final int categoryId;
+  final String code;
+  final String name;
+  final int displayOrder;
+
+  const Subcategories({
+    required this.id,
+    required this.categoryId,
+    required this.code,
+    required this.name,
     required this.displayOrder,
   });
 }

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/currency.dart';
+import 'package:money_nest_app/models/stock_info.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AppUtils {
@@ -30,6 +31,34 @@ class AppUtils {
       return await launchUrl(uri);
     }
     return false;
+  }
+
+  Future<List<StockInfo>> fetchStockSuggestions(
+    String value,
+    String exchange,
+  ) async {
+    final url = Uri.parse(
+      'https://yeciaqfdlznrstjhqfxu.supabase.co/functions/v1/money_grow_api/stock-search?q=$value&exchange=$exchange&limit=5',
+    );
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization':
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllY2lhcWZkbHpucnN0amhxZnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDE3NTIsImV4cCI6MjA3MTk3Nzc1Mn0.QXWNGKbr9qjeBLYRWQHEEBMT1nfNKZS3vne-Za38bOc',
+      },
+    );
+
+    List<StockInfo> result = [];
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['results'] is List) {
+        result = (data['results'] as List)
+            .map((item) => StockInfo(item['ticker'] ?? '', item['name'] ?? ''))
+            .toList();
+      }
+    }
+
+    return result;
   }
 
   Future<Map<String, double>> getStockPricesByYHFinanceAPI(

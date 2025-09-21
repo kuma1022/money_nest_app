@@ -1,15 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
-import 'package:money_nest_app/components/card_section.dart';
+import 'package:money_nest_app/components/custom_date_dropdown_field.dart';
+import 'package:money_nest_app/components/custom_dropdown_button_form_field.dart';
 import 'package:money_nest_app/components/glass_tab.dart';
-import 'package:money_nest_app/components/glass_tab_bar_only';
 import 'package:money_nest_app/models/categories.dart';
+import 'package:money_nest_app/models/currency.dart';
+import 'package:money_nest_app/models/stock_info.dart';
+import 'package:money_nest_app/models/trade_type.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
-import 'trade_history_tab_page.dart'; // 导入 TradeRecord/TradeType
+import 'package:money_nest_app/util/app_utils.dart';
+import 'trade_history_tab_page.dart';
+import 'package:flutter/services.dart'; // 顶部import
 
 class TradeAddPage extends StatefulWidget {
   final TradeRecord? record; // 支持编辑模式
@@ -24,170 +28,212 @@ class _TradeAddPageState extends State<TradeAddPage> {
   int tabIndex = 0; // 0: 資産, 1: 負債
 
   // 資産用
-  String? assetCategory;
-  String? assetSubCategory;
+  String assetCategoryCode = '';
+  String assetSubCategoryCode = '';
 
   // 負債用
-  String? debtCategory;
-  String? debtSubCategory;
+  String debtCategoryCode = '';
+  String debtSubCategoryCode = '';
 
-  String? _selectedStockCode;
-  String? _selectedStockName;
+  String selectedStockCode = '';
+  String selectedStockName = '';
 
-  // 下拉选项
-  final List assetCategoryList = Categoryies.values
-      .where((cat) => cat.type == 'asset')
-      .toList();
-  final List liabilityCategoryList = Categoryies.values
-      .where((cat) => cat.type == 'liability')
-      .toList();
+  // カテゴリ・サブカテゴリ数据
+  late final List<Categories> assetCategories;
+  late final List<Categories> debtCategories;
+  late final Map<String, List<Map<String, dynamic>>> assetCategoriesWithSub;
+  late final Map<String, List<Map<String, dynamic>>> debtCategoriesWithSub;
+  // 取引種別
+  String tradeTypeCode = '';
+  late final List<dynamic> tradeTypes;
+  // 取引日
+  DateTime? tradeDate;
+  // 手数料通貨
+  String commissionCurrency = '';
+  late final List<String> commissionCurrencies =
+      Currency.values.map((e) => e.code).toList()
+        ..sort((a, b) => a.compareTo(b));
 
-  final assetCategories = {
-    '株式': ['国内株式（ETF含む）', '米国株式（ETF含む）', 'その他（海外株式など）'],
-    'FX（為替）': ['FX'],
-    '暗号資産': ['暗号資産'],
-    '貴金属': ['金', '銀', 'プラチナ'],
-    'その他資産': ['銀行預金', '現金', '不動産', '投資信託', '債券', 'その他'],
-  };
+  final TextEditingController _quantityController = TextEditingController();
+  final TextEditingController _unitPriceController = TextEditingController();
+  final TextEditingController _amountController = TextEditingController();
 
-  final debtCategories = {
-    'ローン': ['住宅ローン', '自動車ローン', '教育ローン', 'その他ローン'],
-    '借金': ['クレジットカード', '消費者金融/その他'],
-  };
+  @override
+  void initState() {
+    super.initState();
+    assetCategories =
+        Categories.values.where((cat) => cat.type == 'asset').toList()
+          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    debtCategories =
+        Categories.values.where((cat) => cat.type == 'liability').toList()
+          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+    assetCategoriesWithSub = assetCategories
+        .fold<Map<String, List<Map<String, dynamic>>>>({}, (map, cat) {
+          map[cat.code] = Subcategories.values
+              .where((sub) => sub.categoryId == cat.id)
+              .map(
+                (e) => {
+                  'id': e.id,
+                  'code': e.code,
+                  'name': e.name,
+                  'displayOrder': e.displayOrder,
+                },
+              )
+              .toList();
+          map[cat.code]?.sort(
+            (a, b) => a['displayOrder'].compareTo(b['displayOrder']),
+          );
+          return map;
+        });
+    debtCategoriesWithSub = debtCategories
+        .fold<Map<String, List<Map<String, dynamic>>>>({}, (map, cat) {
+          map[cat.code] = Subcategories.values
+              .where((sub) => sub.categoryId == cat.id)
+              .map(
+                (e) => {
+                  'id': e.id,
+                  'code': e.code,
+                  'name': e.name,
+                  'displayOrder': e.displayOrder,
+                },
+              )
+              .toList();
+          map[cat.code]?.sort(
+            (a, b) => a['displayOrder'].compareTo(b['displayOrder']),
+          );
+          return map;
+        });
+    tradeTypes = TradeType.values
+        .map((e) => {'code': e.code, 'name': e.displayName})
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _unitPriceController.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.appBackground,
-      child: SafeArea(
-        bottom: false,
-        child: SingleChildScrollView(
-          // 允许内容溢出时可滚动
-          child: Padding(
-            padding: const EdgeInsets.only(
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 24,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, // 靠左对齐
-              children: [
-                // 顶部关闭与标题
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new,
-                          color: Colors.black87,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent, // 保证空白处也能响应
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Material(
+        color: AppColors.appBackground,
+        child: SafeArea(
+          bottom: false,
+          child: SingleChildScrollView(
+            // 允许内容溢出时可滚动
+            child: Padding(
+              padding: const EdgeInsets.only(
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 24,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, // 靠左对齐
+                children: [
+                  // 顶部关闭与标题
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new,
+                            color: Colors.black87,
+                          ),
+                          onPressed:
+                              widget.onClose ?? () => Navigator.pop(context),
                         ),
-                        onPressed:
-                            widget.onClose ?? () => Navigator.pop(context),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        '取引追加',
-                        style: TextStyle(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // 主内容卡片
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: GlassTab(
-                    tabs: const ['資産', '負債'],
-                    tabBarContentList: [_buildAssetForm(), _buildDebtForm()],
-                  ),
-                ),
-
-                /*Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(36),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 32,
-                          offset: const Offset(0, 8),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '取引追加',
+                          style: TextStyle(
+                            color: Color(0xFF222222),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 22,
+                            letterSpacing: 1.2,
+                          ),
                         ),
                       ],
                     ),
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+                  ),
+                  // 主内容卡片
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: GlassTab(
                       tabs: const ['資産', '負債'],
                       tabBarContentList: [_buildAssetForm(), _buildDebtForm()],
                     ),
                   ),
-                ),*/
-                const SizedBox(height: 32),
-                // 底部按钮
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed:
-                              widget.onClose ?? () => Navigator.pop(context),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            side: const BorderSide(color: Colors.transparent),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
+                  const SizedBox(height: 32),
+                  // 底部按钮
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed:
+                                widget.onClose ?? () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              side: const BorderSide(color: Colors.transparent),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              backgroundColor: Colors.white,
                             ),
-                            backgroundColor: Colors.white,
-                          ),
-                          child: const Text(
-                            'キャンセル',
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                            child: const Text(
+                              'キャンセル',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            // TODO: 保存逻辑
-                          },
-                          icon: const Icon(Icons.save_alt_rounded, size: 20),
-                          label: const Text(
-                            '保存',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              // TODO: 保存逻辑
+                            },
+                            icon: const Icon(Icons.save_alt_rounded, size: 20),
+                            label: const Text(
+                              '保存',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              backgroundColor: const Color(0xFF4F8CFF),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
                             ),
-                            backgroundColor: const Color(0xFF4F8CFF),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -201,68 +247,67 @@ class _TradeAddPageState extends State<TradeAddPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // カテゴリ
-        const Text('カテゴリ', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'カテゴリ',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+            fontSize: 15,
+          ),
+        ),
         const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
-          value: assetCategory,
-          items: assetCategories.keys
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+        CustomDropdownButtonFormField<String>(
+          hintText: 'カテゴリを選択',
+          selectedValue:
+              assetCategoryCode.isNotEmpty &&
+                  assetCategories.any((e) => e.code == assetCategoryCode)
+              ? assetCategoryCode
+              : null,
+          items: assetCategories
+              .map((e) => DropdownMenuItem(value: e.code, child: Text(e.name)))
               .toList(),
           onChanged: (v) {
             setState(() {
-              assetCategory = v;
-              assetSubCategory = null;
+              assetCategoryCode = v ?? '';
+              assetSubCategoryCode = '';
+              selectedStockCode = '';
+              selectedStockName = '';
+              // 如有其它相关字段也一并清空
             });
           },
-          decoration: const InputDecoration(
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(12)),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 6),
         // サブカテゴリ
-        if (assetCategory != null)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'サブカテゴリ',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: assetSubCategory,
-                items: assetCategories[assetCategory]!
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) {
-                  setState(() {
-                    assetSubCategory = v;
-                  });
-                },
-                decoration: const InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    borderSide: BorderSide.none,
+        if (assetCategoryCode.isNotEmpty)
+          CustomDropdownButtonFormField<String>(
+            hintText: 'サブカテゴリを選択',
+            selectedValue:
+                assetSubCategoryCode.isNotEmpty &&
+                    assetCategoriesWithSub[assetCategoryCode]?.any(
+                          (e) => e['code'] as String == assetSubCategoryCode,
+                        ) ==
+                        true
+                ? assetSubCategoryCode
+                : null,
+            onChanged: (v) {
+              setState(() {
+                assetSubCategoryCode = v ?? '';
+                selectedStockCode = '';
+                selectedStockName = '';
+                // 如有其它相关字段也一并清空
+              });
+            },
+            items: (assetCategoriesWithSub[assetCategoryCode] ?? [])
+                .map<DropdownMenuItem<String>>(
+                  (e) => DropdownMenuItem(
+                    value: e['code'],
+                    child: Text(e['name']),
                   ),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
+                )
+                .toList(),
           ),
         // 动态表单内容
-        if (assetCategory != null && assetSubCategory != null)
+        if (assetCategoryCode.isNotEmpty && assetSubCategoryCode.isNotEmpty)
           _buildAssetDynamicFields(),
       ],
     );
@@ -276,81 +321,52 @@ class _TradeAddPageState extends State<TradeAddPage> {
         // カテゴリ
         const Text('カテゴリ', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
-        DropdownButtonFormField<String>(
-          value: debtCategory,
-          items: debtCategories.keys
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+        CustomDropdownButtonFormField<String>(
+          hintText: 'カテゴリを選択',
+          selectedValue:
+              debtCategoryCode.isNotEmpty &&
+                  debtCategories.any((e) => e.code == debtCategoryCode)
+              ? debtCategoryCode
+              : null,
+          items: debtCategories
+              .map((e) => DropdownMenuItem(value: e.code, child: Text(e.name)))
               .toList(),
           onChanged: (v) {
             setState(() {
-              debtCategory = v;
-              debtSubCategory = null;
+              debtCategoryCode = v ?? '';
+              debtSubCategoryCode = '';
             });
           },
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: const Color(0xFFF5F6FA), // 浅灰色背景
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16), // 圆角
-              borderSide: BorderSide.none, // 无边框
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ), // 内边距
-          ),
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            color: Color(0xFFB0B0B0),
-          ), // 下拉箭头
-          style: const TextStyle(fontSize: 16, color: Colors.black87),
-          dropdownColor: const Color(0xFFF5F6FA), // 下拉菜单背景色
         ),
         const SizedBox(height: 16),
         // サブカテゴリ
-        if (debtCategory != null)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'サブカテゴリ',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                value: debtSubCategory,
-                items: debtCategories[debtCategory]!
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) {
-                  setState(() {
-                    debtSubCategory = v;
-                  });
-                },
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: const Color(0xFFF5F6FA), // 浅灰色背景
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16), // 圆角
-                    borderSide: BorderSide.none, // 无边框
+        if (debtCategoryCode.isNotEmpty)
+          CustomDropdownButtonFormField<String>(
+            hintText: 'サブカテゴリを選択',
+            selectedValue:
+                debtSubCategoryCode.isNotEmpty &&
+                    debtCategoriesWithSub[debtCategoryCode]?.any(
+                          (e) => e['code'] as String == debtSubCategoryCode,
+                        ) ==
+                        true
+                ? debtSubCategoryCode
+                : null,
+            items: (debtCategoriesWithSub[debtCategoryCode] ?? [])
+                .map<DropdownMenuItem<String>>(
+                  (e) => DropdownMenuItem(
+                    value: e['code'],
+                    child: Text(e['name']),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ), // 内边距
-                ),
-                icon: const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: Color(0xFFB0B0B0),
-                ), // 下拉箭头
-                style: const TextStyle(fontSize: 16, color: Colors.black87),
-                dropdownColor: const Color(0xFFF5F6FA), // 下拉菜单背景色
-              ),
-              const SizedBox(height: 16),
-            ],
+                )
+                .toList(),
+            onChanged: (v) {
+              setState(() {
+                debtSubCategoryCode = v ?? '';
+              });
+            },
           ),
         // 动态表单内容
-        if (debtCategory != null && debtSubCategory != null)
+        if (debtCategoryCode.isNotEmpty && debtSubCategoryCode.isNotEmpty)
           _buildDebtDynamicFields(),
       ],
     );
@@ -359,42 +375,57 @@ class _TradeAddPageState extends State<TradeAddPage> {
   // 动态生成資産tab下的表单内容
   Widget _buildAssetDynamicFields() {
     // 这里只举例：株式（国内株式（ETF含む））的买入
-    if (assetCategory == '株式' &&
-        (assetSubCategory == '国内株式（ETF含む）' ||
-            assetSubCategory == '米国株式（ETF含む）')) {
+    if (assetCategoryCode == 'stock' &&
+        (assetSubCategoryCode == 'jp_stock' ||
+            assetSubCategoryCode == 'us_stock')) {
       // 取引種別
       String tradeType = 'buy'; // 默认买入
       return StatefulBuilder(
         builder: (context, setInnerState) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('取引種別', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            DropdownButtonFormField<String>(
-              value: tradeType,
-              items: const [
-                DropdownMenuItem(value: 'buy', child: Text('買い')),
-                DropdownMenuItem(value: 'sell', child: Text('売り')),
-              ],
-              onChanged: (v) => setInnerState(() => tradeType = v!),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: const Color(0xFFF5F6FA), // 浅灰色背景
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16), // 圆角
-                  borderSide: BorderSide.none, // 无边框
+            //const Text('取引種別', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            CupertinoSlidingSegmentedControl<String>(
+              groupValue: tradeType,
+              children: {
+                'buy': Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
+                  child: Text(
+                    '買い',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: tradeType == 'buy'
+                          ? Color(0xFF4F8CFF)
+                          : Color(0xFF888888),
+                    ),
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ), // 内边距
-              ),
-              icon: const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: Color(0xFFB0B0B0),
-              ), // 下拉箭头
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
-              dropdownColor: const Color(0xFFF5F6FA), // 下拉菜单背景色
+                'sell': Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
+                  child: Text(
+                    '売り',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: tradeType == 'sell'
+                          ? Color(0xFF4F8CFF)
+                          : Color(0xFF888888),
+                    ),
+                  ),
+                ),
+              },
+              onValueChanged: (v) => setInnerState(() => tradeType = v!),
+              backgroundColor: Colors.white.withOpacity(0.85),
+              thumbColor: Colors.white,
             ),
             const SizedBox(height: 16),
             if (tradeType == 'buy')
@@ -407,28 +438,17 @@ class _TradeAddPageState extends State<TradeAddPage> {
                   ),
                   const SizedBox(height: 8),
                   // 銘柄コード（自动补全）
-                  /*TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '銘柄コード',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    // TODO: 实现输入后自动补全、选中后自动填充銘柄名
-                  ),*/
-                  // 銘柄コード（自动补全）
                   StockCodeAutocomplete(
+                    exchange: assetSubCategoryCode == 'jp_stock' ? 'JP' : 'US',
                     onSelected: (stock) {
                       setState(() {
-                        _selectedStockCode = stock.code;
-                        _selectedStockName = stock.name;
+                        if (stock.code.isNotEmpty && stock.name.isNotEmpty) {
+                          selectedStockCode = stock.code;
+                          selectedStockName = stock.name;
+                        } else {
+                          selectedStockCode = '';
+                          selectedStockName = '';
+                        }
                       });
                     },
                   ),
@@ -448,7 +468,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                         vertical: 16,
                       ),
                     ),
-                    controller: TextEditingController(text: _selectedStockName),
+                    controller: TextEditingController(text: selectedStockName),
                     readOnly: true,
                   ),
                   const SizedBox(height: 16),
@@ -458,92 +478,191 @@ class _TradeAddPageState extends State<TradeAddPage> {
                   ),
                   const SizedBox(height: 8),
                   // 取引日
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '取引日',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    readOnly: true,
-                    onTap: () async {
-                      // TODO: 弹出日期选择
+                  CustomDateDropdownField(
+                    labelText: '取引日',
+                    value: tradeDate,
+                    onChanged: (date) {
+                      setState(() {
+                        tradeDate = date;
+                      });
                     },
                   ),
                   const SizedBox(height: 12),
                   // 口座区分
-                  DropdownButtonFormField<String>(
-                    value: null,
-                    items: const [
-                      DropdownMenuItem(value: '一般', child: Text('一般')),
-                      DropdownMenuItem(value: 'NISA', child: Text('NISA')),
-                      DropdownMenuItem(value: '特定', child: Text('特定')),
+                  CustomDropdownButtonFormField<String>(
+                    hintText: '口座区分を選択',
+                    selectedValue:
+                        tradeTypeCode.isNotEmpty &&
+                            tradeTypes.any(
+                              (e) => e['code'] as String == tradeTypeCode,
+                            )
+                        ? tradeTypeCode
+                        : null,
+                    items: tradeTypes
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e['code'] as String,
+                            child: Text(e['name']),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) {
+                      setState(() {
+                        tradeTypeCode = v ?? '';
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  // 数量・単価
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '数量',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: _quantityController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'^\d*\.?\d*'),
+                                ),
+                                TextInputFormatter.withFunction((
+                                  oldValue,
+                                  newValue,
+                                ) {
+                                  final text = newValue.text;
+                                  // 不能以小数点开头
+                                  if (text.startsWith('.')) return oldValue;
+                                  // 只允许一个小数点
+                                  if ('.'.allMatches(text).length > 1)
+                                    return oldValue;
+                                  return newValue;
+                                }),
+                              ],
+                              decoration: InputDecoration(
+                                hintText: '例: 100',
+                                filled: true,
+                                fillColor: const Color(0xFFF5F6FA),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 16,
+                                ),
+                              ),
+                              onChanged: (value) {
+                                if (value.isEmpty) return;
+                                final num? n = num.tryParse(value);
+                                if (n == null) return;
+                                final formatted = n % 1 == 0
+                                    ? n.toInt().toString()
+                                    : n.toString();
+                                if (formatted != value) {
+                                  _quantityController.value = TextEditingValue(
+                                    text: formatted,
+                                    selection: TextSelection.collapsed(
+                                      offset: formatted.length,
+                                    ),
+                                  );
+                                }
+                                _updateAmount();
+                              },
+                              onEditingComplete: _updateAmount,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '単価',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: _unitPriceController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'^\d*\.?\d*'),
+                                ),
+                                TextInputFormatter.withFunction((
+                                  oldValue,
+                                  newValue,
+                                ) {
+                                  final text = newValue.text;
+                                  // 不能以小数点开头
+                                  if (text.startsWith('.')) return oldValue;
+                                  // 只允许一个小数点
+                                  if ('.'.allMatches(text).length > 1)
+                                    return oldValue;
+                                  return newValue;
+                                }),
+                              ],
+                              decoration: InputDecoration(
+                                hintText: '例: 2500',
+                                filled: true,
+                                fillColor: const Color(0xFFF5F6FA),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 16,
+                                ),
+                              ),
+                              onChanged: (value) {
+                                if (value.isEmpty) return;
+                                final num? n = num.tryParse(value);
+                                if (n == null) return;
+                                final formatted = n % 1 == 0
+                                    ? n.toInt().toString()
+                                    : n.toString();
+                                if (formatted != value) {
+                                  _unitPriceController.value = TextEditingValue(
+                                    text: formatted,
+                                    selection: TextSelection.collapsed(
+                                      offset: formatted.length,
+                                    ),
+                                  );
+                                }
+                                _updateAmount();
+                              },
+                              onEditingComplete: _updateAmount,
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
-                    onChanged: (v) {},
-                    decoration: InputDecoration(
-                      labelText: '口座区分',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
                   ),
                   const SizedBox(height: 12),
-                  // 数量
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '数量',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    // TODO: onChanged时动态计算金额
+                  // 金額（自動計算）
+                  const Text(
+                    '金額（自動計算）',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 12),
-                  // 単価
+                  const SizedBox(height: 6),
                   TextFormField(
+                    controller: _amountController,
                     decoration: InputDecoration(
-                      labelText: '単価',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    // TODO: onChanged时动态计算金额
-                  ),
-                  const SizedBox(height: 12),
-                  // 金額（自动计算显示，不可编辑）
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '金額（自動計算）',
                       filled: true,
                       fillColor: const Color(0xFFF5F6FA),
                       border: OutlineInputBorder(
@@ -556,55 +675,87 @@ class _TradeAddPageState extends State<TradeAddPage> {
                       ),
                     ),
                     readOnly: true,
-                    controller: /* TODO: 金额controller */
-                        TextEditingController(),
                   ),
                   const SizedBox(height: 12),
-                  // 手数料（任意）
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '手数料（任意）',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
+                  // 手数料・手数料通貨
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '手数料（任意）',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              decoration: InputDecoration(
+                                hintText: '例: 500',
+                                filled: true,
+                                fillColor: const Color(0xFFF5F6FA),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 16,
+                                ),
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ],
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '手数料通貨',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            CustomDropdownButtonFormField<String>(
+                              hintText: '通貨を選択',
+                              selectedValue:
+                                  commissionCurrency.isNotEmpty &&
+                                      commissionCurrencies.any(
+                                        (e) => e == commissionCurrency,
+                                      )
+                                  ? commissionCurrency
+                                  : null,
+                              items: commissionCurrencies
+                                  .map(
+                                    (e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(e),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) {
+                                setState(() {
+                                  commissionCurrency = v ?? '';
+                                });
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  // 手数料通貨
-                  DropdownButtonFormField<String>(
-                    value: null,
-                    items: const [
-                      DropdownMenuItem(value: 'JPY', child: Text('JPY')),
-                      DropdownMenuItem(value: 'USD', child: Text('USD')),
                     ],
-                    onChanged: (v) {},
-                    decoration: InputDecoration(
-                      labelText: '手数料通貨',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
                   ),
                   const SizedBox(height: 12),
-                  // メモ（任意）
+                  // メモ
+                  const Text(
+                    'メモ（任意）',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
                   TextFormField(
                     decoration: InputDecoration(
-                      labelText: 'メモ（任意）',
+                      hintText: '取引に関するメモを入力',
                       filled: true,
                       fillColor: const Color(0xFFF5F6FA),
                       border: OutlineInputBorder(
@@ -678,23 +829,13 @@ class _TradeAddPageState extends State<TradeAddPage> {
                   ),
                   const SizedBox(height: 8),
                   // 取引日
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '取引日',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    readOnly: true,
-                    onTap: () async {
-                      // TODO: 弹出日期选择
+                  CustomDateDropdownField(
+                    labelText: '取引日',
+                    value: tradeDate,
+                    onChanged: (date) {
+                      setState(() {
+                        tradeDate = date;
+                      });
                     },
                   ),
                   const SizedBox(height: 12),
@@ -851,6 +992,22 @@ class _TradeAddPageState extends State<TradeAddPage> {
       ],
     );
   }
+
+  // 自动计算金额
+  void _updateAmount() {
+    final quantity = num.tryParse(_quantityController.text);
+    final unitPrice = num.tryParse(_unitPriceController.text);
+    if (quantity != null && unitPrice != null) {
+      final amount = quantity * unitPrice;
+      // 整数显示整数，小数显示小数
+      final formatted = amount % 1 == 0
+          ? amount.toInt().toString()
+          : amount.toString();
+      _amountController.text = formatted;
+    } else {
+      _amountController.text = '';
+    }
+  }
 }
 
 // 这个类必须放在最外层，不能放在任何类的内部！
@@ -874,15 +1031,14 @@ class _TabBarSliverDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _TabBarSliverDelegate oldDelegate) => false;
 }
 
-class StockInfo {
-  final String code;
-  final String name;
-  StockInfo(this.code, this.name);
-}
-
 class StockCodeAutocomplete extends StatefulWidget {
   final void Function(StockInfo) onSelected;
-  const StockCodeAutocomplete({super.key, required this.onSelected});
+  final String exchange;
+  const StockCodeAutocomplete({
+    super.key,
+    required this.onSelected,
+    required this.exchange,
+  });
 
   @override
   State<StockCodeAutocomplete> createState() => _StockCodeAutocompleteState();
@@ -894,6 +1050,7 @@ class _StockCodeAutocompleteState extends State<StockCodeAutocomplete> {
   OverlayEntry? _overlayEntry;
   List<StockInfo> _suggestions = [];
   bool _loading = false;
+  bool _selectedFromDropdown = false;
 
   Timer? _debounceTimer;
   String _lastQueriedValue = '';
@@ -929,6 +1086,8 @@ class _StockCodeAutocompleteState extends State<StockCodeAutocomplete> {
                   padding: EdgeInsets.all(16),
                   child: Center(child: CircularProgressIndicator()),
                 )
+              : _suggestions.isEmpty
+              ? const ListTile(title: Text('該当する銘柄が見つかりません'))
               : ListView(
                   shrinkWrap: true,
                   children: _suggestions.map((stock) {
@@ -938,6 +1097,7 @@ class _StockCodeAutocompleteState extends State<StockCodeAutocomplete> {
                       onTap: () {
                         _controller.text = stock.code;
                         widget.onSelected(stock);
+                        _selectedFromDropdown = true;
                         _removeOverlay();
                         FocusScope.of(context).unfocus();
                       },
@@ -950,65 +1110,65 @@ class _StockCodeAutocompleteState extends State<StockCodeAutocomplete> {
     Overlay.of(context, rootOverlay: true).insert(_overlayEntry!);
   }
 
-  Future<void> _fetchSuggestions(String value) async {
+  void _onChanged(String value) {
+    _lastQueriedValue = value;
     if (value.isEmpty) {
       setState(() => _suggestions = []);
       _removeOverlay();
+      widget.onSelected(StockInfo('', ''));
       return;
     }
+    _fetchSuggestions(value, widget.exchange);
+  }
+
+  void _onFocusChange(bool hasFocus) {
+    if (!hasFocus) {
+      _debounceTimer?.cancel();
+      _removeOverlay();
+
+      // 如果是从候选项中选中的，就不清空输入
+      if (_selectedFromDropdown) {
+        _selectedFromDropdown = false;
+        return;
+      }
+
+      final inputCode = _controller.text.trim();
+
+      // 如果候选项中有完全匹配的，选中它
+      for (var stock in _suggestions) {
+        if (stock.code == inputCode) {
+          _controller.text = stock.code;
+          widget.onSelected(stock);
+          return;
+        }
+      }
+
+      // 否则清空输入
+      _controller.clear();
+      widget.onSelected(StockInfo('', ''));
+    }
+  }
+
+  Future<void> _fetchSuggestions(String value, String exchange) async {
     setState(() {
       _loading = true;
       _suggestions = [];
     });
     _showOverlay();
 
-    final url = Uri.parse(
-      'https://yeciaqfdlznrstjhqfxu.supabase.co/functions/v1/money_grow_api/stock-search?q=$value&exchange=US&limit=5',
-    );
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllY2lhcWZkbHpucnN0amhxZnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDE3NTIsImV4cCI6MjA3MTk3Nzc1Mn0.QXWNGKbr9qjeBLYRWQHEEBMT1nfNKZS3vne-Za38bOc',
-      },
+    List<StockInfo> result = await AppUtils().fetchStockSuggestions(
+      value,
+      exchange,
     );
 
-    List<StockInfo> result = [];
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data['results'] is List) {
-        result = (data['results'] as List)
-            .map((item) => StockInfo(item['ticker'] ?? '', item['name'] ?? ''))
-            .toList();
-      }
-    }
+    // 只处理最后一次输入的结果
+    if (_lastQueriedValue != value) return;
 
     setState(() {
       _loading = false;
       _suggestions = result;
     });
     _showOverlay();
-  }
-
-  void _onChanged(String value) {
-    _debounceTimer?.cancel();
-    if (value.isEmpty) {
-      setState(() => _suggestions = []);
-      _removeOverlay();
-      return;
-    }
-    // 1秒防抖
-    _debounceTimer = Timer(const Duration(seconds: 1), () {
-      _lastQueriedValue = value;
-      _fetchSuggestions(value);
-    });
-  }
-
-  void _onFocusChange(bool hasFocus) {
-    if (!hasFocus) {
-      _debounceTimer?.cancel();
-      _removeOverlay(); // 只关闭下拉，不再请求API
-    }
   }
 
   @override
