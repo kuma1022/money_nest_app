@@ -8,7 +8,8 @@ class StocksProvider extends ChangeNotifier {
   StocksProvider(this.db);
 
   Future<void> loadStocks() async {
-    stocks = await db.getAllStocksRecords();
+    stocks = [];
+    //await db.getAllStocksRecords();
     notifyListeners();
   }
 }

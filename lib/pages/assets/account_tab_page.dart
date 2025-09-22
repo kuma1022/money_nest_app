@@ -55,7 +55,7 @@ class AccountTabPageState extends State<AccountTabPage> {
     AppDatabase db,
     String currencyCode,
   ) async {
-    // 获取持仓股票的数据
+    /*// 获取持仓股票的数据
     final stockDataList = await db.getAllStocksRecords();
 
     //for (var stock in stockDataList) {
@@ -135,7 +135,8 @@ class AccountTabPageState extends State<AccountTabPage> {
               priceMap[r.code]! *
               (priceMap['${r.currency.code != 'USD' ? r.currency.code : ''}$currencyCode'] ??
                   1.0),
-    );
+    );*/
+    return 0.0;
   }
 
   Future<void> _refreshData() async {
@@ -149,6 +150,7 @@ class AccountTabPageState extends State<AccountTabPage> {
 
   // 获取总盈亏金额（请用实际业务逻辑替换）
   Future<double> _getTotalProfit() async {
+    /*
     // 取得所有持仓记录
     final records = await widget.db.getAllAvailableBuyRecords();
     final stocks = await widget.db.getAllStocks();
@@ -190,11 +192,13 @@ class AccountTabPageState extends State<AccountTabPage> {
 
     // 计算总盈亏
     return _totalProfit;
+    */
+    return 0.0;
   }
 
   // 获取总盈亏率（请用实际业务逻辑替换）
   Future<double> _getTotalProfitRate() async {
-    // 取得所有持仓记录
+    /*// 取得所有持仓记录
     final records = await widget.db.getAllAvailableBuyRecords();
     final stocks = await widget.db.getAllStocks();
     final stockMap = {for (var stock in stocks) stock.code: stock};
@@ -213,7 +217,8 @@ class AccountTabPageState extends State<AccountTabPage> {
       ),
     );
 
-    return _totalCost > 0 ? _totalProfit / _totalCost : 0;
+    return _totalCost > 0 ? _totalProfit / _totalCost : 0;*/
+    return 0.0;
   }
 
   String _formatProfit(double profit, Currency currency) {
@@ -228,7 +233,7 @@ class AccountTabPageState extends State<AccountTabPage> {
 
   // 取得持仓的数据，并且生成相应的显示项目内容
   Future<List<Widget>> _buildAccountItems(AppLocalizations l10n) async {
-    final markets = await widget.db.getAllMarketDataRecords();
+    /*final markets = await widget.db.getAllMarketDataRecords();
     final records = await widget.db.getAllAvailableBuyRecords();
     final stocks = await widget.db.getAllStocks();
     final stockMap = {for (var stock in stocks) stock.code: stock};
@@ -318,7 +323,8 @@ class AccountTabPageState extends State<AccountTabPage> {
         ),
       );
     }
-    return items;
+    return items;*/
+    return [];
   }
 
   // 你需要实现市场code到国旗code的映射
@@ -739,13 +745,14 @@ class _AccountItem extends StatelessWidget {
   Widget build(BuildContext context) {
     // 动态生成表格数据
     final double totalMarketValue =
-        tradeRecords?.fold<double>(
-          0,
-          (sum, r) => sum + (r.quantity * (stocks?[r.code]?.currentPrice ?? 0)),
-        ) ??
+        //tradeRecords?.fold<double>(
+        //  0,
+        //  (sum, r) => sum + (r.quantity * (stocks?[r.code]?.currentPrice ?? 0)),
+        //) ??
         0.0;
     final data =
         tradeRecords?.map((r) {
+          /*
           // 你需要根据实际 TradeRecord 字段调整
           return {
             'name': stocks?[r.code]?.name ?? r.code, // 股票名称或代码
@@ -765,6 +772,8 @@ class _AccountItem extends StatelessWidget {
                 ? '${(r.quantity * (stocks?[r.code]?.currentPrice ?? 0) / totalMarketValue * 100).toStringAsFixed(2)}%'
                 : '0.00%',
           };
+          */
+          return {};
         }).toList() ??
         [];
 

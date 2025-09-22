@@ -298,11 +298,11 @@ class TradeDetailPage extends StatelessWidget {
                       ),
                       onPressed: () {
                         // 跳转到编辑页面
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => TradeAddPage(record: record),
-                          ),
-                        );
+                        //Navigator.of(context).push(
+                        //  MaterialPageRoute(
+                        //    builder: (_) => TradeAddPage(record: record),
+                        //  ),
+                        //);
                       },
                       child: const Text(
                         '編集',

@@ -1,24 +1,27 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:ui'; // 新增
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:money_nest_app/components/custom_date_dropdown_field.dart';
 import 'package:money_nest_app/components/custom_dropdown_button_form_field.dart';
+import 'package:money_nest_app/components/custom_input_form_field_by_suggestion.dart';
+import 'package:money_nest_app/components/custom_text_form_field.dart';
 import 'package:money_nest_app/components/glass_tab.dart';
+import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/categories.dart';
 import 'package:money_nest_app/models/currency.dart';
-import 'package:money_nest_app/models/stock_info.dart';
 import 'package:money_nest_app/models/trade_type.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
+import 'package:money_nest_app/presentation/resources/app_texts.dart';
 import 'package:money_nest_app/util/app_utils.dart';
-import 'trade_history_tab_page.dart';
-import 'package:flutter/services.dart'; // 顶部import
+import 'package:money_nest_app/util/global_store.dart';
+import 'package:flutter/services.dart';
 
 class TradeAddPage extends StatefulWidget {
-  final TradeRecord? record; // 支持编辑模式
+  //final TradeRecord? record; // 支持编辑模式
   final VoidCallback? onClose;
-  const TradeAddPage({super.key, this.onClose, this.record});
+  const TradeAddPage({super.key, this.onClose}); //this.record});
 
   @override
   State<TradeAddPage> createState() => _TradeAddPageState();
@@ -27,36 +30,178 @@ class TradeAddPage extends StatefulWidget {
 class _TradeAddPageState extends State<TradeAddPage> {
   int tabIndex = 0; // 0: 資産, 1: 負債
 
-  // 資産用
-  String assetCategoryCode = '';
-  String assetSubCategoryCode = '';
-
-  // 負債用
-  String debtCategoryCode = '';
-  String debtSubCategoryCode = '';
-
-  String selectedStockCode = '';
-  String selectedStockName = '';
-
-  // カテゴリ・サブカテゴリ数据
+  // カテゴリ・サブカテゴリ
   late final List<Categories> assetCategories;
   late final List<Categories> debtCategories;
   late final Map<String, List<Map<String, dynamic>>> assetCategoriesWithSub;
   late final Map<String, List<Map<String, dynamic>>> debtCategoriesWithSub;
+  String assetCategoryCode = '';
+  String assetSubCategoryCode = '';
+  String debtCategoryCode = '';
+  String debtSubCategoryCode = '';
+  // 操作タイプ（買い or 売り）
+  String tradeAction = 'buy';
+  // 銘柄情報
+  final TextEditingController _stockCodeController = TextEditingController();
+  final FocusNode _stockCodeFocusNode = FocusNode();
+  OverlayEntry? _overlayEntry;
+  List<Stock> _stockSuggestions = [];
+  bool _stockLoading = false;
+  Timer? _debounceTimer;
+  String _lastQueriedValue = '';
+  bool _selectedFromDropdown = false;
+  String selectedStockCode = '';
+  String selectedStockName = '';
+  Stock? selectedStockInfo;
   // 取引種別
   String tradeTypeCode = '';
   late final List<dynamic> tradeTypes;
   // 取引日
-  DateTime? tradeDate;
+  String? tradeDate;
+  // 数量
+  num? quantityValue;
+  final TextEditingController _quantityController = TextEditingController();
+  final FocusNode _quantityFocusNode = FocusNode();
+  final _numberFormatter = NumberFormat("#,##0.####");
+  // 単価
+  num? unitPriceValue;
+  final TextEditingController _unitPriceController = TextEditingController();
+  final FocusNode _unitPriceFocusNode = FocusNode();
+  // 金額（自動计算）
+  final TextEditingController _amountController = TextEditingController();
+  // 手数料
+  num? commissionValue;
+  final TextEditingController _commissionController = TextEditingController();
+  final FocusNode _commissionFocusNode = FocusNode();
   // 手数料通貨
   String commissionCurrency = '';
   late final List<String> commissionCurrencies =
       Currency.values.map((e) => e.code).toList()
         ..sort((a, b) => a.compareTo(b));
+  // メモ
+  String? memoValue;
 
-  final TextEditingController _quantityController = TextEditingController();
-  final TextEditingController _unitPriceController = TextEditingController();
-  final TextEditingController _amountController = TextEditingController();
+  // 示例：异步获取候选
+  Future<void> _fetchSuggestions(String value, String exchange) async {
+    setState(() {
+      _stockLoading = true;
+      _stockSuggestions = [];
+    });
+    _showOverlay();
+
+    List<Stock> result = await AppUtils().fetchStockSuggestions(
+      value,
+      exchange,
+    );
+
+    // 只处理最后一次输入的结果
+    if (_lastQueriedValue != value) return;
+
+    setState(() {
+      _stockLoading = false;
+      _stockSuggestions = result;
+    });
+    _showOverlay();
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  void _showOverlay() {
+    _removeOverlay();
+    final RenderBox box = context.findRenderObject() as RenderBox;
+    final Offset position = box.localToGlobal(Offset.zero);
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        left: position.dx,
+        top: position.dy + box.size.height,
+        width: box.size.width,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(16),
+          child: _stockLoading
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : _stockSuggestions.isEmpty
+              ? const ListTile(title: Text('該当する銘柄が見つかりません'))
+              : ListView(
+                  shrinkWrap: true,
+                  children: _stockSuggestions.map((stock) {
+                    return ListTile(
+                      title: Text(stock.ticker!),
+                      subtitle: Text(stock.name),
+                      onTap: () {
+                        _stockCodeController.text = stock.ticker!;
+                        _onStockSelected(stock);
+                        _selectedFromDropdown = true;
+                        _removeOverlay();
+                        FocusScope.of(context).unfocus();
+                      },
+                    );
+                  }).toList(),
+                ),
+        ),
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_overlayEntry!);
+  }
+
+  void _onStockSelected(Stock? stock) {
+    setState(() {
+      if (stock != null && stock.ticker!.isNotEmpty && stock.name.isNotEmpty) {
+        selectedStockCode = stock.ticker!;
+        selectedStockName = stock.name;
+        selectedStockInfo = stock;
+      } else {
+        selectedStockCode = '';
+        selectedStockName = '';
+        selectedStockInfo = null;
+      }
+    });
+  }
+
+  void _onStockCodeChanged(String value) {
+    _lastQueriedValue = value;
+    if (value.isEmpty) {
+      setState(() => _stockSuggestions = []);
+      _removeOverlay();
+      _onStockSelected(null);
+      return;
+    }
+    _fetchSuggestions(value, assetSubCategoryCode == 'jp_stock' ? 'JP' : 'US');
+  }
+
+  void _onFocusChange(bool hasFocus) {
+    if (!hasFocus) {
+      _debounceTimer?.cancel();
+      _removeOverlay();
+
+      // 如果是从候选项中选中的，就不清空输入
+      if (_selectedFromDropdown) {
+        _selectedFromDropdown = false;
+        return;
+      }
+
+      final inputCode = _stockCodeController.text.trim();
+
+      // 如果候选项中有完全匹配的，选中它
+      for (var stock in _stockSuggestions) {
+        if (stock.ticker! == inputCode) {
+          _stockCodeController.text = stock.ticker!;
+          _onStockSelected(stock);
+          return;
+        }
+      }
+
+      // 否则清空输入
+      _stockCodeController.clear();
+      _onStockSelected(null);
+    }
+  }
 
   @override
   void initState() {
@@ -106,13 +251,73 @@ class _TradeAddPageState extends State<TradeAddPage> {
     tradeTypes = TradeType.values
         .map((e) => {'code': e.code, 'name': e.displayName})
         .toList();
+    _quantityFocusNode.addListener(() {
+      if (!_quantityFocusNode.hasFocus) {
+        // 输入框失去焦点时执行格式化
+        final value = _quantityController.text;
+        if (value.isEmpty) return;
+        final num? n = num.tryParse(value.replaceAll(',', ''));
+        if (n == null) return;
+
+        final formatted = _numberFormatter.format(n);
+
+        _quantityController.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+
+        _updateAmount();
+      }
+    });
+    _unitPriceFocusNode.addListener(() {
+      if (!_unitPriceFocusNode.hasFocus) {
+        // 输入框失去焦点时执行格式化
+        final value = _unitPriceController.text;
+        if (value.isEmpty) return;
+        final num? n = num.tryParse(value.replaceAll(',', ''));
+        if (n == null) return;
+
+        final formatted = _numberFormatter.format(n);
+
+        _unitPriceController.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+
+        _updateAmount();
+      }
+    });
+    _commissionFocusNode.addListener(() {
+      if (!_commissionFocusNode.hasFocus) {
+        // 输入框失去焦点时执行格式化
+        final value = _commissionController.text;
+        if (value.isEmpty) return;
+        final num? n = num.tryParse(value.replaceAll(',', ''));
+        if (n == null) return;
+
+        final formatted = _numberFormatter.format(n);
+
+        _commissionController.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     _quantityController.dispose();
+    _quantityFocusNode.dispose();
     _unitPriceController.dispose();
+    _unitPriceFocusNode.dispose();
     _amountController.dispose();
+    _stockCodeController.dispose();
+    _stockCodeFocusNode.dispose();
+    _commissionController.dispose();
+    _commissionFocusNode.dispose();
+    _removeOverlay();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -176,7 +381,6 @@ class _TradeAddPageState extends State<TradeAddPage> {
                       tabBarContentList: [_buildAssetForm(), _buildDebtForm()],
                     ),
                   ),
-                  const SizedBox(height: 32),
                   // 底部按钮
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -207,9 +411,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              // TODO: 保存逻辑
-                            },
+                            onPressed: _handleSave,
                             icon: const Icon(Icons.save_alt_rounded, size: 20),
                             label: const Text(
                               '保存',
@@ -232,6 +434,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 100), // 底部留白
                 ],
               ),
             ),
@@ -252,7 +455,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.black87,
-            fontSize: 15,
+            fontSize: AppTexts.fontSizeMedium,
           ),
         ),
         const SizedBox(height: 6),
@@ -272,6 +475,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
               assetSubCategoryCode = '';
               selectedStockCode = '';
               selectedStockName = '';
+              selectedStockInfo = null;
               // 如有其它相关字段也一并清空
             });
           },
@@ -284,7 +488,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
             selectedValue:
                 assetSubCategoryCode.isNotEmpty &&
                     assetCategoriesWithSub[assetCategoryCode]?.any(
-                          (e) => e['code'] as String == assetSubCategoryCode,
+                          (e) => e['code']! == assetSubCategoryCode,
                         ) ==
                         true
                 ? assetSubCategoryCode
@@ -294,6 +498,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                 assetSubCategoryCode = v ?? '';
                 selectedStockCode = '';
                 selectedStockName = '';
+                selectedStockInfo = null;
                 // 如有其它相关字段也一并清空
               });
             },
@@ -319,7 +524,14 @@ class _TradeAddPageState extends State<TradeAddPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // カテゴリ
-        const Text('カテゴリ', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'カテゴリ',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+            fontSize: AppTexts.fontSizeMedium,
+          ),
+        ),
         const SizedBox(height: 6),
         CustomDropdownButtonFormField<String>(
           hintText: 'カテゴリを選択',
@@ -338,7 +550,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
             });
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 6),
         // サブカテゴリ
         if (debtCategoryCode.isNotEmpty)
           CustomDropdownButtonFormField<String>(
@@ -346,7 +558,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
             selectedValue:
                 debtSubCategoryCode.isNotEmpty &&
                     debtCategoriesWithSub[debtCategoryCode]?.any(
-                          (e) => e['code'] as String == debtSubCategoryCode,
+                          (e) => e['code']! == debtSubCategoryCode,
                         ) ==
                         true
                 ? debtSubCategoryCode
@@ -379,7 +591,6 @@ class _TradeAddPageState extends State<TradeAddPage> {
         (assetSubCategoryCode == 'jp_stock' ||
             assetSubCategoryCode == 'us_stock')) {
       // 取引種別
-      String tradeType = 'buy'; // 默认买入
       return StatefulBuilder(
         builder: (context, setInnerState) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,7 +599,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
             //const Text('取引種別', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
             CupertinoSlidingSegmentedControl<String>(
-              groupValue: tradeType,
+              groupValue: tradeAction,
               children: {
                 'buy': Padding(
                   padding: const EdgeInsets.symmetric(
@@ -400,7 +611,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: tradeType == 'buy'
+                      color: tradeAction == 'buy'
                           ? Color(0xFF4F8CFF)
                           : Color(0xFF888888),
                     ),
@@ -416,19 +627,19 @@ class _TradeAddPageState extends State<TradeAddPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: tradeType == 'sell'
+                      color: tradeAction == 'sell'
                           ? Color(0xFF4F8CFF)
                           : Color(0xFF888888),
                     ),
                   ),
                 ),
               },
-              onValueChanged: (v) => setInnerState(() => tradeType = v!),
+              onValueChanged: (v) => setState(() => tradeAction = v!),
               backgroundColor: Colors.white.withOpacity(0.85),
               thumbColor: Colors.white,
             ),
             const SizedBox(height: 16),
-            if (tradeType == 'buy')
+            if (tradeAction == 'buy')
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -438,18 +649,21 @@ class _TradeAddPageState extends State<TradeAddPage> {
                   ),
                   const SizedBox(height: 8),
                   // 銘柄コード（自动补全）
-                  StockCodeAutocomplete(
-                    exchange: assetSubCategoryCode == 'jp_stock' ? 'JP' : 'US',
-                    onSelected: (stock) {
-                      setState(() {
-                        if (stock.code.isNotEmpty && stock.name.isNotEmpty) {
-                          selectedStockCode = stock.code;
-                          selectedStockName = stock.name;
-                        } else {
-                          selectedStockCode = '';
-                          selectedStockName = '';
-                        }
-                      });
+                  CustomInputFormFieldBySuggestion(
+                    labelText: '銘柄コード',
+                    controller: _stockCodeController,
+                    focusNode: _stockCodeFocusNode,
+                    suggestions: [..._stockSuggestions],
+                    loading: _stockLoading,
+                    notFoundText: '該当する銘柄が見つかりません',
+                    onChanged: _onStockCodeChanged,
+                    onFocusChange: _onFocusChange,
+                    onSuggestionTap: (stock) {
+                      _stockCodeController.text = stock.ticker!;
+                      _onStockSelected(stock);
+                      _selectedFromDropdown = true;
+                      _removeOverlay();
+                      FocusScope.of(context).unfocus();
                     },
                   ),
                   const SizedBox(height: 12),
@@ -480,10 +694,14 @@ class _TradeAddPageState extends State<TradeAddPage> {
                   // 取引日
                   CustomDateDropdownField(
                     labelText: '取引日',
-                    value: tradeDate,
+                    value: tradeDate != null
+                        ? DateFormat('yyyy-MM-dd').parse(tradeDate!)
+                        : null,
                     onChanged: (date) {
                       setState(() {
-                        tradeDate = date;
+                        tradeDate = date != null
+                            ? DateFormat('yyyy-MM-dd').format(date)
+                            : null;
                       });
                     },
                   ),
@@ -493,9 +711,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                     hintText: '口座区分を選択',
                     selectedValue:
                         tradeTypeCode.isNotEmpty &&
-                            tradeTypes.any(
-                              (e) => e['code'] as String == tradeTypeCode,
-                            )
+                            tradeTypes.any((e) => e['code']! == tradeTypeCode)
                         ? tradeTypeCode
                         : null,
                     items: tradeTypes
@@ -525,15 +741,16 @@ class _TradeAddPageState extends State<TradeAddPage> {
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 6),
-                            TextFormField(
+                            CustomTextFormField(
                               controller: _quantityController,
+                              focusNode: _quantityFocusNode,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
                               inputFormatters: [
                                 FilteringTextInputFormatter.allow(
-                                  RegExp(r'^\d*\.?\d*'),
+                                  RegExp(r'^\d*\.?\d{0,4}'),
                                 ),
                                 TextInputFormatter.withFunction((
                                   oldValue,
@@ -543,42 +760,22 @@ class _TradeAddPageState extends State<TradeAddPage> {
                                   // 不能以小数点开头
                                   if (text.startsWith('.')) return oldValue;
                                   // 只允许一个小数点
-                                  if ('.'.allMatches(text).length > 1)
+                                  if ('.'.allMatches(text).length > 1) {
                                     return oldValue;
+                                  }
                                   return newValue;
                                 }),
                               ],
-                              decoration: InputDecoration(
-                                hintText: '例: 100',
-                                filled: true,
-                                fillColor: const Color(0xFFF5F6FA),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 16,
-                                ),
-                              ),
+                              hintText: '例: 100',
                               onChanged: (value) {
-                                if (value.isEmpty) return;
-                                final num? n = num.tryParse(value);
-                                if (n == null) return;
-                                final formatted = n % 1 == 0
-                                    ? n.toInt().toString()
-                                    : n.toString();
-                                if (formatted != value) {
-                                  _quantityController.value = TextEditingValue(
-                                    text: formatted,
-                                    selection: TextSelection.collapsed(
-                                      offset: formatted.length,
-                                    ),
-                                  );
-                                }
+                                final quantity = num.tryParse(
+                                  value.replaceAll(',', ''),
+                                );
+                                setState(() {
+                                  quantityValue = quantity;
+                                });
                                 _updateAmount();
                               },
-                              onEditingComplete: _updateAmount,
                             ),
                           ],
                         ),
@@ -593,15 +790,16 @@ class _TradeAddPageState extends State<TradeAddPage> {
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 6),
-                            TextFormField(
+                            CustomTextFormField(
                               controller: _unitPriceController,
+                              focusNode: _unitPriceFocusNode,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
                               inputFormatters: [
                                 FilteringTextInputFormatter.allow(
-                                  RegExp(r'^\d*\.?\d*'),
+                                  RegExp(r'^\d*\.?\d{0,4}'),
                                 ),
                                 TextInputFormatter.withFunction((
                                   oldValue,
@@ -611,42 +809,22 @@ class _TradeAddPageState extends State<TradeAddPage> {
                                   // 不能以小数点开头
                                   if (text.startsWith('.')) return oldValue;
                                   // 只允许一个小数点
-                                  if ('.'.allMatches(text).length > 1)
+                                  if ('.'.allMatches(text).length > 1) {
                                     return oldValue;
+                                  }
                                   return newValue;
                                 }),
                               ],
-                              decoration: InputDecoration(
-                                hintText: '例: 2500',
-                                filled: true,
-                                fillColor: const Color(0xFFF5F6FA),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 16,
-                                ),
-                              ),
+                              hintText: '例: 2500',
                               onChanged: (value) {
-                                if (value.isEmpty) return;
-                                final num? n = num.tryParse(value);
-                                if (n == null) return;
-                                final formatted = n % 1 == 0
-                                    ? n.toInt().toString()
-                                    : n.toString();
-                                if (formatted != value) {
-                                  _unitPriceController.value = TextEditingValue(
-                                    text: formatted,
-                                    selection: TextSelection.collapsed(
-                                      offset: formatted.length,
-                                    ),
-                                  );
-                                }
+                                final unitPrice = num.tryParse(
+                                  value.replaceAll(',', ''),
+                                );
+                                setState(() {
+                                  unitPriceValue = unitPrice;
+                                });
                                 _updateAmount();
                               },
-                              onEditingComplete: _updateAmount,
                             ),
                           ],
                         ),
@@ -689,21 +867,40 @@ class _TradeAddPageState extends State<TradeAddPage> {
                               style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 6),
-                            TextFormField(
-                              decoration: InputDecoration(
-                                hintText: '例: 500',
-                                filled: true,
-                                fillColor: const Color(0xFFF5F6FA),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
+                            CustomTextFormField(
+                              controller: _commissionController,
+                              focusNode: _commissionFocusNode,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'^\d*\.?\d{0,4}'),
                                 ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 16,
-                                ),
-                              ),
-                              keyboardType: TextInputType.number,
+                                TextInputFormatter.withFunction((
+                                  oldValue,
+                                  newValue,
+                                ) {
+                                  final text = newValue.text;
+                                  // 不能以小数点开头
+                                  if (text.startsWith('.')) return oldValue;
+                                  // 只允许一个小数点
+                                  if ('.'.allMatches(text).length > 1) {
+                                    return oldValue;
+                                  }
+                                  return newValue;
+                                }),
+                              ],
+                              hintText: '例: 500',
+                              onChanged: (value) {
+                                final commission = num.tryParse(
+                                  value.replaceAll(',', ''),
+                                );
+                                setState(() {
+                                  commissionValue = commission;
+                                });
+                              },
                             ),
                           ],
                         ),
@@ -768,10 +965,15 @@ class _TradeAddPageState extends State<TradeAddPage> {
                       ),
                     ),
                     maxLines: 2,
+                    onChanged: (value) {
+                      setState(() {
+                        memoValue = value;
+                      });
+                    },
                   ),
                 ],
               ),
-            if (tradeType == 'sell')
+            if (tradeAction == 'sell')
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -831,10 +1033,14 @@ class _TradeAddPageState extends State<TradeAddPage> {
                   // 取引日
                   CustomDateDropdownField(
                     labelText: '取引日',
-                    value: tradeDate,
+                    value: tradeDate != null
+                        ? DateFormat('yyyy-MM-dd').parse(tradeDate!)
+                        : null,
                     onChanged: (date) {
                       setState(() {
-                        tradeDate = date;
+                        tradeDate = date != null
+                            ? DateFormat('yyyy-MM-dd').format(date)
+                            : null;
                       });
                     },
                   ),
@@ -1000,12 +1206,201 @@ class _TradeAddPageState extends State<TradeAddPage> {
     if (quantity != null && unitPrice != null) {
       final amount = quantity * unitPrice;
       // 整数显示整数，小数显示小数
-      final formatted = amount % 1 == 0
-          ? amount.toInt().toString()
-          : amount.toString();
+      final formatted = _numberFormatter.format(amount);
       _amountController.text = formatted;
     } else {
       _amountController.text = '';
+    }
+  }
+
+  Future<void> _handleSave() async {
+    // 显示处理中遮罩
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => WillPopScope(
+        onWillPop: () async => false,
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+    );
+
+    try {
+      if (GlobalStore().userId == null || GlobalStore().accountId == null) {
+        //AppUtils().showSnackBar(
+        //  context,
+        //  'ユーザーIDまたはアカウントIDが設定されていません',
+        //  isError: true,
+        //);
+        Navigator.of(context).pop(); // 关闭处理中遮罩
+        return;
+      }
+      // 判断是否可以保存
+      bool canSave = false;
+      if (tabIndex == 0) {
+        // 資産tab
+        canSave =
+            assetCategoryCode.isNotEmpty &&
+            assetSubCategoryCode.isNotEmpty &&
+            selectedStockInfo != null &&
+            tradeTypeCode.isNotEmpty &&
+            tradeDate != null &&
+            quantityValue != null &&
+            unitPriceValue != null;
+      } else {
+        // 負債tab
+        canSave =
+            debtCategoryCode.isNotEmpty &&
+            debtSubCategoryCode.isNotEmpty &&
+            tradeTypeCode.isNotEmpty &&
+            tradeDate != null &&
+            quantityValue != null &&
+            unitPriceValue != null;
+      }
+      if (!canSave) {
+        //AppUtils().showSnackBar(
+        //  context,
+        //  '必須項目を入力してください',
+        //  isError: true,
+        //);
+        Navigator.of(context).pop(); // 关闭处理中遮罩
+        return;
+      }
+      // 保存逻辑
+      bool success = false;
+      if (tabIndex == 0 &&
+          assetCategoryCode == 'stock' &&
+          (assetSubCategoryCode == 'jp_stock' ||
+              assetSubCategoryCode == 'us_stock') &&
+          tradeAction == 'buy') {
+        success = await AppUtils().createAsset(
+          userId: GlobalStore().userId!,
+          assetData: {
+            "account_id": GlobalStore().accountId!,
+            "asset_type": "stock",
+            "asset_id": selectedStockInfo!.id,
+            "trade_date": tradeDate,
+            "action": tradeAction,
+            "trade_type": tradeTypeCode,
+            "position_type": null,
+            "quantity": quantityValue,
+            "price": unitPriceValue,
+            "leverage": null,
+            "swap_amount": null,
+            "swap_currency": null,
+            "fee_amount": commissionValue,
+            "fee_currency": commissionCurrency,
+            "manual_rate_input": false,
+            "remark": memoValue,
+          },
+          stockData: {
+            "id": selectedStockInfo!.id,
+            "ticker": selectedStockInfo!.ticker,
+            "exchange": selectedStockInfo!.exchange,
+            "name": selectedStockInfo!.name,
+            "currency": selectedStockInfo!.currency,
+            "country": selectedStockInfo!.country,
+            "status": selectedStockInfo!.status,
+            "last_price": selectedStockInfo!.lastPrice,
+            "lastPriceAt": selectedStockInfo!.lastPriceAt,
+            "nameUs": selectedStockInfo!.nameUs,
+            "sectorIndustryId": selectedStockInfo!.sectorIndustryId,
+            "logo": selectedStockInfo!.logo,
+          },
+        );
+      }
+      Navigator.of(context).pop(); // 关闭处理中遮罩
+
+      if (success) {
+        await _showSuccessDialog();
+        widget.onClose != null
+            ? widget.onClose!()
+            : Navigator.pop(context, true);
+      } else {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('エラー'),
+            content: const Text('保存に失敗しました。'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      Navigator.of(context).pop(); // 关闭处理中遮罩
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('エラー'),
+          content: Text('保存に失敗しました。\n$e'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> _showSuccessDialog() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Center(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              width: 260,
+              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF4F8CFF),
+                    size: 48,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    '保存しました',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Color(0xFF222222),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // 2秒后自动关闭弹窗
+    await Future.delayed(const Duration(seconds: 2));
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
     }
   }
 }
@@ -1029,170 +1424,4 @@ class _TabBarSliverDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _TabBarSliverDelegate oldDelegate) => false;
-}
-
-class StockCodeAutocomplete extends StatefulWidget {
-  final void Function(StockInfo) onSelected;
-  final String exchange;
-  const StockCodeAutocomplete({
-    super.key,
-    required this.onSelected,
-    required this.exchange,
-  });
-
-  @override
-  State<StockCodeAutocomplete> createState() => _StockCodeAutocompleteState();
-}
-
-class _StockCodeAutocompleteState extends State<StockCodeAutocomplete> {
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-  OverlayEntry? _overlayEntry;
-  List<StockInfo> _suggestions = [];
-  bool _loading = false;
-  bool _selectedFromDropdown = false;
-
-  Timer? _debounceTimer;
-  String _lastQueriedValue = '';
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    _removeOverlay();
-    _debounceTimer?.cancel();
-    super.dispose();
-  }
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  void _showOverlay() {
-    _removeOverlay();
-    final RenderBox box = context.findRenderObject() as RenderBox;
-    final Offset position = box.localToGlobal(Offset.zero);
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        left: position.dx,
-        top: position.dy + box.size.height,
-        width: box.size.width,
-        child: Material(
-          elevation: 4,
-          borderRadius: BorderRadius.circular(16),
-          child: _loading
-              ? const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : _suggestions.isEmpty
-              ? const ListTile(title: Text('該当する銘柄が見つかりません'))
-              : ListView(
-                  shrinkWrap: true,
-                  children: _suggestions.map((stock) {
-                    return ListTile(
-                      title: Text(stock.code),
-                      subtitle: Text(stock.name),
-                      onTap: () {
-                        _controller.text = stock.code;
-                        widget.onSelected(stock);
-                        _selectedFromDropdown = true;
-                        _removeOverlay();
-                        FocusScope.of(context).unfocus();
-                      },
-                    );
-                  }).toList(),
-                ),
-        ),
-      ),
-    );
-    Overlay.of(context, rootOverlay: true).insert(_overlayEntry!);
-  }
-
-  void _onChanged(String value) {
-    _lastQueriedValue = value;
-    if (value.isEmpty) {
-      setState(() => _suggestions = []);
-      _removeOverlay();
-      widget.onSelected(StockInfo('', ''));
-      return;
-    }
-    _fetchSuggestions(value, widget.exchange);
-  }
-
-  void _onFocusChange(bool hasFocus) {
-    if (!hasFocus) {
-      _debounceTimer?.cancel();
-      _removeOverlay();
-
-      // 如果是从候选项中选中的，就不清空输入
-      if (_selectedFromDropdown) {
-        _selectedFromDropdown = false;
-        return;
-      }
-
-      final inputCode = _controller.text.trim();
-
-      // 如果候选项中有完全匹配的，选中它
-      for (var stock in _suggestions) {
-        if (stock.code == inputCode) {
-          _controller.text = stock.code;
-          widget.onSelected(stock);
-          return;
-        }
-      }
-
-      // 否则清空输入
-      _controller.clear();
-      widget.onSelected(StockInfo('', ''));
-    }
-  }
-
-  Future<void> _fetchSuggestions(String value, String exchange) async {
-    setState(() {
-      _loading = true;
-      _suggestions = [];
-    });
-    _showOverlay();
-
-    List<StockInfo> result = await AppUtils().fetchStockSuggestions(
-      value,
-      exchange,
-    );
-
-    // 只处理最后一次输入的结果
-    if (_lastQueriedValue != value) return;
-
-    setState(() {
-      _loading = false;
-      _suggestions = result;
-    });
-    _showOverlay();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Focus(
-      onFocusChange: _onFocusChange,
-      child: TextFormField(
-        controller: _controller,
-        focusNode: _focusNode,
-        decoration: InputDecoration(
-          labelText: '銘柄コード',
-          filled: true,
-          fillColor: const Color(0xFFF5F6FA),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 16,
-          ),
-        ),
-        onChanged: _onChanged,
-      ),
-    );
-  }
 }

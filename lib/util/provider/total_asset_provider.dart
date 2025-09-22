@@ -18,17 +18,17 @@ class TotalAssetProvider extends ChangeNotifier {
   }
 
   Future<void> fetchTotalAsset(AppDatabase db, Currency currency) async {
-    double total = await _calculateAllStockValue(db, currency.code);
-    final formatted = NumberFormat.currency(
-      locale: currency.locale,
-      symbol: currency.symbol,
-    ).format(total);
-    _totalAsset = formatted;
-    notifyListeners();
+    //double total = await _calculateAllStockValue(db, currency.code);
+    //final formatted = NumberFormat.currency(
+    //  locale: currency.locale,
+    //  symbol: currency.symbol,
+    //).format(total);
+    //_totalAsset = formatted;
+    //notifyListeners();
   }
 
   // 这里模拟股票总价值计算，实际应从你的数据源获取
-  Future<double> _calculateAllStockValue(
+  /*Future<double> _calculateAllStockValue(
     AppDatabase db,
     String currencyCode,
   ) async {
@@ -37,21 +37,21 @@ class TotalAssetProvider extends ChangeNotifier {
 
     List<Stock> newStockDataList = List.from(stockDataList);
     // 如果除了FX之外没有数据
-    if (stockDataList.isEmpty ||
-        newStockDataList.every((stock) => stock.marketCode == 'FOREX')) {
-      return 0;
-    }
+    //if (stockDataList.isEmpty ||
+    //    newStockDataList.every((stock) => stock.marketCode == 'FOREX')) {
+    //  return 0;
+   // }
     final marketDataList = await db.getAllMarketDataRecords();
     // 如果所有 priceUpdatedAt 都在周六或周日，则不更新
-    bool allWeekend =
-        stockDataList.isNotEmpty &&
-        stockDataList.every((stock) {
-          final dt = stock.priceUpdatedAt;
-          if (dt == null) return false;
-          return dt.weekday == DateTime.saturday ||
-              dt.weekday == DateTime.sunday;
-        });
-    if (!allWeekend &&
+    //bool allWeekend =
+    //    stockDataList.isNotEmpty &&
+        //stockDataList.every((stock) {
+          //final dt = stock.priceUpdatedAt;
+          //if (dt == null) return false;
+          //return dt.weekday == DateTime.saturday ||
+          //    dt.weekday == DateTime.sunday;
+        //});
+    /*if (!allWeekend &&
         stockDataList.any(
           (stock) =>
               stock.priceUpdatedAt == null ||
@@ -81,7 +81,7 @@ class TotalAssetProvider extends ChangeNotifier {
         );
       }
       // 更新数据库中的股票价格和更新时间
-      await db.updateStockPrices(newStockDataList);
+      await db.updateStockPrices(newStockDataList);*/
     }
 
     Map<String, double> priceMap = {
@@ -105,5 +105,5 @@ class TotalAssetProvider extends ChangeNotifier {
               (priceMap['${r.currency.code != 'USD' ? r.currency.code : ''}$currencyCode'] ??
                   1.0),
     );
-  }
+  }*/
 }

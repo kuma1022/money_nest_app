@@ -22,12 +22,13 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    final marketDataList = context.watch<MarketDataProvider>().marketData;
+    final marketDataList = [];
+    //context.watch<MarketDataProvider>().marketData;
     final buyRecordsList = context.watch<BuyRecordsProvider>().records;
     final double chartSize = MediaQuery.of(context).size.width / 2;
     double total = buyRecordsList.fold<double>(
       0,
-      (sum, record) => sum + record.moneyUsed,
+      (sum, record) => sum, //+ record.moneyUsed,
     );
 
     return Scaffold(
@@ -167,11 +168,11 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
                   borderData: FlBorderData(show: false),
                   sectionsSpace: 0,
                   centerSpaceRadius: 40,
-                  sections: showingSections(
-                    total,
-                    marketDataList,
-                    buyRecordsList,
-                  ),
+                  //sections: showingSections(
+                  //  total,
+                  //  marketDataList,
+                  //  buyRecordsList,
+                  //),
                 ),
               ),
             ),
@@ -214,18 +215,18 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
 
   List<PieChartSectionData> showingSections(
     double total,
-    List<MarketDataData> marketDataList,
+    //List<MarketDataData> marketDataList,
     List<TradeRecord> buyRecordsList,
   ) {
     // 只保留有资产的类别
     final sections = <PieChartSectionData>[];
     int visibleIndex = 0;
     final formatter = NumberFormat('#,##0');
-    for (int i = 0; i < marketDataList.length; i++) {
+    /*for (int i = 0; i < marketDataList.length; i++) {
       final asset = marketDataList[i];
-      double sumForCategory = buyRecordsList
-          .where((record) => record.marketCode == asset.code)
-          .fold<double>(0, (sum, record) => sum + record.moneyUsed);
+      double sumForCategory = 0.0; //buyRecordsList
+      //.where((record) => record.marketCode == asset.code)
+      //.fold<double>(0, (sum, record) => sum + record.moneyUsed);
       if (sumForCategory == 0) continue; // 跳过无资产类别
 
       final isTouched = visibleIndex == touchedIndex;
@@ -270,7 +271,7 @@ class _TotalCapitalTabPageState extends State<TotalCapitalTabPage> {
         ),
       );
       visibleIndex++;
-    }
+    }*/
     return sections;
   }
 

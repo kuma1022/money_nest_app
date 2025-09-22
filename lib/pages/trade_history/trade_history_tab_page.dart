@@ -1,10 +1,16 @@
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/card_section.dart';
+import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
 import 'package:money_nest_app/pages/trade_history/trade_detail_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
+import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/util/global_store.dart';
+import 'package:intl/intl.dart';
 
 class TradeHistoryPage extends StatefulWidget {
   final VoidCallback? onAddPressed;
+
   const TradeHistoryPage({super.key, this.onAddPressed});
 
   @override
@@ -12,6 +18,9 @@ class TradeHistoryPage extends StatefulWidget {
 }
 
 class _TradeHistoryPageState extends State<TradeHistoryPage> {
+  final GlobalKey<_TradeRecordListState> _listKey =
+      GlobalKey<_TradeRecordListState>();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,7 +53,19 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                       ),
                       elevation: 0,
                     ),
-                    onPressed: widget.onAddPressed, // 用回调
+                    onPressed: () async {
+                      //widget.onAddPressed, // 用回调
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => TradeAddPage()),
+                      );
+
+                      if (result == true) {
+                        // 刷新数据
+                        // 调用子组件的刷新方法
+                        _listKey.currentState?._fetchRecords();
+                      }
+                    },
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('追加'),
                   ),
@@ -131,7 +152,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                 ),
               ),
               // 交易记录列表
-              _TradeRecordList(),
+              _TradeRecordList(key: _listKey),
             ],
           ),
         ),
@@ -168,55 +189,113 @@ class _FilterDropdown extends StatelessWidget {
 }
 
 // 交易记录列表
-class _TradeRecordList extends StatelessWidget {
+class _TradeRecordList extends StatefulWidget {
   const _TradeRecordList({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // 示例数据
-    final records = [
-      TradeRecord(
-        type: ActionType.buy,
-        code: 'AAPL',
-        name: 'Apple Inc.',
-        date: '2024-08-25',
-        amount: '¥87,500',
-        detail: '5株 * ¥17,500',
-      ),
-      TradeRecord(
-        type: ActionType.sell,
-        code: '7203',
-        name: 'トヨタ自動車',
-        date: '2024-08-20',
-        amount: '¥120,000',
-        detail: '50株 * ¥2,400',
-      ),
-      TradeRecord(
-        type: ActionType.buy,
-        code: 'MSFT',
-        name: 'Microsoft',
-        date: '2024-08-15',
-        amount: '¥120,000',
-        detail: '3株 * ¥40,000',
-      ),
-      TradeRecord(
-        type: ActionType.dividend,
-        code: '6758',
-        name: 'ソニー配当',
-        date: '2024-08-10',
-        amount: '+¥5,000',
-        detail: '',
-      ),
-      TradeRecord(
-        type: ActionType.buy,
-        code: '6758',
-        name: 'ソニー',
-        date: '2024-08-05',
-        amount: '¥375,000',
-        detail: '50株 * ¥7,500',
-      ),
-    ];
+  State<_TradeRecordList> createState() => _TradeRecordListState();
+}
 
+class _TradeRecordListState extends State<_TradeRecordList> {
+  List<TradeRecord> records = [];
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRecords();
+  }
+
+  Future<void> _fetchRecords() async {
+    final db = AppDatabase();
+    final userId = GlobalStore().userId;
+    final accountId = GlobalStore().accountId;
+
+    if (userId == null || accountId == null) {
+      setState(() {
+        records = [];
+        loading = false;
+      });
+      return;
+    }
+
+    // 联合查询 TradeRecords 和 Stocks
+    final query =
+        db.select(db.tradeRecords).join([
+            innerJoin(
+              db.stocks,
+              db.stocks.id.equalsExp(db.tradeRecords.assetId),
+            ),
+          ])
+          ..where(db.tradeRecords.userId.equals(userId!))
+          ..where(db.tradeRecords.accountId.equals(accountId!))
+          ..where(db.tradeRecords.assetType.equals('stock'))
+          ..orderBy([OrderingTerm.desc(db.tradeRecords.tradeDate)]);
+
+    final rows = await query.get();
+
+    final formatter = NumberFormat("#,##0.##");
+
+    final result = rows.map((row) {
+      final trade = row.readTable(db.tradeRecords);
+      final stock = row.readTable(db.stocks);
+
+      // 交易类型
+      ActionType type;
+      switch (trade.action) {
+        case 'buy':
+          type = ActionType.buy;
+          break;
+        case 'sell':
+          type = ActionType.sell;
+          break;
+        case 'dividend':
+          type = ActionType.dividend;
+          break;
+        default:
+          type = ActionType.buy;
+      }
+
+      // 金额格式
+      final amount = trade.quantity * trade.price;
+      final amountStr =
+          '${type == ActionType.dividend ? '+' : ''}¥${formatter.format(amount)}';
+
+      // 明细
+      final detail =
+          '${formatter.format(trade.quantity)}株 * ¥${formatter.format(trade.price)}';
+
+      return TradeRecord(
+        type: type,
+        code: stock.ticker ?? '',
+        name: stock.name,
+        date: DateFormat('yyyy-MM-dd').format(trade.tradeDate),
+        amount: amountStr,
+        detail: type == ActionType.dividend ? '' : detail,
+        exchange: stock.exchange ?? '',
+      );
+    }).toList();
+
+    setState(() {
+      records = result;
+      loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (records.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32),
+        child: Center(child: Text('データがありません')),
+      );
+    }
     return Column(
       children: records.map((r) => _TradeRecordCard(record: r)).toList(),
     );
@@ -367,6 +446,7 @@ class TradeRecord {
   final ActionType type;
   final String code;
   final String name;
+  final String exchange;
   final String date;
   final String amount;
   final String detail;
@@ -374,6 +454,7 @@ class TradeRecord {
     required this.type,
     required this.code,
     required this.name,
+    required this.exchange,
     required this.date,
     required this.amount,
     required this.detail,

@@ -8,7 +8,7 @@ class BuyRecordsProvider extends ChangeNotifier {
   BuyRecordsProvider(this.db);
 
   Future<void> loadRecords() async {
-    records = await db.getAllAvailableBuyRecords();
+    records = []; //await db.getAllAvailableBuyRecords();
     notifyListeners();
   }
 }

@@ -17,24 +17,27 @@ class PortfolioProvider extends ChangeNotifier {
     AppLocalizations l10n,
   ) async {
     // 1. 获取所有持仓记录
-    final records = await db.getAllAvailableBuyRecords();
+    final records = [];
+    //await db.getAllAvailableBuyRecords();
 
     // 1.1 按 code 合并持仓
     final Map<String, List<dynamic>> grouped = {};
-    for (final r in records) {
-      grouped.putIfAbsent(r.code, () => []).add(r);
-    }
+    //for (final r in records) {
+    //  grouped.putIfAbsent(r.code, () => []).add(r);
+    // }
 
     // 2. 获取所有市场数据
-    final marketDataList = await db.getAllMarketDataRecords();
-    final Map<String, MarketDataData> marketMap = {
-      for (var market in marketDataList) market.code: market,
-    };
+    final marketDataList = [];
+    //await db.getAllMarketDataRecords();
+    //final Map<String, MarketDataData> marketMap = {
+    //  for (var market in marketDataList) market.code: market,
+    //};
     // 3. 获取股票数据
-    final stockDataList = await db.getAllStocksRecords();
-    final Map<String, Stock> stockMap = {
-      for (var stock in stockDataList) stock.code: stock,
-    };
+    final stockDataList = [];
+    //await db.getAllStocksRecords();
+    //final Map<String, Stock> stockMap = {
+    //  for (var stock in stockDataList) stock.code: stock,
+    //};
 
     // 4. 按市场分类
     final Map<String, dynamic> categories = {};
@@ -54,7 +57,7 @@ class PortfolioProvider extends ChangeNotifier {
       }
 
       // 获取市场信息
-      final market =
+      final market = {}; /*
           marketMap[marketCode] ??
           MarketDataData(
             code: marketCode,
@@ -62,13 +65,13 @@ class PortfolioProvider extends ChangeNotifier {
             currency: '',
             sortOrder: 0,
             isActive: false,
-          );
+          );*/
 
-      if (!market.isActive) continue;
+      //if (!market.isActive) continue;
 
       // 分类
-      final key = market.code;
-      categories.putIfAbsent(key, () {
+      final key = ''; //market.code;
+      /*categories.putIfAbsent(key, () {
         return {
           'name': getL10nStringFromL10n(l10n, market.name),
           'currency': market.currency,
@@ -77,12 +80,12 @@ class PortfolioProvider extends ChangeNotifier {
           'gainPercent': 0.0,
           'stocks': [],
         };
-      });
+      });*/
 
       // 当前市值
-      final marketValue =
-          totalQuantity *
-          (stockMap[code]?.currentPrice ?? recordsForCode.first.price);
+      final marketValue = null;
+      //totalQuantity *
+      //(stockMap[code]?.currentPrice ?? recordsForCode.first.price);
       // 成本
       final cost = totalCost;
       // 盈亏金额
@@ -93,7 +96,7 @@ class PortfolioProvider extends ChangeNotifier {
       categories[key]['totalValue'] += marketValue;
       categories[key]['gain'] += gain;
       // stocks列表
-      categories[key]['stocks'].add({
+      /*categories[key]['stocks'].add({
         'symbol': code,
         'name': stockMap[code]?.name ?? code,
         'shares': totalQuantity,
@@ -101,7 +104,7 @@ class PortfolioProvider extends ChangeNotifier {
         'value': marketValue,
         'gain': gain,
         'gainPercent': gainPercent,
-      });
+      });*/
     }
 
     // 4. 计算 gainPercent

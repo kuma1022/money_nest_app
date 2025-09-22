@@ -132,13 +132,15 @@ class PortfolioTabState extends State<PortfolioTab>
   // 获取总盈亏金额（请用实际业务逻辑替换）
   Future<double> _getTotalProfit() async {
     // 取得所有持仓记录
-    final records = await widget.db.getAllAvailableBuyRecords();
-    final stocks = await widget.db.getAllStocks();
-    final stockMap = {for (var stock in stocks) stock.code: stock};
+    final records = [];
+    //await widget.db.getAllAvailableBuyRecords();
+    final stocks = [];
+    //await widget.db.getAllStocks();
+    final stockMap = {}; //{for (var stock in stocks) stock.code: stock};
 
     setState(
       () => _totalProfit = records.fold<double>(0, (sum, r) {
-        final stock = stockMap[r.code];
+        /*final stock = stockMap[r.code];
         final currentPrice = stock?.currentPrice ?? r.price;
         final stockCurrency = stock?.currency ?? r.currencyUsed.code;
 
@@ -166,7 +168,8 @@ class PortfolioTabState extends State<PortfolioTab>
         }
         final profitInSelected = profitInMoneyUsed * fxToSelected;
 
-        return sum + profitInSelected;
+        return sum + profitInSelected;*/
+        return sum + 0;
       }),
     );
 
@@ -177,10 +180,12 @@ class PortfolioTabState extends State<PortfolioTab>
   // 获取总盈亏率（请用实际业务逻辑替换）
   Future<double> _getTotalProfitRate() async {
     // 取得所有持仓记录
-    final records = await widget.db.getAllAvailableBuyRecords();
-    final stocks = await widget.db.getAllStocks();
-    final stockMap = {for (var stock in stocks) stock.code: stock};
-
+    final records = [];
+    //await widget.db.getAllAvailableBuyRecords();
+    final stocks = [];
+    //await widget.db.getAllStocks();
+    final stockMap = {}; //{for (var stock in stocks) stock.code: stock};
+    /*
     setState(
       () => _totalCost = records.fold<double>(
         0,
@@ -194,7 +199,7 @@ class PortfolioTabState extends State<PortfolioTab>
                     : (stockMap[_selectedCurrency.code]?.currentPrice ?? 1)),
       ),
     );
-
+*/
     return _totalCost > 0 ? _totalProfit / _totalCost : 0;
   }
 
@@ -462,7 +467,7 @@ class PortfolioTabState extends State<PortfolioTab>
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.end,
                                               children: [
-                                                Text(
+                                                /*Text(
                                                   AppUtils().formatMoney(
                                                     (category['totalValue']
                                                             as num)
@@ -474,7 +479,7 @@ class PortfolioTabState extends State<PortfolioTab>
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                   ),
-                                                ),
+                                                ),*/
                                                 Container(
                                                   padding: EdgeInsets.symmetric(
                                                     horizontal: 8,
@@ -517,7 +522,7 @@ class PortfolioTabState extends State<PortfolioTab>
                                                       ),
                                                       SizedBox(width: 4),
                                                       Text(
-                                                        '${AppUtils().formatProfit((category['gain'] as num).toDouble(), (category['currency'] ?? 'JPY') as String)} (${appUtils.formatNumberByTwoDigits(category['gainPercent'])}%)',
+                                                        '', //'${AppUtils().formatProfit((category['gain'] as num).toDouble(), (category['currency'] ?? 'JPY') as String)} (${appUtils.formatNumberByTwoDigits(category['gainPercent'])}%)',
                                                         style: TextStyle(
                                                           color:
                                                               ((category['gain'] ??
@@ -607,7 +612,7 @@ class PortfolioTabState extends State<PortfolioTab>
                                                               CrossAxisAlignment
                                                                   .end,
                                                           children: [
-                                                            Text(
+                                                            /*Text(
                                                               AppUtils().formatMoney(
                                                                 (stock['value']
                                                                         as num)
@@ -640,7 +645,7 @@ class PortfolioTabState extends State<PortfolioTab>
                                                                     : AppColors
                                                                           .appDownRed,
                                                               ),
-                                                            ),
+                                                            ),*/
                                                           ],
                                                         ),
                                                         Icon(

@@ -224,6 +224,13 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                             barWidth - indicatorWidth,
                           );
 
+                          // 防止 NaN 和非法范围
+                          if (magnifierLeft.isNaN) magnifierLeft = 0.0;
+                          final double maxLeft = (barWidth - indicatorWidth)
+                              .clamp(0.0, double.infinity);
+
+                          magnifierLeft = magnifierLeft.clamp(0.0, maxLeft);
+
                           // 动画参数
                           final bool pressing = _isPressing;
                           final double width = pressing

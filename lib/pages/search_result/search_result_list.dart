@@ -17,7 +17,7 @@ class SearchResultList extends StatelessWidget {
     }
     // 假设你有一个方法 db.searchTradeRecords(keyword)
     return FutureBuilder<List<TradeRecord>>(
-      future: db.searchTradeRecords(keyword),
+      future: null, //db.searchTradeRecords(keyword),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -33,8 +33,9 @@ class SearchResultList extends StatelessWidget {
               const Divider(color: Color(0xFFE0E0E0), thickness: 1, height: 1),
           itemBuilder: (context, i) {
             final r = records[i];
-            return FutureBuilder<MarketDataData?>(
-              future: db.getMarketDataByCode(r.marketCode),
+            return null;
+            /*FutureBuilder<MarketDataData?>(
+              future: db.getMarketDataByCode(''), //r.marketCode),
               builder: (context, marketSnapshot) {
                 final marketData = marketSnapshot.data;
                 return Dismissible(
@@ -99,9 +100,9 @@ class SearchResultList extends StatelessWidget {
                           : Colors.red,
                       size: 28,
                     ),
-                    title: Text(
-                      '${r.action.displayName}  ${marketData?.name ?? ''}(${r.marketCode})',
-                    ),
+                    title: Text(''), //Text(
+                    //'${r.action.displayName}  ${marketData?.name ?? ''}(${r.marketCode})',
+                    //),
                     subtitle: Text(
                       '${() {
                         final date = r.tradeDate.toLocal();
@@ -112,14 +113,14 @@ class SearchResultList extends StatelessWidget {
                       }()}   '
                       '${AppLocalizations.of(context)!.tradeTabPageNumber}: '
                       '${NumberFormat.decimalPattern().format(r.quantity)}   '
-                      '${AppLocalizations.of(context)!.tradeTabPagePrice}: '
-                      '${NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}',
+                      '${AppLocalizations.of(context)!.tradeTabPagePrice}: ',
+                      //'${NumberFormat.simpleCurrency(name: r.currency.displayName(context)).format(r.price)}'
                     ),
                     //onTap: () => _navigateToDetail(r),
                   ),
                 );
               },
-            );
+            );*/
           },
         );
       },

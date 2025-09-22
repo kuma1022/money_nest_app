@@ -5,6 +5,7 @@ import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/trade_action.dart';
 import 'package:money_nest_app/models/trade_type.dart';
 import 'package:money_nest_app/presentation/resources/app_resources.dart';
+import 'package:money_nest_app/util/global_store.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
@@ -19,12 +20,16 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final db = AppDatabase();
 
+  // 这里提前初始化 userID 和 accountID
+  GlobalStore().userId = 'e226aa2d-1680-468c-8a41-33a3dad9874f'; // 测试用的 userId
+  GlobalStore().accountId = 1; // 测试用的 accountId
+
   // 这里提前初始化 marketData
-  await _initDefaultCategories(db);
+  //await _initDefaultCategories(db);
   // 这里提前初始化 stocks
-  await _initDefaultStocks(db);
+  //await _initDefaultStocks(db);
   // 这里提前初始化 buyRecords（为了测试）
-  await _initDefaultBuyRecords(db);
+  //await _initDefaultBuyRecords(db);
 
   final marketDataProvider = MarketDataProvider(db);
   final buyRecordsProvider = BuyRecordsProvider(db);
@@ -50,7 +55,7 @@ void main() async {
     ),
   );
 }
-
+/*
 Future<void> _initDefaultCategories(AppDatabase db) async {
   final count = await db.select(db.marketData).get();
   if (count.isEmpty) {
@@ -172,8 +177,8 @@ Future<void> _initDefaultCategories(AppDatabase db) async {
         );
   }
 }
-
-Future<void> _initDefaultStocks(AppDatabase db) async {
+*/
+/*Future<void> _initDefaultStocks(AppDatabase db) async {
   for (final fromCurrency in Currency.values) {
     for (final toCurrency in Currency.values) {
       if (fromCurrency == toCurrency) continue;
@@ -196,7 +201,7 @@ Future<void> _initDefaultStocks(AppDatabase db) async {
           );
     }
   }
-}
+}*/
 
 Future<void> _initDefaultBuyRecords(AppDatabase db) async {
   if ((await db.select(db.tradeRecords).get()).isNotEmpty) {
@@ -325,7 +330,7 @@ Future<void> _initDefaultBuyRecords(AppDatabase db) async {
     },
   ];
 
-  for (final s in stockData) {
+  /*for (final s in stockData) {
     await db
         .into(db.stocks)
         .insert(
@@ -336,7 +341,7 @@ Future<void> _initDefaultBuyRecords(AppDatabase db) async {
             currency: s['currencyCode'] ?? '',
           ),
         );
-  }
+  }*/
 
   final tradeRecordList = [
     {
@@ -725,7 +730,7 @@ Future<void> _initDefaultBuyRecords(AppDatabase db) async {
     },
   ];
 
-  for (final t in tradeRecordList) {
+  /*for (final t in tradeRecordList) {
     await db
         .into(db.tradeRecords)
         .insert(
@@ -742,7 +747,7 @@ Future<void> _initDefaultBuyRecords(AppDatabase db) async {
             marketCode: t['marketCode'] as String,
           ),
         );
-  }
+  }*/
 
   await db
       .into(db.tradeSellMappings)
