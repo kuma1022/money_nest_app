@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:ui'; // 新增
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart' hide Column;
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/components/custom_date_dropdown_field.dart';
 import 'package:money_nest_app/components/custom_dropdown_button_form_field.dart';
@@ -41,6 +42,8 @@ class _TradeAddPageState extends State<TradeAddPage> {
   String debtSubCategoryCode = '';
   // 操作タイプ（買い or 売り）
   String tradeAction = 'buy';
+
+  // 买入
   // 銘柄情報
   final TextEditingController _stockCodeController = TextEditingController();
   final FocusNode _stockCodeFocusNode = FocusNode();
@@ -80,6 +83,33 @@ class _TradeAddPageState extends State<TradeAddPage> {
         ..sort((a, b) => a.compareTo(b));
   // メモ
   String? memoValue;
+
+  // 卖出相关 State
+  List<Map<String, dynamic>> sellHoldings = [];
+  List<dynamic> sellBatches = [];
+  num sellTotalQty = 0;
+  num sellUnitPrice = 0;
+  final TextEditingController sellUnitPriceController = TextEditingController();
+  final TextEditingController sellAmountController = TextEditingController(
+    text: '¥0',
+  );
+  final FocusNode sellUnitPriceFocusNode = FocusNode();
+  // 銘柄情報（从持仓中选择）
+  String selectedSellStockCode = '';
+  String selectedSellStockName = '';
+  int? selectedSellStockId;
+  // 批次选择
+  Map<String, TextEditingController> sellBatchControllers = {};
+  Map<String, FocusNode> sellBatchFocusNodes = {};
+  // 手数料
+  num? sellCommissionValue;
+  final TextEditingController _sellCommissionController =
+      TextEditingController();
+  final FocusNode _sellCommissionFocusNode = FocusNode();
+  // 手数料通貨
+  String sellCommissionCurrency = '';
+  // メモ
+  String? sellMemoValue;
 
   // 示例：异步获取候选
   Future<void> _fetchSuggestions(String value, String exchange) async {
@@ -303,6 +333,154 @@ class _TradeAddPageState extends State<TradeAddPage> {
         );
       }
     });
+    sellUnitPriceFocusNode.addListener(() {
+      if (!sellUnitPriceFocusNode.hasFocus) {
+        // 输入框失去焦点时执行格式化
+        final value = sellUnitPriceController.text;
+        if (value.isEmpty) return;
+        final num? n = num.tryParse(value.replaceAll(',', ''));
+        if (n == null) return;
+
+        final formatted = _numberFormatter.format(n);
+
+        sellUnitPriceController.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+
+        _updateSellAmount();
+      }
+    });
+    _sellCommissionFocusNode.addListener(() {
+      if (!_sellCommissionFocusNode.hasFocus) {
+        // 输入框失去焦点时执行格式化
+        final value = _sellCommissionController.text;
+        if (value.isEmpty) return;
+        final num? n = num.tryParse(value.replaceAll(',', ''));
+        if (n == null) return;
+
+        final formatted = _numberFormatter.format(n);
+
+        _sellCommissionController.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+      }
+    });
+    // 初始化卖出持仓
+    _loadSellHoldings();
+  }
+
+  // 获取持仓数据
+  Future<void> _loadSellHoldings() async {
+    sellHoldings = await getMyHoldingStocks(
+      assetCategoryCode,
+      assetSubCategoryCode == 'jp_stock' ? 'JP' : 'US',
+    );
+    // 切换资产类型时清空已选
+    setState(() {
+      selectedSellStockId = null;
+      selectedSellStockName = '';
+      sellBatches = [];
+      sellBatchControllers.clear();
+      sellTotalQty = 0;
+      sellUnitPriceController.text = '';
+      sellAmountController.text = '¥0';
+    });
+  }
+
+  // 切换资产类型/子类型时，重新加载持仓
+  void _onAssetCategoryChanged(String? v) {
+    setState(() {
+      assetCategoryCode = v ?? '';
+      assetSubCategoryCode = '';
+      selectedStockCode = '';
+      selectedStockName = '';
+      selectedStockInfo = null;
+    });
+    _loadSellHoldings();
+  }
+
+  void _onAssetSubCategoryChanged(String? v) {
+    setState(() {
+      assetSubCategoryCode = v ?? '';
+      selectedStockCode = '';
+      selectedStockName = '';
+      selectedStockInfo = null;
+    });
+    _loadSellHoldings();
+  }
+
+  // 选择卖出股票
+  void _onSellStockChanged(String? v) {
+    setState(() {
+      selectedSellStockId = int.tryParse(v ?? '');
+      final holding = sellHoldings.firstWhere(
+        (h) => h['id'].toString() == v,
+        orElse: () => <String, dynamic>{},
+      );
+      selectedSellStockName = holding['name'] ?? '';
+      sellBatches = (holding['batches'] is List) ? holding['batches'] : [];
+      // 初始化controller
+      sellBatchControllers.clear();
+      sellBatchFocusNodes.clear();
+      for (var batch in sellBatches) {
+        final key = batch['id'].toString();
+        sellBatchControllers[key] = TextEditingController(
+          text: batch['sell']?.toString() ?? '0',
+        );
+        sellBatchFocusNodes[key] = FocusNode();
+        sellBatchControllers[key]!.addListener(_updateSellTotalQty);
+        sellBatchFocusNodes[key]!.addListener(() {
+          if (!sellBatchFocusNodes[key]!.hasFocus) {
+            // 输入框失去焦点时执行格式化
+            final value = sellBatchControllers[key]!.text;
+            if (value.isEmpty) return;
+            final num? n = num.tryParse(value.replaceAll(',', ''));
+            if (n == null) return;
+
+            final formatted = _numberFormatter.format(n);
+
+            sellBatchControllers[key]!.value = TextEditingValue(
+              text: formatted,
+              selection: TextSelection.collapsed(offset: formatted.length),
+            );
+
+            _updateSellTotalQty();
+          }
+        });
+      }
+      _updateSellTotalQty();
+      sellUnitPriceController.text = '';
+      sellAmountController.text = '¥0';
+      sellUnitPriceController.addListener(_updateSellAmount);
+    });
+  }
+
+  // 更新总卖出数量
+  void _updateSellTotalQty() {
+    num total = 0;
+    for (int i = 0; i < sellBatches.length; i++) {
+      final key = sellBatches[i]['id'].toString();
+      final qty = num.tryParse(sellBatchControllers[key]?.text ?? '0') ?? 0;
+      sellBatches[i]['sell'] = qty;
+      total += qty;
+    }
+    setState(() {
+      sellTotalQty = total;
+    });
+    _updateSellAmount();
+  }
+
+  // 更新卖出金额
+  void _updateSellAmount() {
+    final unitPrice =
+        num.tryParse(sellUnitPriceController.text.replaceAll(',', '')) ?? 0;
+    setState(() {
+      sellUnitPrice = unitPrice;
+    });
+    final amount = sellTotalQty * unitPrice;
+    sellAmountController.text = '¥${amount.toStringAsFixed(0)}';
   }
 
   @override
@@ -316,6 +494,8 @@ class _TradeAddPageState extends State<TradeAddPage> {
     _stockCodeFocusNode.dispose();
     _commissionController.dispose();
     _commissionFocusNode.dispose();
+    _sellCommissionController.dispose();
+    _sellCommissionFocusNode.dispose();
     _removeOverlay();
     _debounceTimer?.cancel();
     super.dispose();
@@ -469,16 +649,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
           items: assetCategories
               .map((e) => DropdownMenuItem(value: e.code, child: Text(e.name)))
               .toList(),
-          onChanged: (v) {
-            setState(() {
-              assetCategoryCode = v ?? '';
-              assetSubCategoryCode = '';
-              selectedStockCode = '';
-              selectedStockName = '';
-              selectedStockInfo = null;
-              // 如有其它相关字段也一并清空
-            });
-          },
+          onChanged: (v) => _onAssetCategoryChanged(v),
         ),
         const SizedBox(height: 6),
         // サブカテゴリ
@@ -493,15 +664,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                         true
                 ? assetSubCategoryCode
                 : null,
-            onChanged: (v) {
-              setState(() {
-                assetSubCategoryCode = v ?? '';
-                selectedStockCode = '';
-                selectedStockName = '';
-                selectedStockInfo = null;
-                // 如有其它相关字段也一并清空
-              });
-            },
+            onChanged: (v) => _onAssetSubCategoryChanged(v),
             items: (assetCategoriesWithSub[assetCategoryCode] ?? [])
                 .map<DropdownMenuItem<String>>(
                   (e) => DropdownMenuItem(
@@ -586,7 +749,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
 
   // 动态生成資産tab下的表单内容
   Widget _buildAssetDynamicFields() {
-    // 这里只举例：株式（国内株式（ETF含む））的买入
+    // 这里只举例：株式（国内株式（ETF含む））的买入/卖出
     if (assetCategoryCode == 'stock' &&
         (assetSubCategoryCode == 'jp_stock' ||
             assetSubCategoryCode == 'us_stock')) {
@@ -596,7 +759,6 @@ class _TradeAddPageState extends State<TradeAddPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 6),
-            //const Text('取引種別', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
             CupertinoSlidingSegmentedControl<String>(
               groupValue: tradeAction,
@@ -639,544 +801,689 @@ class _TradeAddPageState extends State<TradeAddPage> {
               thumbColor: Colors.white,
             ),
             const SizedBox(height: 16),
-            if (tradeAction == 'buy')
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '銘柄情報',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  // 銘柄コード（自动补全）
-                  CustomInputFormFieldBySuggestion(
-                    labelText: '銘柄コード',
-                    controller: _stockCodeController,
-                    focusNode: _stockCodeFocusNode,
-                    suggestions: [..._stockSuggestions],
-                    loading: _stockLoading,
-                    notFoundText: '該当する銘柄が見つかりません',
-                    onChanged: _onStockCodeChanged,
-                    onFocusChange: _onFocusChange,
-                    onSuggestionTap: (stock) {
-                      _stockCodeController.text = stock.ticker!;
-                      _onStockSelected(stock);
-                      _selectedFromDropdown = true;
-                      _removeOverlay();
-                      FocusScope.of(context).unfocus();
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  // 銘柄名
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '銘柄名',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    controller: TextEditingController(text: selectedStockName),
-                    readOnly: true,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '取引詳細',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  // 取引日
-                  CustomDateDropdownField(
-                    labelText: '取引日',
-                    value: tradeDate != null
-                        ? DateFormat('yyyy-MM-dd').parse(tradeDate!)
-                        : null,
-                    onChanged: (date) {
-                      setState(() {
-                        tradeDate = date != null
-                            ? DateFormat('yyyy-MM-dd').format(date)
-                            : null;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  // 口座区分
-                  CustomDropdownButtonFormField<String>(
-                    hintText: '口座区分を選択',
-                    selectedValue:
-                        tradeTypeCode.isNotEmpty &&
-                            tradeTypes.any((e) => e['code']! == tradeTypeCode)
-                        ? tradeTypeCode
-                        : null,
-                    items: tradeTypes
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e['code'] as String,
-                            child: Text(e['name']),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      setState(() {
-                        tradeTypeCode = v ?? '';
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  // 数量・単価
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '数量',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 6),
-                            CustomTextFormField(
-                              controller: _quantityController,
-                              focusNode: _quantityFocusNode,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'^\d*\.?\d{0,4}'),
-                                ),
-                                TextInputFormatter.withFunction((
-                                  oldValue,
-                                  newValue,
-                                ) {
-                                  final text = newValue.text;
-                                  // 不能以小数点开头
-                                  if (text.startsWith('.')) return oldValue;
-                                  // 只允许一个小数点
-                                  if ('.'.allMatches(text).length > 1) {
-                                    return oldValue;
-                                  }
-                                  return newValue;
-                                }),
-                              ],
-                              hintText: '例: 100',
-                              onChanged: (value) {
-                                final quantity = num.tryParse(
-                                  value.replaceAll(',', ''),
-                                );
-                                setState(() {
-                                  quantityValue = quantity;
-                                });
-                                _updateAmount();
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '単価',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 6),
-                            CustomTextFormField(
-                              controller: _unitPriceController,
-                              focusNode: _unitPriceFocusNode,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'^\d*\.?\d{0,4}'),
-                                ),
-                                TextInputFormatter.withFunction((
-                                  oldValue,
-                                  newValue,
-                                ) {
-                                  final text = newValue.text;
-                                  // 不能以小数点开头
-                                  if (text.startsWith('.')) return oldValue;
-                                  // 只允许一个小数点
-                                  if ('.'.allMatches(text).length > 1) {
-                                    return oldValue;
-                                  }
-                                  return newValue;
-                                }),
-                              ],
-                              hintText: '例: 2500',
-                              onChanged: (value) {
-                                final unitPrice = num.tryParse(
-                                  value.replaceAll(',', ''),
-                                );
-                                setState(() {
-                                  unitPriceValue = unitPrice;
-                                });
-                                _updateAmount();
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // 金額（自動計算）
-                  const Text(
-                    '金額（自動計算）',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    controller: _amountController,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    readOnly: true,
-                  ),
-                  const SizedBox(height: 12),
-                  // 手数料・手数料通貨
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '手数料（任意）',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 6),
-                            CustomTextFormField(
-                              controller: _commissionController,
-                              focusNode: _commissionFocusNode,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'^\d*\.?\d{0,4}'),
-                                ),
-                                TextInputFormatter.withFunction((
-                                  oldValue,
-                                  newValue,
-                                ) {
-                                  final text = newValue.text;
-                                  // 不能以小数点开头
-                                  if (text.startsWith('.')) return oldValue;
-                                  // 只允许一个小数点
-                                  if ('.'.allMatches(text).length > 1) {
-                                    return oldValue;
-                                  }
-                                  return newValue;
-                                }),
-                              ],
-                              hintText: '例: 500',
-                              onChanged: (value) {
-                                final commission = num.tryParse(
-                                  value.replaceAll(',', ''),
-                                );
-                                setState(() {
-                                  commissionValue = commission;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '手数料通貨',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 6),
-                            CustomDropdownButtonFormField<String>(
-                              hintText: '通貨を選択',
-                              selectedValue:
-                                  commissionCurrency.isNotEmpty &&
-                                      commissionCurrencies.any(
-                                        (e) => e == commissionCurrency,
-                                      )
-                                  ? commissionCurrency
-                                  : null,
-                              items: commissionCurrencies
-                                  .map(
-                                    (e) => DropdownMenuItem(
-                                      value: e,
-                                      child: Text(e),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (v) {
-                                setState(() {
-                                  commissionCurrency = v ?? '';
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // メモ
-                  const Text(
-                    'メモ（任意）',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 6),
-                  TextFormField(
-                    decoration: InputDecoration(
-                      hintText: '取引に関するメモを入力',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    maxLines: 2,
-                    onChanged: (value) {
-                      setState(() {
-                        memoValue = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            if (tradeAction == 'sell')
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '売却する株式を選択',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  // TODO: 下拉选择持有的股票
-                  DropdownButtonFormField<String>(
-                    value: null,
-                    items: const [
-                      // TODO: 用实际持仓数据填充
-                      DropdownMenuItem(value: 'AAPL', child: Text('AAPL')),
-                      DropdownMenuItem(value: '7203', child: Text('7203')),
-                    ],
-                    onChanged: (v) {},
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // 銘柄名（自动显示）
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '銘柄名',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    readOnly: true,
-                    controller: /* TODO: 銘柄名controller */
-                        TextEditingController(),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '取引詳細',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  // 取引日
-                  CustomDateDropdownField(
-                    labelText: '取引日',
-                    value: tradeDate != null
-                        ? DateFormat('yyyy-MM-dd').parse(tradeDate!)
-                        : null,
-                    onChanged: (date) {
-                      setState(() {
-                        tradeDate = date != null
-                            ? DateFormat('yyyy-MM-dd').format(date)
-                            : null;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  // 売却数量を選択（多批次选择，动态计算总数量）
-                  // TODO: 用ListView或自定义控件展示所有买入批次，用户输入每批卖出数量
-                  const Text(
-                    '売却数量を選択（複数ロット対応）',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  // ...批次选择控件...
-                  const SizedBox(height: 12),
-                  // 総売却数量（自动计算显示）
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '総売却数量（自動計算）',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    readOnly: true,
-                    controller: /* TODO: 总数量controller */
-                        TextEditingController(),
-                  ),
-                  const SizedBox(height: 12),
-                  // 単価
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '単価',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  // 売却金額（自动计算显示，不可编辑）
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '売却金額（自動計算）',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    readOnly: true,
-                    controller: /* TODO: 金额controller */
-                        TextEditingController(),
-                  ),
-                  const SizedBox(height: 12),
-                  // 手数料（任意）
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: '手数料（任意）',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  // 手数料通貨
-                  DropdownButtonFormField<String>(
-                    value: null,
-                    items: const [
-                      DropdownMenuItem(value: 'JPY', child: Text('JPY')),
-                      DropdownMenuItem(value: 'USD', child: Text('USD')),
-                    ],
-                    onChanged: (v) {},
-                    decoration: InputDecoration(
-                      labelText: '手数料通貨',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // メモ（任意）
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: 'メモ（任意）',
-                      filled: true,
-                      fillColor: const Color(0xFFF5F6FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                    ),
-                    maxLines: 2,
-                  ),
-                ],
-              ),
+            if (tradeAction == 'buy') _buildBuyFields(),
+            if (tradeAction == 'sell') _buildSellFields2(),
           ],
         ),
       );
     }
     // 其它类型可按需补充
     return const SizedBox.shrink();
+  }
+
+  Widget _buildBuyFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('銘柄情報', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        // 銘柄コード（自动补全）
+        CustomInputFormFieldBySuggestion(
+          labelText: '銘柄コード',
+          controller: _stockCodeController,
+          focusNode: _stockCodeFocusNode,
+          suggestions: [..._stockSuggestions],
+          loading: _stockLoading,
+          notFoundText: '該当する銘柄が見つかりません',
+          onChanged: _onStockCodeChanged,
+          onFocusChange: _onFocusChange,
+          onSuggestionTap: (stock) {
+            _stockCodeController.text = stock.ticker!;
+            _onStockSelected(stock);
+            _selectedFromDropdown = true;
+            _removeOverlay();
+            FocusScope.of(context).unfocus();
+          },
+        ),
+        const SizedBox(height: 12),
+        // 銘柄名
+        TextFormField(
+          decoration: InputDecoration(
+            labelText: '銘柄名',
+            filled: true,
+            fillColor: const Color(0xFFF5F6FA),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
+          ),
+          controller: TextEditingController(text: selectedStockName),
+          readOnly: true,
+        ),
+        const SizedBox(height: 16),
+        const Text('取引詳細', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        // 取引日
+        CustomDateDropdownField(
+          labelText: '取引日',
+          value: tradeDate != null
+              ? DateFormat('yyyy-MM-dd').parse(tradeDate!)
+              : null,
+          onChanged: (date) {
+            setState(() {
+              tradeDate = date != null
+                  ? DateFormat('yyyy-MM-dd').format(date)
+                  : null;
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        // 口座区分
+        CustomDropdownButtonFormField<String>(
+          hintText: '口座区分を選択',
+          selectedValue:
+              tradeTypeCode.isNotEmpty &&
+                  tradeTypes.any((e) => e['code']! == tradeTypeCode)
+              ? tradeTypeCode
+              : null,
+          items: tradeTypes
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e['code'] as String,
+                  child: Text(e['name']),
+                ),
+              )
+              .toList(),
+          onChanged: (v) {
+            setState(() {
+              tradeTypeCode = v ?? '';
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        // 数量・単価
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '数量',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  CustomTextFormField(
+                    controller: _quantityController,
+                    focusNode: _quantityFocusNode,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,4}'),
+                      ),
+                      TextInputFormatter.withFunction((oldValue, newValue) {
+                        final text = newValue.text;
+                        // 不能以小数点开头
+                        if (text.startsWith('.')) return oldValue;
+                        // 只允许一个小数点
+                        if ('.'.allMatches(text).length > 1) {
+                          return oldValue;
+                        }
+                        return newValue;
+                      }),
+                    ],
+                    hintText: '例: 100',
+                    onChanged: (value) {
+                      final quantity = num.tryParse(value.replaceAll(',', ''));
+                      setState(() {
+                        quantityValue = quantity;
+                      });
+                      _updateAmount();
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '単価',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  CustomTextFormField(
+                    controller: _unitPriceController,
+                    focusNode: _unitPriceFocusNode,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,4}'),
+                      ),
+                      TextInputFormatter.withFunction((oldValue, newValue) {
+                        final text = newValue.text;
+                        // 不能以小数点开头
+                        if (text.startsWith('.')) return oldValue;
+                        // 只允许一个小数点
+                        if ('.'.allMatches(text).length > 1) {
+                          return oldValue;
+                        }
+                        return newValue;
+                      }),
+                    ],
+                    hintText: '例: 2500',
+                    onChanged: (value) {
+                      final unitPrice = num.tryParse(value.replaceAll(',', ''));
+                      setState(() {
+                        unitPriceValue = unitPrice;
+                      });
+                      _updateAmount();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // 金額（自動計算）
+        const Text('金額（自動計算）', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: _amountController,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: const Color(0xFFF5F6FA),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
+          ),
+          readOnly: true,
+        ),
+        const SizedBox(height: 12),
+        // 手数料・手数料通貨
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '手数料（任意）',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  CustomTextFormField(
+                    controller: _commissionController,
+                    focusNode: _commissionFocusNode,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,4}'),
+                      ),
+                      TextInputFormatter.withFunction((oldValue, newValue) {
+                        final text = newValue.text;
+                        // 不能以小数点开头
+                        if (text.startsWith('.')) return oldValue;
+                        // 只允许一个小数点
+                        if ('.'.allMatches(text).length > 1) {
+                          return oldValue;
+                        }
+                        return newValue;
+                      }),
+                    ],
+                    hintText: '例: 500',
+                    onChanged: (value) {
+                      final commission = num.tryParse(
+                        value.replaceAll(',', ''),
+                      );
+                      setState(() {
+                        commissionValue = commission;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '手数料通貨',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  CustomDropdownButtonFormField<String>(
+                    hintText: '通貨を選択',
+                    selectedValue:
+                        commissionCurrency.isNotEmpty &&
+                            commissionCurrencies.any(
+                              (e) => e == commissionCurrency,
+                            )
+                        ? commissionCurrency
+                        : null,
+                    items: commissionCurrencies
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (v) {
+                      setState(() {
+                        commissionCurrency = v ?? '';
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // メモ
+        const Text('メモ（任意）', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        TextFormField(
+          decoration: InputDecoration(
+            hintText: '取引に関するメモを入力',
+            filled: true,
+            fillColor: const Color(0xFFF5F6FA),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
+          ),
+          maxLines: 2,
+          onChanged: (value) {
+            setState(() {
+              memoValue = value;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  // 新的卖出表单
+  Widget _buildSellFields2() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('売却する銘柄', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        CustomDropdownButtonFormField<String>(
+          hintText: '売却する銘柄を選択してください',
+          selectedValue:
+              (selectedSellStockId != null &&
+                  sellHoldings.any(
+                    (h) => h['id'].toString() == selectedSellStockId.toString(),
+                  ))
+              ? selectedSellStockId.toString()
+              : null,
+          items: sellHoldings
+              .map(
+                (h) => DropdownMenuItem(
+                  value: h['id'].toString(),
+                  child: Text('${h['code']} - ${h['name']}'),
+                ),
+              )
+              .toList(),
+          onChanged: (v) => _onSellStockChanged(v),
+        ),
+        if (selectedSellStockId != null && sellBatches.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            '選択銘柄: $selectedSellStockName',
+            style: const TextStyle(color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          const Text('取引詳細', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          CustomDateDropdownField(
+            labelText: '取引日',
+            value: tradeDate != null
+                ? DateFormat('yyyy-MM-dd').parse(tradeDate!)
+                : null,
+            onChanged: (date) {
+              setState(() {
+                tradeDate = date != null
+                    ? DateFormat('yyyy-MM-dd').format(date)
+                    : null;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+          const Text('売却数量を選択', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          // 批次输入
+          Column(
+            children: List.generate(sellBatches.length, (i) {
+              final batch = sellBatches[i];
+              final key = batch['id'].toString();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            batch['date'] is DateTime
+                                ? DateFormat('yyyy-MM-dd').format(batch['date'])
+                                : batch['date'].toString(),
+                            style: const TextStyle(
+                              fontSize: AppTexts.fontSizeMedium,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            '${batch['quantity']}株 × ¥${batch['price']}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: CustomTextFormField(
+                        controller: sellBatchControllers[key]!,
+                        focusNode: sellBatchFocusNodes[key]!,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,4}'),
+                          ),
+                          TextInputFormatter.withFunction((oldValue, newValue) {
+                            final text = newValue.text;
+                            // 不能以小数点开头
+                            if (text.startsWith('.')) return oldValue;
+                            // 只允许一个小数点
+                            if ('.'.allMatches(text).length > 1) {
+                              return oldValue;
+                            }
+                            // 限制最大值和负数
+                            double? value = double.tryParse(text);
+                            double maxQty = (batch['quantity'] is num)
+                                ? (batch['quantity'] as num).toDouble()
+                                : 0.0;
+                            if (value != null &&
+                                (value < 0 || value > maxQty)) {
+                              return oldValue;
+                            }
+                            return newValue;
+                          }),
+                        ],
+                        hintText: '例: 10',
+                        onChanged: (value) {},
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '総売却数量: $sellTotalQty 株',
+            style: const TextStyle(
+              fontWeight: FontWeight.normal,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 単価・売却金額
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '単価',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+                    CustomTextFormField(
+                      controller: sellUnitPriceController,
+                      focusNode: sellUnitPriceFocusNode,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,4}'),
+                        ),
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          final text = newValue.text;
+                          // 不能以小数点开头
+                          if (text.startsWith('.')) return oldValue;
+                          // 只允许一个小数点
+                          if ('.'.allMatches(text).length > 1) {
+                            return oldValue;
+                          }
+                          return newValue;
+                        }),
+                      ],
+                      hintText: '例: 2500',
+                      onChanged: (value) {},
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '売却金額（自動計算）',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: sellAmountController,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFFF5F6FA),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // 手数料・手数料通貨
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '手数料（任意）',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+                    CustomTextFormField(
+                      controller: _sellCommissionController,
+                      focusNode: _sellCommissionFocusNode,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,4}'),
+                        ),
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          final text = newValue.text;
+                          // 不能以小数点开头
+                          if (text.startsWith('.')) return oldValue;
+                          // 只允许一个小数点
+                          if ('.'.allMatches(text).length > 1) {
+                            return oldValue;
+                          }
+                          return newValue;
+                        }),
+                      ],
+                      hintText: '例: 500',
+                      onChanged: (value) {
+                        final commission = num.tryParse(
+                          value.replaceAll(',', ''),
+                        );
+                        setState(() {
+                          sellCommissionValue = commission;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '手数料通貨',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+
+                    CustomDropdownButtonFormField<String>(
+                      hintText: '通貨を選択',
+                      selectedValue:
+                          sellCommissionCurrency.isNotEmpty &&
+                              commissionCurrencies.any(
+                                (e) => e == sellCommissionCurrency,
+                              )
+                          ? sellCommissionCurrency
+                          : null,
+                      items: commissionCurrencies
+                          .map(
+                            (e) => DropdownMenuItem(value: e, child: Text(e)),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        setState(() {
+                          sellCommissionCurrency = v ?? '';
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // メモ
+          const Text('メモ（任意）', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 6),
+          TextFormField(
+            decoration: InputDecoration(
+              hintText: '取引に関するメモを入力',
+              filled: true,
+              fillColor: const Color(0xFFF5F6FA),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
+            ),
+            maxLines: 2,
+            onChanged: (value) {
+              setState(() {
+                sellMemoValue = value;
+              });
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getMyHoldingStocks(
+    String assetType,
+    String exchange,
+  ) async {
+    final db = AppDatabase();
+    final userId = GlobalStore().userId;
+    final accountId = GlobalStore().accountId;
+
+    if (userId == null || accountId == null) {
+      return [];
+    }
+
+    // 联合查询 TradeRecords 和 Stocks
+    final query =
+        db.select(db.stocks).join([
+            innerJoin(
+              db.tradeRecords,
+              db.tradeRecords.assetId.equalsExp(db.stocks.id),
+            ),
+          ])
+          ..where(db.stocks.exchange.equals(exchange))
+          ..where(db.tradeRecords.userId.equals(userId))
+          ..where(db.tradeRecords.accountId.equals(accountId))
+          ..where(db.tradeRecords.assetType.equals(assetType))
+          ..orderBy([
+            OrderingTerm.asc(db.stocks.ticker),
+            OrderingTerm.asc(db.tradeRecords.tradeDate),
+          ]);
+
+    final rows = await query.get();
+
+    final result = <int, Map<String, dynamic>>{};
+    for (final row in rows) {
+      final stock = row.readTable(db.stocks);
+      final trade = row.readTable(db.tradeRecords);
+      if (!result.containsKey(stock.id)) {
+        result[stock.id] = {
+          'id': stock.id,
+          'code': stock.ticker,
+          'name': stock.name,
+          'batches': <Map<String, dynamic>>[],
+        };
+      }
+      result[stock.id]?['batches'].add({
+        'id': trade.id,
+        'date': trade.tradeDate,
+        'quantity': trade.quantity,
+        'price': trade.price,
+        'sell': 0, // 初始卖出数量为0
+      });
+    }
+
+    return result.values.toList();
   }
 
   // 动态生成負債tab下的表单内容
