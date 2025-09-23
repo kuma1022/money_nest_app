@@ -226,7 +226,9 @@ class MarketData extends Table {
 }
 
 // 数据库类
-@DriftDatabase(tables: [TradeRecords, Stocks, TradeSellMappings, Accounts])
+@DriftDatabase(
+  tables: [TradeRecords, Stocks, TradeSellMappings, Accounts, StockPrices],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase._internal() : super(_openConnection());
   static final AppDatabase _instance = AppDatabase._internal();

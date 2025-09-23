@@ -5,8 +5,6 @@ import 'package:money_nest_app/l10n/app_localizations.dart';
 enum Currency {
   jpy, // 日元
   usd, // 美元
-  cny, // 人民币
-  hkd, // 港币
 }
 
 extension CurrencyExtension on Currency {
@@ -16,10 +14,6 @@ extension CurrencyExtension on Currency {
         return AppLocalizations.of(context)!.currencyJpyLabel;
       case Currency.usd:
         return AppLocalizations.of(context)!.currencyUsdLabel;
-      case Currency.cny:
-        return AppLocalizations.of(context)!.currencyCnyLabel;
-      case Currency.hkd:
-        return AppLocalizations.of(context)!.currencyHkdLabel;
     }
   }
 
@@ -29,10 +23,6 @@ extension CurrencyExtension on Currency {
         return 'JPY';
       case Currency.usd:
         return 'USD';
-      case Currency.cny:
-        return 'CNY';
-      case Currency.hkd:
-        return 'HKD';
     }
   }
 
@@ -41,10 +31,6 @@ extension CurrencyExtension on Currency {
       case Currency.jpy:
         return '¥';
       case Currency.usd:
-        return '\$';
-      case Currency.cny:
-        return '¥';
-      case Currency.hkd:
         return '\$';
     }
   }
@@ -55,10 +41,6 @@ extension CurrencyExtension on Currency {
         return 'ja_JP';
       case Currency.usd:
         return 'en_US';
-      case Currency.cny:
-        return 'zh_CN';
-      case Currency.hkd:
-        return 'zh_HK';
     }
   }
 }

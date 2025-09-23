@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/stock_info.dart';
+import 'package:money_nest_app/util/global_store.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AppUtils {
@@ -85,7 +86,7 @@ class AppUtils {
   Future<bool> createAsset({
     required String userId,
     required Map<String, dynamic> assetData,
-    required Map<String, dynamic> stockData, // 新增参数，传递股票信息
+    required Map<String, dynamic>? stockData, // 传递股票信息
   }) async {
     print('createAsset: $userId $assetData');
     final url = Uri.parse('${AppUtils().supabaseApiUrl}/users/$userId/assets');
@@ -104,9 +105,29 @@ class AppUtils {
       print('Create asset success: ${response.body}');
       // 1. 解析返回的 asset id
       final data = jsonDecode(response.body);
-      final int? assetId = data['asset'] is int
-          ? data['asset']
-          : int.tryParse(data['asset']?.toString() ?? '');
+      final int? assetId = data['asset_id'] is int
+          ? data['asset_id']
+          : int.tryParse(data['asset_id']?.toString() ?? '');
+      final sellMappingData =
+          data['sell_mappings'] is List &&
+              (data['sell_mappings'] as List).isNotEmpty
+          ? (data['sell_mappings'] as List)
+                .map(
+                  (m) => {
+                    "sell_id": m['sell_id'],
+                    "buy_id": m['buy_id'],
+                    "quantity": m['quantity'],
+                  },
+                )
+                .toList()
+          : null;
+      final priceHistory =
+          data['price_history'] is List &&
+              (data['price_history'] as List).isNotEmpty
+          ? (data['price_history'] as List)
+                .map((m) => {"price": m['price'], "price_at": m['price_at']})
+                .toList()
+          : null;
 
       if (assetId != null) {
         final db = AppDatabase();
@@ -161,41 +182,100 @@ class AppUtils {
             );
 
         // 3. 插入或更新本地 Stocks
-        final stockId = stockData['id'] as int;
-        // 检查本地是否已有该股票
-        final existing = await (db.select(
-          db.stocks,
-        )..where((tbl) => tbl.id.equals(stockId))).getSingleOrNull();
-
-        final stocksCompanion = StocksCompanion(
-          id: Value(stockData['id']),
-          ticker: Value(stockData['ticker']),
-          exchange: Value(stockData['exchange']),
-          name: Value(stockData['name']),
-          currency: Value(stockData['currency']),
-          country: Value(stockData['country']),
-          status: Value(stockData['status'] ?? 'active'),
-          lastPrice: Value(
-            stockData['last_price'] != null
-                ? (num.tryParse(stockData['last_price'].toString())?.toDouble())
-                : null,
-          ),
-          lastPriceAt: Value(
-            stockData['last_price_at'] != null
-                ? DateTime.tryParse(stockData['last_price_at'].toString())
-                : null,
-          ),
-          nameUs: Value(stockData['name_us']),
-          sectorIndustryId: Value(stockData['sector_industry_id']),
-          logo: Value(stockData['logo']),
-        );
-
-        if (existing == null) {
-          await db.into(db.stocks).insert(stocksCompanion);
-        } else {
-          await (db.update(
+        if (stockData != null) {
+          final stockId = stockData['id'] as int;
+          // 检查本地是否已有该股票
+          final existing = await (db.select(
             db.stocks,
-          )..where((tbl) => tbl.id.equals(stockId))).write(stocksCompanion);
+          )..where((tbl) => tbl.id.equals(stockId))).getSingleOrNull();
+
+          final stocksCompanion = StocksCompanion(
+            id: Value(stockData['id']),
+            ticker: Value(stockData['ticker']),
+            exchange: Value(stockData['exchange']),
+            name: Value(stockData['name']),
+            currency: Value(stockData['currency']),
+            country: Value(stockData['country']),
+            status: Value(stockData['status'] ?? 'active'),
+            lastPrice: Value(
+              stockData['last_price'] != null
+                  ? (num.tryParse(
+                      stockData['last_price'].toString(),
+                    )?.toDouble())
+                  : null,
+            ),
+            lastPriceAt: Value(
+              stockData['last_price_at'] != null
+                  ? DateTime.tryParse(stockData['last_price_at'].toString())
+                  : null,
+            ),
+            nameUs: Value(stockData['name_us']),
+            sectorIndustryId: Value(stockData['sector_industry_id']),
+            logo: Value(stockData['logo']),
+          );
+
+          if (existing == null) {
+            await db.into(db.stocks).insert(stocksCompanion);
+          } else {
+            await (db.update(
+              db.stocks,
+            )..where((tbl) => tbl.id.equals(stockId))).write(stocksCompanion);
+          }
+        }
+
+        // 3.1 插入或更新本地 StockPrices
+        if (priceHistory != null && stockData != null) {
+          final stockId = stockData['id'] as int;
+          for (final priceItem in priceHistory) {
+            final price = (num.tryParse(priceItem['price'].toString()) ?? 0)
+                .toDouble();
+            final priceAt = DateTime.tryParse(priceItem['price_at'].toString());
+            if (priceAt == null) continue;
+
+            // 先查是否已存在
+            final existing =
+                await (db.select(db.stockPrices)..where(
+                      (tbl) =>
+                          tbl.stockId.equals(stockId) &
+                          tbl.priceAt.equals(priceAt),
+                    ))
+                    .getSingleOrNull();
+
+            final stockPriceCompanion = StockPricesCompanion(
+              stockId: Value(stockId),
+              price: Value(price),
+              priceAt: Value(priceAt),
+            );
+
+            if (existing == null) {
+              await db.into(db.stockPrices).insert(stockPriceCompanion);
+            } else {
+              await (db.update(db.stockPrices)
+                    ..where((tbl) => tbl.id.equals(existing.id)))
+                  .write(stockPriceCompanion);
+            }
+          }
+        }
+
+        // 4. 插入本地 SellMappings
+        if (sellMappingData != null) {
+          for (var sellMapping in sellMappingData) {
+            final buyId = sellMapping['buy_id'];
+            final sellId = sellMapping['sell_id'];
+            final quantity =
+                (num.tryParse(sellMapping['quantity'].toString()) ?? 0)
+                    .toDouble();
+
+            await db
+                .into(db.tradeSellMappings)
+                .insert(
+                  TradeSellMappingsCompanion(
+                    buyId: Value(buyId),
+                    sellId: Value(sellId),
+                    quantity: Value(quantity),
+                  ),
+                );
+          }
         }
       }
       return true;
@@ -205,18 +285,98 @@ class AppUtils {
     }
   }
 
-  /*Future<Map<String, double>> getStockPricesByYHFinanceAPI(
-    List<Stock> stocks,
-    List<MarketDataData> marketDataList,
+  Future<void> calculatePortfolioValue(
+    String userId,
+    int accountId,
+    AppDatabase db,
   ) async {
-    /*final tickers = stocks
-        .map(
-          (s) =>
-              '${s.code}${marketDataList.firstWhere(
-                (m) => m.code == s.marketCode,
-                orElse: () => MarketDataData(code: '', name: '', surfix: '', sortOrder: 0, isActive: true),
-              ).surfix}',
-        )
+    // 1. 计算当前持仓
+    // 查询所有 buy 批次
+    final buyRecords =
+        await (db.select(db.tradeRecords)..where(
+              (tbl) =>
+                  tbl.userId.equals(userId) &
+                  tbl.accountId.equals(accountId) &
+                  tbl.action.equals('buy'),
+            ))
+            .get();
+
+    // 查询所有 sell mapping
+    final sellMappings = await db.select(db.tradeSellMappings).get();
+
+    // 查询所有股票信息
+    final stocks = await db.select(db.stocks).get();
+    final stockMap = {for (var s in stocks) s.id: s};
+
+    // 统计每个 buy 批次已卖出数量
+    final Map<int, num> buyIdToSoldQty = {};
+    for (final mapping in sellMappings) {
+      buyIdToSoldQty[mapping.buyId] =
+          (buyIdToSoldQty[mapping.buyId] ?? 0) + mapping.quantity;
+    }
+
+    // 组装持仓
+    final List<Map<String, dynamic>> portfolio = [];
+    for (final buy in buyRecords) {
+      final soldQty = buyIdToSoldQty[buy.id] ?? 0;
+      final remainQty = buy.quantity - soldQty;
+      if (remainQty <= 0) continue;
+      final remainFee = (buy.feeAmount! / buy.quantity) * remainQty; // 按比例分摊手续费
+      final stock = stockMap[buy.assetId];
+      if (stock == null) continue;
+      portfolio.add({
+        'stockId': stock.id,
+        'code': stock.ticker,
+        'name': stock.name,
+        'nameUs': stock.nameUs,
+        'exchange': stock.exchange,
+        'tradeDate': DateFormat('yyyy-MM-dd').format(buy.tradeDate),
+        'quantity': remainQty,
+        'buyPrice': buy.price,
+        'fee': remainFee,
+        'feeCurrency': buy.feeCurrency,
+        'logo': stock.logo,
+      });
+    }
+
+    // 2. 保存到 GlobalStore 并持久化
+    GlobalStore().portfolio = portfolio;
+    await GlobalStore().savePortfolioToPrefs();
+
+    print('Updated portfolio: ${GlobalStore().portfolio}');
+  }
+
+  Future<void> getStockPricesByYHFinanceAPI(AppDatabase db) async {
+    final stocksList = await db.select(db.stocks).get();
+    stocksList.add(
+      Stock(
+        id: 0,
+        ticker: 'JPY=X',
+        exchange: 'US',
+        name: '',
+        currency: 'USD',
+        country: 'US',
+        sectorIndustryId: null,
+        logo: '',
+        status: '',
+      ),
+    );
+    final stockPrices = GlobalStore().currentStockPrices;
+    if (GlobalStore().stockPricesLastUpdated != null &&
+        stocksList.every((s) => stockPrices.containsKey(s.ticker))) {
+      final diff = DateTime.now().difference(
+        GlobalStore().stockPricesLastUpdated!,
+      );
+      if (diff.inMinutes < 60) {
+        print(
+          'Stock prices recently updated at ${GlobalStore().stockPricesLastUpdated}, skip fetching.',
+        );
+        return;
+      }
+    }
+
+    final tickers = stocksList
+        .map((s) => '${s.ticker}${s.exchange == 'JP' ? '.T' : ''}')
         .join(',');
 
     // 这里调用你的股票价格 API
@@ -233,12 +393,38 @@ class AppUtils {
     final data = jsonDecode(response.body);
     print(data);
     // 解析返回的股票价格数据
-    return {
+    GlobalStore().currentStockPrices = {
       for (var stock in data['body'])
         stock['symbol']:
             (stock['regularMarketPrice'] as num?)?.toDouble() ?? 0.0,
-    };*/
-    return {};
+    };
+    GlobalStore().stockPricesLastUpdated = DateTime.now();
+    await GlobalStore().saveStockPricesToPrefs();
+    await GlobalStore().saveStockPricesLastUpdatedToPrefs();
+  }
+
+  dynamic getTotalAssetsAndCostsValue() {
+    num totalAssets = 0;
+    num totalCosts = 0;
+    final currencyCode = GlobalStore().selectedCurrencyCode ?? 'JPY';
+    // 计算总资产和总成本
+    final rate = GlobalStore().currentStockPrices['$currencyCode=X'] ?? 140.0;
+
+    for (var item in GlobalStore().portfolio) {
+      final qty = item['quantity'] as num? ?? 0;
+      final buyPrice = item['buyPrice'] as num? ?? 0;
+      final code = item['code'] as String? ?? '';
+      final exchange = item['exchange'] as String? ?? 'JP';
+      final currency = exchange == 'JP' ? 'JPY' : 'USD';
+      final fee = item['fee'] as num? ?? 0;
+      final feeCurrency = item['feeCurrency'] as String? ?? currencyCode;
+      final currentPrice = GlobalStore().currentStockPrices[code] ?? buyPrice;
+      totalAssets += qty * currentPrice * (currency == 'USD' ? rate : 1.0);
+      totalCosts +=
+          qty * buyPrice * (currency == 'USD' ? rate : 1.0) +
+          fee * (feeCurrency == 'USD' ? rate : 1.0);
+    }
+    return {'totalAssets': totalAssets, 'totalCosts': totalCosts};
   }
 
   double formatNumberByTwoDigits(double num) {
@@ -265,6 +451,7 @@ class AppUtils {
     ).format(money);
   }
 
+  /*
   Future<double> getCurrencyExchangeRatesByDate(
     String fromCurrency,
     String toCurrency,

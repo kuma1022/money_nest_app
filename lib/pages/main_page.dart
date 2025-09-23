@@ -255,6 +255,11 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         icons: icons,
                         labels: titles,
                         onTap: (index) {
+                          // Home Tab刷新资产和成本
+                          if (index == 0) {
+                            homeTabPageKey.currentState
+                                ?.refreshTotalAssetsAndCosts();
+                          }
                           setState(() {
                             _currentIndex = index;
                           });

@@ -219,16 +219,9 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                               (_moveAnim.value == 0 && !_isPressing)
                               ? defaultMagnifierX - indicatorWidth / 2
                               : _moveAnim.value - indicatorWidth / 2;
-                          magnifierLeft = magnifierLeft.clamp(
-                            0.0,
-                            barWidth - indicatorWidth,
-                          );
-
-                          // 防止 NaN 和非法范围
-                          if (magnifierLeft.isNaN) magnifierLeft = 0.0;
+                          // 修正：确保 clamp 的 max >= min
                           final double maxLeft = (barWidth - indicatorWidth)
                               .clamp(0.0, double.infinity);
-
                           magnifierLeft = magnifierLeft.clamp(0.0, maxLeft);
 
                           // 动画参数

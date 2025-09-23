@@ -50,6 +50,8 @@ dependencies:
   country_icons: ^3.0.0
   flutter_svg: ^2.0.7
   dropdown_button2: ^2.3.9
+  collection: ^1.19.1
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:

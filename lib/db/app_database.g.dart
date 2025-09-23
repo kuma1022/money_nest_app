@@ -2440,6 +2440,362 @@ class AccountsCompanion extends UpdateCompanion<Account> {
   }
 }
 
+class $StockPricesTable extends StockPrices
+    with TableInfo<$StockPricesTable, StockPrice> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StockPricesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _stockIdMeta = const VerificationMeta(
+    'stockId',
+  );
+  @override
+  late final GeneratedColumn<int> stockId = GeneratedColumn<int>(
+    'stock_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _priceMeta = const VerificationMeta('price');
+  @override
+  late final GeneratedColumn<double> price = GeneratedColumn<double>(
+    'price',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _priceAtMeta = const VerificationMeta(
+    'priceAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> priceAt = GeneratedColumn<DateTime>(
+    'price_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    stockId,
+    price,
+    priceAt,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stock_prices';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StockPrice> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('stock_id')) {
+      context.handle(
+        _stockIdMeta,
+        stockId.isAcceptableOrUnknown(data['stock_id']!, _stockIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stockIdMeta);
+    }
+    if (data.containsKey('price')) {
+      context.handle(
+        _priceMeta,
+        price.isAcceptableOrUnknown(data['price']!, _priceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_priceMeta);
+    }
+    if (data.containsKey('price_at')) {
+      context.handle(
+        _priceAtMeta,
+        priceAt.isAcceptableOrUnknown(data['price_at']!, _priceAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_priceAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {stockId, priceAt},
+  ];
+  @override
+  StockPrice map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StockPrice(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      stockId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}stock_id'],
+      )!,
+      price: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}price'],
+      )!,
+      priceAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}price_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      ),
+    );
+  }
+
+  @override
+  $StockPricesTable createAlias(String alias) {
+    return $StockPricesTable(attachedDatabase, alias);
+  }
+}
+
+class StockPrice extends DataClass implements Insertable<StockPrice> {
+  final int id;
+  final int stockId;
+  final double price;
+  final DateTime priceAt;
+  final DateTime? createdAt;
+  const StockPrice({
+    required this.id,
+    required this.stockId,
+    required this.price,
+    required this.priceAt,
+    this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['stock_id'] = Variable<int>(stockId);
+    map['price'] = Variable<double>(price);
+    map['price_at'] = Variable<DateTime>(priceAt);
+    if (!nullToAbsent || createdAt != null) {
+      map['created_at'] = Variable<DateTime>(createdAt);
+    }
+    return map;
+  }
+
+  StockPricesCompanion toCompanion(bool nullToAbsent) {
+    return StockPricesCompanion(
+      id: Value(id),
+      stockId: Value(stockId),
+      price: Value(price),
+      priceAt: Value(priceAt),
+      createdAt: createdAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAt),
+    );
+  }
+
+  factory StockPrice.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StockPrice(
+      id: serializer.fromJson<int>(json['id']),
+      stockId: serializer.fromJson<int>(json['stockId']),
+      price: serializer.fromJson<double>(json['price']),
+      priceAt: serializer.fromJson<DateTime>(json['priceAt']),
+      createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'stockId': serializer.toJson<int>(stockId),
+      'price': serializer.toJson<double>(price),
+      'priceAt': serializer.toJson<DateTime>(priceAt),
+      'createdAt': serializer.toJson<DateTime?>(createdAt),
+    };
+  }
+
+  StockPrice copyWith({
+    int? id,
+    int? stockId,
+    double? price,
+    DateTime? priceAt,
+    Value<DateTime?> createdAt = const Value.absent(),
+  }) => StockPrice(
+    id: id ?? this.id,
+    stockId: stockId ?? this.stockId,
+    price: price ?? this.price,
+    priceAt: priceAt ?? this.priceAt,
+    createdAt: createdAt.present ? createdAt.value : this.createdAt,
+  );
+  StockPrice copyWithCompanion(StockPricesCompanion data) {
+    return StockPrice(
+      id: data.id.present ? data.id.value : this.id,
+      stockId: data.stockId.present ? data.stockId.value : this.stockId,
+      price: data.price.present ? data.price.value : this.price,
+      priceAt: data.priceAt.present ? data.priceAt.value : this.priceAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StockPrice(')
+          ..write('id: $id, ')
+          ..write('stockId: $stockId, ')
+          ..write('price: $price, ')
+          ..write('priceAt: $priceAt, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, stockId, price, priceAt, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StockPrice &&
+          other.id == this.id &&
+          other.stockId == this.stockId &&
+          other.price == this.price &&
+          other.priceAt == this.priceAt &&
+          other.createdAt == this.createdAt);
+}
+
+class StockPricesCompanion extends UpdateCompanion<StockPrice> {
+  final Value<int> id;
+  final Value<int> stockId;
+  final Value<double> price;
+  final Value<DateTime> priceAt;
+  final Value<DateTime?> createdAt;
+  const StockPricesCompanion({
+    this.id = const Value.absent(),
+    this.stockId = const Value.absent(),
+    this.price = const Value.absent(),
+    this.priceAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  StockPricesCompanion.insert({
+    this.id = const Value.absent(),
+    required int stockId,
+    required double price,
+    required DateTime priceAt,
+    this.createdAt = const Value.absent(),
+  }) : stockId = Value(stockId),
+       price = Value(price),
+       priceAt = Value(priceAt);
+  static Insertable<StockPrice> custom({
+    Expression<int>? id,
+    Expression<int>? stockId,
+    Expression<double>? price,
+    Expression<DateTime>? priceAt,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (stockId != null) 'stock_id': stockId,
+      if (price != null) 'price': price,
+      if (priceAt != null) 'price_at': priceAt,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  StockPricesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? stockId,
+    Value<double>? price,
+    Value<DateTime>? priceAt,
+    Value<DateTime?>? createdAt,
+  }) {
+    return StockPricesCompanion(
+      id: id ?? this.id,
+      stockId: stockId ?? this.stockId,
+      price: price ?? this.price,
+      priceAt: priceAt ?? this.priceAt,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (stockId.present) {
+      map['stock_id'] = Variable<int>(stockId.value);
+    }
+    if (price.present) {
+      map['price'] = Variable<double>(price.value);
+    }
+    if (priceAt.present) {
+      map['price_at'] = Variable<DateTime>(priceAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StockPricesCompanion(')
+          ..write('id: $id, ')
+          ..write('stockId: $stockId, ')
+          ..write('price: $price, ')
+          ..write('priceAt: $priceAt, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2448,6 +2804,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TradeSellMappingsTable tradeSellMappings =
       $TradeSellMappingsTable(this);
   late final $AccountsTable accounts = $AccountsTable(this);
+  late final $StockPricesTable stockPrices = $StockPricesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2457,6 +2814,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     stocks,
     tradeSellMappings,
     accounts,
+    stockPrices,
   ];
 }
 
@@ -3650,6 +4008,200 @@ typedef $$AccountsTableProcessedTableManager =
       Account,
       PrefetchHooks Function()
     >;
+typedef $$StockPricesTableCreateCompanionBuilder =
+    StockPricesCompanion Function({
+      Value<int> id,
+      required int stockId,
+      required double price,
+      required DateTime priceAt,
+      Value<DateTime?> createdAt,
+    });
+typedef $$StockPricesTableUpdateCompanionBuilder =
+    StockPricesCompanion Function({
+      Value<int> id,
+      Value<int> stockId,
+      Value<double> price,
+      Value<DateTime> priceAt,
+      Value<DateTime?> createdAt,
+    });
+
+class $$StockPricesTableFilterComposer
+    extends Composer<_$AppDatabase, $StockPricesTable> {
+  $$StockPricesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stockId => $composableBuilder(
+    column: $table.stockId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get priceAt => $composableBuilder(
+    column: $table.priceAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StockPricesTableOrderingComposer
+    extends Composer<_$AppDatabase, $StockPricesTable> {
+  $$StockPricesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stockId => $composableBuilder(
+    column: $table.stockId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get priceAt => $composableBuilder(
+    column: $table.priceAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StockPricesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StockPricesTable> {
+  $$StockPricesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get stockId =>
+      $composableBuilder(column: $table.stockId, builder: (column) => column);
+
+  GeneratedColumn<double> get price =>
+      $composableBuilder(column: $table.price, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get priceAt =>
+      $composableBuilder(column: $table.priceAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$StockPricesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StockPricesTable,
+          StockPrice,
+          $$StockPricesTableFilterComposer,
+          $$StockPricesTableOrderingComposer,
+          $$StockPricesTableAnnotationComposer,
+          $$StockPricesTableCreateCompanionBuilder,
+          $$StockPricesTableUpdateCompanionBuilder,
+          (
+            StockPrice,
+            BaseReferences<_$AppDatabase, $StockPricesTable, StockPrice>,
+          ),
+          StockPrice,
+          PrefetchHooks Function()
+        > {
+  $$StockPricesTableTableManager(_$AppDatabase db, $StockPricesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StockPricesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StockPricesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StockPricesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> stockId = const Value.absent(),
+                Value<double> price = const Value.absent(),
+                Value<DateTime> priceAt = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
+              }) => StockPricesCompanion(
+                id: id,
+                stockId: stockId,
+                price: price,
+                priceAt: priceAt,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int stockId,
+                required double price,
+                required DateTime priceAt,
+                Value<DateTime?> createdAt = const Value.absent(),
+              }) => StockPricesCompanion.insert(
+                id: id,
+                stockId: stockId,
+                price: price,
+                priceAt: priceAt,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StockPricesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StockPricesTable,
+      StockPrice,
+      $$StockPricesTableFilterComposer,
+      $$StockPricesTableOrderingComposer,
+      $$StockPricesTableAnnotationComposer,
+      $$StockPricesTableCreateCompanionBuilder,
+      $$StockPricesTableUpdateCompanionBuilder,
+      (
+        StockPrice,
+        BaseReferences<_$AppDatabase, $StockPricesTable, StockPrice>,
+      ),
+      StockPrice,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3662,4 +4214,6 @@ class $AppDatabaseManager {
       $$TradeSellMappingsTableTableManager(_db, _db.tradeSellMappings);
   $$AccountsTableTableManager get accounts =>
       $$AccountsTableTableManager(_db, _db.accounts);
+  $$StockPricesTableTableManager get stockPrices =>
+      $$StockPricesTableTableManager(_db, _db.stockPrices);
 }

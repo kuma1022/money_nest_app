@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui'; // 新增
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' hide Column;
@@ -31,19 +32,19 @@ class TradeAddPage extends StatefulWidget {
 class _TradeAddPageState extends State<TradeAddPage> {
   int tabIndex = 0; // 0: 資産, 1: 負債
 
-  // カテゴリ・サブカテゴリ
+  // 共通 State
+
+  // ##### 0. 資産 #####
+  // ----- 0-1. カテゴリ・サブカテゴリ -----
   late final List<Categories> assetCategories;
-  late final List<Categories> debtCategories;
   late final Map<String, List<Map<String, dynamic>>> assetCategoriesWithSub;
-  late final Map<String, List<Map<String, dynamic>>> debtCategoriesWithSub;
   String assetCategoryCode = '';
   String assetSubCategoryCode = '';
-  String debtCategoryCode = '';
-  String debtSubCategoryCode = '';
+
+  // ----- 0-2. 株式 -----
   // 操作タイプ（買い or 売り）
   String tradeAction = 'buy';
-
-  // 买入
+  // 0-2-1. 買い
   // 銘柄情報
   final TextEditingController _stockCodeController = TextEditingController();
   final FocusNode _stockCodeFocusNode = FocusNode();
@@ -53,189 +54,77 @@ class _TradeAddPageState extends State<TradeAddPage> {
   Timer? _debounceTimer;
   String _lastQueriedValue = '';
   bool _selectedFromDropdown = false;
+  Stock? selectedStockInfo;
   String selectedStockCode = '';
   String selectedStockName = '';
-  Stock? selectedStockInfo;
-  // 取引種別
-  String tradeTypeCode = '';
-  late final List<dynamic> tradeTypes;
+  // 取引詳細
   // 取引日
   String? tradeDate;
-  // 数量
-  num? quantityValue;
+  // 口座区分
+  final List<dynamic> tradeTypes = TradeType.values
+      .map((e) => {'code': e.code, 'name': e.displayName})
+      .toList();
+  late String tradeTypeCode = tradeTypes.first['code'];
+  // 数量・単価・金額
+  final _numberFormatter = NumberFormat("#,##0.####");
   final TextEditingController _quantityController = TextEditingController();
   final FocusNode _quantityFocusNode = FocusNode();
-  final _numberFormatter = NumberFormat("#,##0.####");
-  // 単価
-  num? unitPriceValue;
   final TextEditingController _unitPriceController = TextEditingController();
   final FocusNode _unitPriceFocusNode = FocusNode();
-  // 金額（自動计算）
   final TextEditingController _amountController = TextEditingController();
-  // 手数料
-  num? commissionValue;
+  num? quantityValue;
+  num? unitPriceValue;
+  // 手数料・手数料通貨
   final TextEditingController _commissionController = TextEditingController();
   final FocusNode _commissionFocusNode = FocusNode();
-  // 手数料通貨
-  String commissionCurrency = '';
-  late final List<String> commissionCurrencies =
-      Currency.values.map((e) => e.code).toList()
-        ..sort((a, b) => a.compareTo(b));
+  late final List<String> commissionCurrencies;
+  num? commissionValue;
+  late String commissionCurrency;
   // メモ
   String? memoValue;
 
-  // 卖出相关 State
+  // 0-2-2. 売り
+  // 売却する銘柄情報
   List<Map<String, dynamic>> sellHoldings = [];
-  List<dynamic> sellBatches = [];
-  num sellTotalQty = 0;
-  num sellUnitPrice = 0;
-  final TextEditingController sellUnitPriceController = TextEditingController();
-  final TextEditingController sellAmountController = TextEditingController(
-    text: '¥0',
-  );
-  final FocusNode sellUnitPriceFocusNode = FocusNode();
-  // 銘柄情報（从持仓中选择）
+  int? selectedSellStockId;
   String selectedSellStockCode = '';
   String selectedSellStockName = '';
-  int? selectedSellStockId;
-  // 批次选择
+  // 取引詳細
+  // 取引日
+  // String? tradeDate; // 共用buy/sell
+  // 売却数量・売却単価・売却金額
   Map<String, TextEditingController> sellBatchControllers = {};
   Map<String, FocusNode> sellBatchFocusNodes = {};
-  // 手数料
-  num? sellCommissionValue;
+  List<dynamic> sellBatches = [];
+  num sellTotalQty = 0;
+  final TextEditingController _sellUnitPriceController =
+      TextEditingController();
+  final TextEditingController _sellAmountController = TextEditingController(
+    text: '¥0',
+  );
+  final FocusNode _sellUnitPriceFocusNode = FocusNode();
+  num? sellUnitPrice;
+  // 売却手数料・手数料通貨
   final TextEditingController _sellCommissionController =
       TextEditingController();
   final FocusNode _sellCommissionFocusNode = FocusNode();
-  // 手数料通貨
-  String sellCommissionCurrency = '';
-  // メモ
+  num? sellCommissionValue;
+  late String sellCommissionCurrency;
+  // 売却メモ
   String? sellMemoValue;
 
-  // 示例：异步获取候选
-  Future<void> _fetchSuggestions(String value, String exchange) async {
-    setState(() {
-      _stockLoading = true;
-      _stockSuggestions = [];
-    });
-    _showOverlay();
+  // ##### 1. 負債 #####
+  // ----- 1-1. カテゴリ・サブカテゴリ -----
+  String debtCategoryCode = '';
+  String debtSubCategoryCode = '';
+  late final List<Categories> debtCategories;
+  late final Map<String, List<Map<String, dynamic>>> debtCategoriesWithSub;
 
-    List<Stock> result = await AppUtils().fetchStockSuggestions(
-      value,
-      exchange,
-    );
-
-    // 只处理最后一次输入的结果
-    if (_lastQueriedValue != value) return;
-
-    setState(() {
-      _stockLoading = false;
-      _stockSuggestions = result;
-    });
-    _showOverlay();
-  }
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  void _showOverlay() {
-    _removeOverlay();
-    final RenderBox box = context.findRenderObject() as RenderBox;
-    final Offset position = box.localToGlobal(Offset.zero);
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        left: position.dx,
-        top: position.dy + box.size.height,
-        width: box.size.width,
-        child: Material(
-          elevation: 4,
-          borderRadius: BorderRadius.circular(16),
-          child: _stockLoading
-              ? const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              : _stockSuggestions.isEmpty
-              ? const ListTile(title: Text('該当する銘柄が見つかりません'))
-              : ListView(
-                  shrinkWrap: true,
-                  children: _stockSuggestions.map((stock) {
-                    return ListTile(
-                      title: Text(stock.ticker!),
-                      subtitle: Text(stock.name),
-                      onTap: () {
-                        _stockCodeController.text = stock.ticker!;
-                        _onStockSelected(stock);
-                        _selectedFromDropdown = true;
-                        _removeOverlay();
-                        FocusScope.of(context).unfocus();
-                      },
-                    );
-                  }).toList(),
-                ),
-        ),
-      ),
-    );
-    Overlay.of(context, rootOverlay: true).insert(_overlayEntry!);
-  }
-
-  void _onStockSelected(Stock? stock) {
-    setState(() {
-      if (stock != null && stock.ticker!.isNotEmpty && stock.name.isNotEmpty) {
-        selectedStockCode = stock.ticker!;
-        selectedStockName = stock.name;
-        selectedStockInfo = stock;
-      } else {
-        selectedStockCode = '';
-        selectedStockName = '';
-        selectedStockInfo = null;
-      }
-    });
-  }
-
-  void _onStockCodeChanged(String value) {
-    _lastQueriedValue = value;
-    if (value.isEmpty) {
-      setState(() => _stockSuggestions = []);
-      _removeOverlay();
-      _onStockSelected(null);
-      return;
-    }
-    _fetchSuggestions(value, assetSubCategoryCode == 'jp_stock' ? 'JP' : 'US');
-  }
-
-  void _onFocusChange(bool hasFocus) {
-    if (!hasFocus) {
-      _debounceTimer?.cancel();
-      _removeOverlay();
-
-      // 如果是从候选项中选中的，就不清空输入
-      if (_selectedFromDropdown) {
-        _selectedFromDropdown = false;
-        return;
-      }
-
-      final inputCode = _stockCodeController.text.trim();
-
-      // 如果候选项中有完全匹配的，选中它
-      for (var stock in _stockSuggestions) {
-        if (stock.ticker! == inputCode) {
-          _stockCodeController.text = stock.ticker!;
-          _onStockSelected(stock);
-          return;
-        }
-      }
-
-      // 否则清空输入
-      _stockCodeController.clear();
-      _onStockSelected(null);
-    }
-  }
-
+  // 初始化处理
   @override
   void initState() {
     super.initState();
+    // 初始化资产和负债类别
     assetCategories =
         Categories.values.where((cat) => cat.type == 'asset').toList()
           ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
@@ -278,209 +167,49 @@ class _TradeAddPageState extends State<TradeAddPage> {
           );
           return map;
         });
-    tradeTypes = TradeType.values
-        .map((e) => {'code': e.code, 'name': e.displayName})
-        .toList();
-    _quantityFocusNode.addListener(() {
-      if (!_quantityFocusNode.hasFocus) {
-        // 输入框失去焦点时执行格式化
-        final value = _quantityController.text;
-        if (value.isEmpty) return;
-        final num? n = num.tryParse(value.replaceAll(',', ''));
-        if (n == null) return;
 
-        final formatted = _numberFormatter.format(n);
+    // 设置默认的货币选项
+    commissionCurrencies = Currency.values.map((e) => e.code).toList();
+    commissionCurrency = commissionCurrencies.first;
+    sellCommissionCurrency = commissionCurrencies.first;
 
-        _quantityController.value = TextEditingValue(
-          text: formatted,
-          selection: TextSelection.collapsed(offset: formatted.length),
-        );
+    // 初始化数字输入框的格式化监听
+    addFocusFormatListener(
+      focusNode: _quantityFocusNode,
+      controller: _quantityController,
+      numberFormatter: _numberFormatter,
+      maxDecimal: 4,
+      afterFormat: _updateAmount,
+    );
+    addFocusFormatListener(
+      focusNode: _unitPriceFocusNode,
+      controller: _unitPriceController,
+      numberFormatter: _numberFormatter,
+      maxDecimal: 4,
+      afterFormat: _updateAmount,
+    );
+    addFocusFormatListener(
+      focusNode: _commissionFocusNode,
+      controller: _commissionController,
+      numberFormatter: _numberFormatter,
+      maxDecimal: 4, // 最多4位小数
+    );
+    addFocusFormatListener(
+      focusNode: _sellUnitPriceFocusNode,
+      controller: _sellUnitPriceController,
+      numberFormatter: _numberFormatter,
+      maxDecimal: 4, // 最多4位小数
+      afterFormat: _updateSellAmount,
+    );
+    addFocusFormatListener(
+      focusNode: _sellCommissionFocusNode,
+      controller: _sellCommissionController,
+      numberFormatter: _numberFormatter,
+      maxDecimal: 4, // 最多4位小数
+    );
 
-        _updateAmount();
-      }
-    });
-    _unitPriceFocusNode.addListener(() {
-      if (!_unitPriceFocusNode.hasFocus) {
-        // 输入框失去焦点时执行格式化
-        final value = _unitPriceController.text;
-        if (value.isEmpty) return;
-        final num? n = num.tryParse(value.replaceAll(',', ''));
-        if (n == null) return;
-
-        final formatted = _numberFormatter.format(n);
-
-        _unitPriceController.value = TextEditingValue(
-          text: formatted,
-          selection: TextSelection.collapsed(offset: formatted.length),
-        );
-
-        _updateAmount();
-      }
-    });
-    _commissionFocusNode.addListener(() {
-      if (!_commissionFocusNode.hasFocus) {
-        // 输入框失去焦点时执行格式化
-        final value = _commissionController.text;
-        if (value.isEmpty) return;
-        final num? n = num.tryParse(value.replaceAll(',', ''));
-        if (n == null) return;
-
-        final formatted = _numberFormatter.format(n);
-
-        _commissionController.value = TextEditingValue(
-          text: formatted,
-          selection: TextSelection.collapsed(offset: formatted.length),
-        );
-      }
-    });
-    sellUnitPriceFocusNode.addListener(() {
-      if (!sellUnitPriceFocusNode.hasFocus) {
-        // 输入框失去焦点时执行格式化
-        final value = sellUnitPriceController.text;
-        if (value.isEmpty) return;
-        final num? n = num.tryParse(value.replaceAll(',', ''));
-        if (n == null) return;
-
-        final formatted = _numberFormatter.format(n);
-
-        sellUnitPriceController.value = TextEditingValue(
-          text: formatted,
-          selection: TextSelection.collapsed(offset: formatted.length),
-        );
-
-        _updateSellAmount();
-      }
-    });
-    _sellCommissionFocusNode.addListener(() {
-      if (!_sellCommissionFocusNode.hasFocus) {
-        // 输入框失去焦点时执行格式化
-        final value = _sellCommissionController.text;
-        if (value.isEmpty) return;
-        final num? n = num.tryParse(value.replaceAll(',', ''));
-        if (n == null) return;
-
-        final formatted = _numberFormatter.format(n);
-
-        _sellCommissionController.value = TextEditingValue(
-          text: formatted,
-          selection: TextSelection.collapsed(offset: formatted.length),
-        );
-      }
-    });
     // 初始化卖出持仓
     _loadSellHoldings();
-  }
-
-  // 获取持仓数据
-  Future<void> _loadSellHoldings() async {
-    sellHoldings = await getMyHoldingStocks(
-      assetCategoryCode,
-      assetSubCategoryCode == 'jp_stock' ? 'JP' : 'US',
-    );
-    // 切换资产类型时清空已选
-    setState(() {
-      selectedSellStockId = null;
-      selectedSellStockName = '';
-      sellBatches = [];
-      sellBatchControllers.clear();
-      sellTotalQty = 0;
-      sellUnitPriceController.text = '';
-      sellAmountController.text = '¥0';
-    });
-  }
-
-  // 切换资产类型/子类型时，重新加载持仓
-  void _onAssetCategoryChanged(String? v) {
-    setState(() {
-      assetCategoryCode = v ?? '';
-      assetSubCategoryCode = '';
-      selectedStockCode = '';
-      selectedStockName = '';
-      selectedStockInfo = null;
-    });
-    _loadSellHoldings();
-  }
-
-  void _onAssetSubCategoryChanged(String? v) {
-    setState(() {
-      assetSubCategoryCode = v ?? '';
-      selectedStockCode = '';
-      selectedStockName = '';
-      selectedStockInfo = null;
-    });
-    _loadSellHoldings();
-  }
-
-  // 选择卖出股票
-  void _onSellStockChanged(String? v) {
-    setState(() {
-      selectedSellStockId = int.tryParse(v ?? '');
-      final holding = sellHoldings.firstWhere(
-        (h) => h['id'].toString() == v,
-        orElse: () => <String, dynamic>{},
-      );
-      selectedSellStockName = holding['name'] ?? '';
-      sellBatches = (holding['batches'] is List) ? holding['batches'] : [];
-      // 初始化controller
-      sellBatchControllers.clear();
-      sellBatchFocusNodes.clear();
-      for (var batch in sellBatches) {
-        final key = batch['id'].toString();
-        sellBatchControllers[key] = TextEditingController(
-          text: batch['sell']?.toString() ?? '0',
-        );
-        sellBatchFocusNodes[key] = FocusNode();
-        sellBatchControllers[key]!.addListener(_updateSellTotalQty);
-        sellBatchFocusNodes[key]!.addListener(() {
-          if (!sellBatchFocusNodes[key]!.hasFocus) {
-            // 输入框失去焦点时执行格式化
-            final value = sellBatchControllers[key]!.text;
-            if (value.isEmpty) return;
-            final num? n = num.tryParse(value.replaceAll(',', ''));
-            if (n == null) return;
-
-            final formatted = _numberFormatter.format(n);
-
-            sellBatchControllers[key]!.value = TextEditingValue(
-              text: formatted,
-              selection: TextSelection.collapsed(offset: formatted.length),
-            );
-
-            _updateSellTotalQty();
-          }
-        });
-      }
-      _updateSellTotalQty();
-      sellUnitPriceController.text = '';
-      sellAmountController.text = '¥0';
-      sellUnitPriceController.addListener(_updateSellAmount);
-    });
-  }
-
-  // 更新总卖出数量
-  void _updateSellTotalQty() {
-    num total = 0;
-    for (int i = 0; i < sellBatches.length; i++) {
-      final key = sellBatches[i]['id'].toString();
-      final qty = num.tryParse(sellBatchControllers[key]?.text ?? '0') ?? 0;
-      sellBatches[i]['sell'] = qty;
-      total += qty;
-    }
-    setState(() {
-      sellTotalQty = total;
-    });
-    _updateSellAmount();
-  }
-
-  // 更新卖出金额
-  void _updateSellAmount() {
-    final unitPrice =
-        num.tryParse(sellUnitPriceController.text.replaceAll(',', '')) ?? 0;
-    setState(() {
-      sellUnitPrice = unitPrice;
-    });
-    final amount = sellTotalQty * unitPrice;
-    sellAmountController.text = '¥${amount.toStringAsFixed(0)}';
   }
 
   @override
@@ -496,6 +225,14 @@ class _TradeAddPageState extends State<TradeAddPage> {
     _commissionFocusNode.dispose();
     _sellCommissionController.dispose();
     _sellCommissionFocusNode.dispose();
+    _sellUnitPriceController.dispose();
+    _sellUnitPriceFocusNode.dispose();
+    for (var node in sellBatchFocusNodes.values) {
+      node.dispose();
+    }
+    for (var controller in sellBatchControllers.values) {
+      controller.dispose();
+    }
     _removeOverlay();
     _debounceTimer?.cancel();
     super.dispose();
@@ -622,6 +359,305 @@ class _TradeAddPageState extends State<TradeAddPage> {
         ),
       ),
     );
+  }
+
+  // 共通方法：初始化数字输入框的格式化监听
+  void addFocusFormatListener({
+    required FocusNode focusNode,
+    required TextEditingController controller,
+    required NumberFormat numberFormatter,
+    int? maxDecimal, // 可选：小数位数
+    void Function()? afterFormat, // 可选：格式化后额外处理
+  }) {
+    focusNode.addListener(() {
+      if (!focusNode.hasFocus) {
+        final value = controller.text;
+        if (value.isEmpty) return;
+        final num? n = num.tryParse(value.replaceAll(',', ''));
+        if (n == null) return;
+
+        String formatted;
+        if (maxDecimal != null) {
+          // 只用 toStringAsFixed，不做正则处理
+          formatted = n.toStringAsFixed(maxDecimal);
+          // 如果是整数，去掉多余的小数点
+          if (formatted.contains('.')) {
+            formatted = formatted.replaceFirst(RegExp(r'\.?0+$'), '');
+          }
+        } else {
+          formatted = numberFormatter.format(n);
+        }
+
+        controller.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+        if (afterFormat != null) afterFormat();
+      }
+    });
+  }
+
+  // 通过输入股票代码获取股票候选项
+  Future<void> _fetchSuggestions(String value, String exchange) async {
+    setState(() {
+      _stockLoading = true;
+      _stockSuggestions = [];
+    });
+    _showOverlay();
+
+    List<Stock> result = await AppUtils().fetchStockSuggestions(
+      value,
+      exchange,
+    );
+
+    // 只处理最后一次输入的结果
+    if (_lastQueriedValue != value) return;
+
+    setState(() {
+      _stockLoading = false;
+      _stockSuggestions = result;
+    });
+    _showOverlay();
+  }
+
+  // 关闭股票候选项浮层
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  // 显示股票候选项浮层
+  void _showOverlay() {
+    _removeOverlay();
+    final RenderBox box = context.findRenderObject() as RenderBox;
+    final Offset position = box.localToGlobal(Offset.zero);
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        left: position.dx,
+        top: position.dy + box.size.height,
+        width: box.size.width,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(16),
+          child: _stockLoading
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : _stockSuggestions.isEmpty
+              ? const ListTile(title: Text('該当する銘柄が見つかりません'))
+              : ListView(
+                  shrinkWrap: true,
+                  children: _stockSuggestions.map((stock) {
+                    return ListTile(
+                      title: Text(stock.ticker!),
+                      subtitle: Text(stock.name),
+                      onTap: () {
+                        _stockCodeController.text = stock.ticker!;
+                        _onStockSelected(stock);
+                        _selectedFromDropdown = true;
+                        _removeOverlay();
+                        FocusScope.of(context).unfocus();
+                      },
+                    );
+                  }).toList(),
+                ),
+        ),
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_overlayEntry!);
+  }
+
+  // 选择股票候选项的处理
+  void _onStockSelected(Stock? stock) {
+    setState(() {
+      if (stock != null && stock.ticker!.isNotEmpty && stock.name.isNotEmpty) {
+        selectedStockCode = stock.ticker!;
+        selectedStockName = stock.name;
+        selectedStockInfo = stock;
+      } else {
+        selectedStockCode = '';
+        selectedStockName = '';
+        selectedStockInfo = null;
+      }
+    });
+  }
+
+  // 输入股票代码变化的处理
+  void _onStockCodeChanged(String value) {
+    _lastQueriedValue = value;
+    if (value.isEmpty) {
+      setState(() => _stockSuggestions = []);
+      _removeOverlay();
+      _onStockSelected(null);
+      return;
+    }
+    _fetchSuggestions(value, assetSubCategoryCode == 'jp_stock' ? 'JP' : 'US');
+  }
+
+  // 股票代码输入框失去焦点的处理
+  void _onStockCodeFocusChange(bool hasFocus) {
+    if (!hasFocus) {
+      _debounceTimer?.cancel();
+      _removeOverlay();
+
+      // 如果是从候选项中选中的，就不清空输入
+      if (_selectedFromDropdown) {
+        _selectedFromDropdown = false;
+        return;
+      }
+
+      final inputCode = _stockCodeController.text.trim();
+
+      // 如果候选项中有完全匹配的，选中它
+      for (var stock in _stockSuggestions) {
+        if (stock.ticker! == inputCode) {
+          _stockCodeController.text = stock.ticker!;
+          _onStockSelected(stock);
+          return;
+        }
+      }
+
+      // 否则清空输入
+      _stockCodeController.clear();
+      _onStockSelected(null);
+    }
+  }
+
+  // 获取持仓数据
+  Future<void> _loadSellHoldings({bool notNeedRefresh = false}) async {
+    sellHoldings = await getMyHoldingStocks(
+      assetCategoryCode,
+      assetSubCategoryCode == 'jp_stock' ? 'JP' : 'US',
+      tradeDate,
+    );
+    // 切换资产类型时清空已选
+    setState(() {
+      if (notNeedRefresh) {
+        final holding = sellHoldings.firstWhere(
+          (h) => h['id'].toString() == selectedSellStockId.toString(),
+          orElse: () => <String, dynamic>{},
+        );
+        final newSellBatches = (holding['batches'] is List)
+            ? holding['batches']
+            : [];
+        if (newSellBatches.length == sellBatches.length) {
+          return; // 如果持仓没有变化就不刷新
+        }
+        sellBatches = newSellBatches;
+        // 这里同步初始化 controllers 和 focusNodes
+        sellBatchControllers.clear();
+        sellBatchFocusNodes.clear();
+        for (var batch in sellBatches) {
+          final key = batch['id'].toString();
+          sellBatchControllers[key] = TextEditingController(
+            text: batch['sell']?.toString() ?? '0',
+          );
+          sellBatchFocusNodes[key] = FocusNode();
+          sellBatchControllers[key]!.addListener(_updateSellTotalQty);
+          addFocusFormatListener(
+            focusNode: sellBatchFocusNodes[key]!,
+            controller: sellBatchControllers[key]!,
+            numberFormatter: _numberFormatter,
+            maxDecimal: 4,
+            afterFormat: _updateSellTotalQty,
+          );
+        }
+        sellTotalQty = 0;
+      } else if (!notNeedRefresh) {
+        sellBatches = [];
+        sellBatchControllers.clear();
+        sellTotalQty = 0;
+        selectedSellStockId = null;
+        selectedSellStockName = '';
+        _sellUnitPriceController.text = '';
+        _sellAmountController.text = '¥0';
+      }
+    });
+  }
+
+  // 切换资产类型/子类型时，重新加载持仓
+  void _onAssetCategoryChanged(String? v) {
+    setState(() {
+      assetCategoryCode = v ?? '';
+      assetSubCategoryCode = '';
+      selectedStockCode = '';
+      selectedStockName = '';
+      selectedStockInfo = null;
+    });
+    _loadSellHoldings();
+  }
+
+  // 切换资产子类型时，重新加载持仓
+  void _onAssetSubCategoryChanged(String? v) {
+    setState(() {
+      assetSubCategoryCode = v ?? '';
+      selectedStockCode = '';
+      selectedStockName = '';
+      selectedStockInfo = null;
+    });
+    _loadSellHoldings();
+  }
+
+  // 选择卖出股票
+  void _onSellStockChanged(String? v) {
+    setState(() {
+      selectedSellStockId = int.tryParse(v ?? '');
+      final holding = sellHoldings.firstWhere(
+        (h) => h['id'].toString() == v,
+        orElse: () => <String, dynamic>{},
+      );
+      selectedSellStockName = holding['name'] ?? '';
+      sellBatches = (holding['batches'] is List) ? holding['batches'] : [];
+      // 初始化controller
+      sellBatchControllers.clear();
+      sellBatchFocusNodes.clear();
+      for (var batch in sellBatches) {
+        final key = batch['id'].toString();
+        sellBatchControllers[key] = TextEditingController(
+          text: batch['sell']?.toString() ?? '0',
+        );
+        sellBatchFocusNodes[key] = FocusNode();
+        sellBatchControllers[key]!.addListener(_updateSellTotalQty);
+        addFocusFormatListener(
+          focusNode: sellBatchFocusNodes[key]!,
+          controller: sellBatchControllers[key]!,
+          numberFormatter: _numberFormatter,
+          maxDecimal: 4,
+          afterFormat: _updateSellTotalQty,
+        );
+      }
+      _updateSellTotalQty();
+      _sellUnitPriceController.text = '';
+      _sellAmountController.text = '¥0';
+      _sellUnitPriceController.addListener(_updateSellAmount);
+    });
+  }
+
+  // 更新总卖出数量
+  void _updateSellTotalQty() {
+    num total = 0;
+    for (int i = 0; i < sellBatches.length; i++) {
+      final key = sellBatches[i]['id'].toString();
+      final qty = num.tryParse(sellBatchControllers[key]?.text ?? '0') ?? 0;
+      sellBatches[i]['sell'] = qty;
+      total += qty;
+    }
+    setState(() {
+      sellTotalQty = total;
+    });
+    _updateSellAmount();
+  }
+
+  // 更新卖出金额
+  void _updateSellAmount() {
+    final unitPrice =
+        num.tryParse(_sellUnitPriceController.text.replaceAll(',', '')) ?? 0;
+    setState(() {
+      sellUnitPrice = unitPrice;
+    });
+    final amount = sellTotalQty * unitPrice;
+    _sellAmountController.text = '¥${amount.toStringAsFixed(0)}';
   }
 
   // 資産tab内容
@@ -802,7 +838,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
             ),
             const SizedBox(height: 16),
             if (tradeAction == 'buy') _buildBuyFields(),
-            if (tradeAction == 'sell') _buildSellFields2(),
+            if (tradeAction == 'sell') _buildSellFields(),
           ],
         ),
       );
@@ -811,6 +847,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
     return const SizedBox.shrink();
   }
 
+  // 生成买入表单内容
   Widget _buildBuyFields() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -826,7 +863,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
           loading: _stockLoading,
           notFoundText: '該当する銘柄が見つかりません',
           onChanged: _onStockCodeChanged,
-          onFocusChange: _onFocusChange,
+          onFocusChange: _onStockCodeFocusChange,
           onSuggestionTap: (stock) {
             _stockCodeController.text = stock.ticker!;
             _onStockSelected(stock);
@@ -1114,8 +1151,8 @@ class _TradeAddPageState extends State<TradeAddPage> {
     );
   }
 
-  // 新的卖出表单
-  Widget _buildSellFields2() {
+  // 生成卖出表单内容
+  Widget _buildSellFields() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1160,6 +1197,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                     ? DateFormat('yyyy-MM-dd').format(date)
                     : null;
               });
+              _loadSellHoldings(notNeedRefresh: true);
             },
           ),
           const SizedBox(height: 12),
@@ -1170,6 +1208,11 @@ class _TradeAddPageState extends State<TradeAddPage> {
             children: List.generate(sellBatches.length, (i) {
               final batch = sellBatches[i];
               final key = batch['id'].toString();
+              // 防御性处理：controller或focusNode未初始化时不渲染输入框
+              if (!sellBatchControllers.containsKey(key) ||
+                  !sellBatchFocusNodes.containsKey(key)) {
+                return const SizedBox.shrink();
+              }
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Row(
@@ -1261,8 +1304,8 @@ class _TradeAddPageState extends State<TradeAddPage> {
                     ),
                     const SizedBox(height: 6),
                     CustomTextFormField(
-                      controller: sellUnitPriceController,
-                      focusNode: sellUnitPriceFocusNode,
+                      controller: _sellUnitPriceController,
+                      focusNode: _sellUnitPriceFocusNode,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
@@ -1298,7 +1341,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                     ),
                     const SizedBox(height: 6),
                     TextFormField(
-                      controller: sellAmountController,
+                      controller: _sellAmountController,
                       readOnly: true,
                       decoration: InputDecoration(
                         filled: true,
@@ -1431,9 +1474,11 @@ class _TradeAddPageState extends State<TradeAddPage> {
     );
   }
 
+  // 获取用户持有的股票列表及其批次信息
   Future<List<Map<String, dynamic>>> getMyHoldingStocks(
     String assetType,
     String exchange,
+    String? tradeDateStr,
   ) async {
     final db = AppDatabase();
     final userId = GlobalStore().userId;
@@ -1443,8 +1488,18 @@ class _TradeAddPageState extends State<TradeAddPage> {
       return [];
     }
 
-    // 联合查询 TradeRecords 和 Stocks
-    final query =
+    // 解析tradeDateStr为DateTime
+    DateTime? tradeDate;
+    if (tradeDateStr != null && tradeDateStr.isNotEmpty) {
+      try {
+        tradeDate = DateTime.parse(tradeDateStr);
+      } catch (_) {
+        tradeDate = null;
+      }
+    }
+
+    // 1. 查询所有买入批次
+    final buyQuery =
         db.select(db.stocks).join([
             innerJoin(
               db.tradeRecords,
@@ -1455,17 +1510,55 @@ class _TradeAddPageState extends State<TradeAddPage> {
           ..where(db.tradeRecords.userId.equals(userId))
           ..where(db.tradeRecords.accountId.equals(accountId))
           ..where(db.tradeRecords.assetType.equals(assetType))
+          ..where(db.tradeRecords.action.equals('buy'))
           ..orderBy([
             OrderingTerm.asc(db.stocks.ticker),
             OrderingTerm.asc(db.tradeRecords.tradeDate),
           ]);
 
-    final rows = await query.get();
+    final buyRows = await buyQuery.get();
 
+    // 2. 查询所有卖出mapping（buy_id -> 已卖出数量）
+    final sellMappings = await (db.select(db.tradeSellMappings)).get();
+
+    // 统计每个 buy_id 已卖出数量
+    final Map<int, num> buyIdToSoldQty = {};
+    for (final mapping in sellMappings) {
+      buyIdToSoldQty[mapping.buyId] =
+          (buyIdToSoldQty[mapping.buyId] ?? 0) + mapping.quantity;
+    }
+
+    // 3. 组装结果
     final result = <int, Map<String, dynamic>>{};
-    for (final row in rows) {
+    for (final row in buyRows) {
       final stock = row.readTable(db.stocks);
       final trade = row.readTable(db.tradeRecords);
+
+      // 判断是否在交易日之前（包含交易日）
+      final buyDate = trade.tradeDate;
+      bool isValid = true;
+      if (tradeDate != null) {
+        final buyDateOnly = DateTime(buyDate.year, buyDate.month, buyDate.day);
+        final tradeDateOnly = DateTime(
+          tradeDate.year,
+          tradeDate.month,
+          tradeDate.day,
+        );
+        if (buyDateOnly.isAfter(tradeDateOnly)) {
+          isValid = false;
+        }
+      }
+
+      if (!isValid) continue; // 交易日之后的批次直接跳过
+
+      // 计算剩余可卖数量
+      final buyId = trade.id;
+      final buyQty = trade.quantity;
+      final soldQty = buyIdToSoldQty[buyId] ?? 0;
+      final remainQty = buyQty - soldQty;
+
+      if (remainQty <= 0) continue; // 已全部卖出
+
       if (!result.containsKey(stock.id)) {
         result[stock.id] = {
           'id': stock.id,
@@ -1475,9 +1568,9 @@ class _TradeAddPageState extends State<TradeAddPage> {
         };
       }
       result[stock.id]?['batches'].add({
-        'id': trade.id,
+        'id': buyId,
         'date': trade.tradeDate,
-        'quantity': trade.quantity,
+        'quantity': remainQty,
         'price': trade.price,
         'sell': 0, // 初始卖出数量为0
       });
@@ -1506,7 +1599,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
     );
   }
 
-  // 自动计算金额
+  // 自动计算买入总金额
   void _updateAmount() {
     final quantity = num.tryParse(_quantityController.text);
     final unitPrice = num.tryParse(_unitPriceController.text);
@@ -1520,6 +1613,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
     }
   }
 
+  // 保存按钮处理
   Future<void> _handleSave() async {
     // 显示处理中遮罩
     showDialog(
@@ -1545,14 +1639,29 @@ class _TradeAddPageState extends State<TradeAddPage> {
       bool canSave = false;
       if (tabIndex == 0) {
         // 資産tab
-        canSave =
-            assetCategoryCode.isNotEmpty &&
-            assetSubCategoryCode.isNotEmpty &&
-            selectedStockInfo != null &&
-            tradeTypeCode.isNotEmpty &&
-            tradeDate != null &&
-            quantityValue != null &&
-            unitPriceValue != null;
+        if (assetCategoryCode == 'stock' &&
+            (assetSubCategoryCode == 'jp_stock' ||
+                assetSubCategoryCode == 'us_stock')) {
+          // 买入
+          if (tradeAction == 'buy') {
+            canSave =
+                assetCategoryCode.isNotEmpty &&
+                assetSubCategoryCode.isNotEmpty &&
+                selectedStockInfo != null &&
+                tradeTypeCode.isNotEmpty &&
+                tradeDate != null &&
+                quantityValue != null &&
+                unitPriceValue != null;
+          } else if (tradeAction == 'sell') {
+            canSave =
+                assetCategoryCode.isNotEmpty &&
+                assetSubCategoryCode.isNotEmpty &&
+                selectedSellStockId != null &&
+                tradeDate != null &&
+                sellTotalQty > 0 &&
+                sellUnitPrice != null;
+          }
+        }
       } else {
         // 負債tab
         canSave =
@@ -1564,60 +1673,121 @@ class _TradeAddPageState extends State<TradeAddPage> {
             unitPriceValue != null;
       }
       if (!canSave) {
-        //AppUtils().showSnackBar(
-        //  context,
-        //  '必須項目を入力してください',
-        //  isError: true,
-        //);
         Navigator.of(context).pop(); // 关闭处理中遮罩
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('入力エラー'),
+            content: const Text('必須項目を入力してください。'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
         return;
       }
       // 保存逻辑
       bool success = false;
-      if (tabIndex == 0 &&
-          assetCategoryCode == 'stock' &&
-          (assetSubCategoryCode == 'jp_stock' ||
-              assetSubCategoryCode == 'us_stock') &&
-          tradeAction == 'buy') {
-        success = await AppUtils().createAsset(
-          userId: GlobalStore().userId!,
-          assetData: {
-            "account_id": GlobalStore().accountId!,
-            "asset_type": "stock",
-            "asset_id": selectedStockInfo!.id,
-            "trade_date": tradeDate,
-            "action": tradeAction,
-            "trade_type": tradeTypeCode,
-            "position_type": null,
-            "quantity": quantityValue,
-            "price": unitPriceValue,
-            "leverage": null,
-            "swap_amount": null,
-            "swap_currency": null,
-            "fee_amount": commissionValue,
-            "fee_currency": commissionCurrency,
-            "manual_rate_input": false,
-            "remark": memoValue,
-          },
-          stockData: {
-            "id": selectedStockInfo!.id,
-            "ticker": selectedStockInfo!.ticker,
-            "exchange": selectedStockInfo!.exchange,
-            "name": selectedStockInfo!.name,
-            "currency": selectedStockInfo!.currency,
-            "country": selectedStockInfo!.country,
-            "status": selectedStockInfo!.status,
-            "last_price": selectedStockInfo!.lastPrice,
-            "lastPriceAt": selectedStockInfo!.lastPriceAt,
-            "nameUs": selectedStockInfo!.nameUs,
-            "sectorIndustryId": selectedStockInfo!.sectorIndustryId,
-            "logo": selectedStockInfo!.logo,
-          },
-        );
+      // 資産tab保存逻辑
+      if (tabIndex == 0) {
+        // 株式（国内株式,米国株式）
+        if (assetCategoryCode == 'stock' &&
+            (assetSubCategoryCode == 'jp_stock' ||
+                assetSubCategoryCode == 'us_stock')) {
+          // 买入
+          if (tradeAction == 'buy') {
+            success = await AppUtils().createAsset(
+              userId: GlobalStore().userId!,
+              assetData: {
+                "account_id": GlobalStore().accountId!,
+                "asset_type": "stock",
+                "asset_id": selectedStockInfo!.id,
+                "trade_date": tradeDate,
+                "action": tradeAction,
+                "trade_type": tradeTypeCode,
+                "position_type": null,
+                "quantity": quantityValue,
+                "price": unitPriceValue,
+                "leverage": null,
+                "swap_amount": null,
+                "swap_currency": null,
+                "fee_amount": commissionValue,
+                "fee_currency": commissionCurrency,
+                "manual_rate_input": false,
+                "remark": memoValue,
+                "sell_mappings": [],
+              },
+              stockData: {
+                "id": selectedStockInfo!.id,
+                "ticker": selectedStockInfo!.ticker,
+                "exchange": selectedStockInfo!.exchange,
+                "name": selectedStockInfo!.name,
+                "currency": selectedStockInfo!.currency,
+                "country": selectedStockInfo!.country,
+                "status": selectedStockInfo!.status,
+                "last_price": selectedStockInfo!.lastPrice,
+                "lastPriceAt": selectedStockInfo!.lastPriceAt,
+                "nameUs": selectedStockInfo!.nameUs,
+                "sectorIndustryId": selectedStockInfo!.sectorIndustryId,
+                "logo": selectedStockInfo!.logo,
+              },
+            );
+          }
+          // 卖出
+          else if (tradeAction == 'sell') {
+            success = await AppUtils().createAsset(
+              userId: GlobalStore().userId!,
+              assetData: {
+                "account_id": GlobalStore().accountId!,
+                "asset_type": "stock",
+                "asset_id": selectedSellStockId,
+                "trade_date": tradeDate,
+                "action": tradeAction,
+                "trade_type": null,
+                "position_type": null,
+                "quantity": sellTotalQty,
+                "price": sellUnitPrice,
+                "leverage": null,
+                "swap_amount": null,
+                "swap_currency": null,
+                "fee_amount": sellCommissionValue,
+                "fee_currency": sellCommissionCurrency,
+                "manual_rate_input": false,
+                "remark": sellMemoValue,
+                "sell_mappings": sellBatches
+                    .where(
+                      (b) =>
+                          (b['sell'] ?? 0) != 0 &&
+                          b['sell'] != null &&
+                          b['sell'].toString() != '',
+                    )
+                    .map((b) => {"buy_id": b['id'], "quantity": b['sell']})
+                    .toList(),
+              },
+              stockData: null,
+            );
+          }
+        }
+      } else {
+        // 負債tab保存逻辑
+        // ...
       }
+
       Navigator.of(context).pop(); // 关闭处理中遮罩
 
       if (success) {
+        final db = AppDatabase();
+        // 刷新股票价格
+        await AppUtils().getStockPricesByYHFinanceAPI(db);
+        // 刷新全局数据
+        await AppUtils().calculatePortfolioValue(
+          GlobalStore().userId!,
+          GlobalStore().accountId!,
+          db,
+        );
         await _showSuccessDialog();
         widget.onClose != null
             ? widget.onClose!()
@@ -1655,6 +1825,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
     }
   }
 
+  // 显示保存成功弹窗，1秒后自动关闭
   Future<void> _showSuccessDialog() async {
     showDialog(
       context: context,
@@ -1704,8 +1875,8 @@ class _TradeAddPageState extends State<TradeAddPage> {
       ),
     );
 
-    // 2秒后自动关闭弹窗
-    await Future.delayed(const Duration(seconds: 2));
+    // 1秒后自动关闭弹窗
+    await Future.delayed(const Duration(seconds: 1));
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }

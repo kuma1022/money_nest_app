@@ -11,6 +11,8 @@ import 'package:money_nest_app/components/summary_sub_category_card.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
+import 'package:money_nest_app/util/app_utils.dart';
+import 'package:money_nest_app/util/global_store.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class HomeTabPage extends StatefulWidget {
@@ -44,12 +46,24 @@ class HomeTabPageState extends State<HomeTabPage> {
   // 资产tab的索引
   static const int assetTabIndex = 0;
   int _tabIndex = 0; // 当前tab索引（资产/负债）
+  num totalAssets = 0;
+  num totalCosts = 0;
 
   @override
   void initState() {
     super.initState();
     // 页面初次进入时，触发动画
     _animatePieChart();
+    refreshTotalAssetsAndCosts();
+  }
+
+  // 刷新总资产和总成本
+  void refreshTotalAssetsAndCosts() {
+    final totalMap = AppUtils().getTotalAssetsAndCostsValue();
+    setState(() {
+      totalAssets = totalMap['totalAssets'];
+      totalCosts = totalMap['totalCosts'];
+    });
   }
 
   // 动画触发方法
@@ -119,8 +133,8 @@ class HomeTabPageState extends State<HomeTabPage> {
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.center,
-                              children: const [
-                                Text(
+                              children: [
+                                const Text(
                                   '💰 総資産',
                                   style: TextStyle(
                                     fontSize: AppTexts.fontSizeLarge,
@@ -128,10 +142,13 @@ class HomeTabPageState extends State<HomeTabPage> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                SizedBox(height: 6),
+                                const SizedBox(height: 6),
                                 Text(
-                                  '¥1,600,000',
-                                  style: TextStyle(
+                                  AppUtils().formatMoney(
+                                    totalAssets.toDouble(),
+                                    GlobalStore().selectedCurrencyCode!,
+                                  ),
+                                  style: const TextStyle(
                                     fontSize: AppTexts.fontSizeHuge,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 1,
@@ -141,15 +158,27 @@ class HomeTabPageState extends State<HomeTabPage> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(
-                                      Icons.trending_up,
-                                      color: Color(0xFF43A047),
+                                      totalAssets > totalCosts
+                                          ? Icons.trending_up
+                                          : totalAssets < totalCosts
+                                          ? Icons.trending_down
+                                          : Icons.trending_flat,
+                                      color: totalAssets > totalCosts
+                                          ? AppColors.appUpGreen
+                                          : totalAssets < totalCosts
+                                          ? AppColors.appDownRed
+                                          : AppColors.appGrey,
                                       size: AppTexts.fontSizeMedium,
                                     ),
-                                    SizedBox(width: 4),
+                                    const SizedBox(width: 4),
                                     Text(
-                                      '¥250,000 (+25%)',
+                                      '${AppUtils().formatMoney((totalAssets - totalCosts).toDouble(), GlobalStore().selectedCurrencyCode!)} (${AppUtils().formatNumberByTwoDigits(totalCosts == 0 ? 0 : ((totalAssets - totalCosts) / totalCosts * 100))}%)',
                                       style: TextStyle(
-                                        color: Color(0xFF43A047),
+                                        color: totalAssets > totalCosts
+                                            ? AppColors.appUpGreen
+                                            : totalAssets < totalCosts
+                                            ? AppColors.appDownRed
+                                            : AppColors.appGrey,
                                         fontSize: AppTexts.fontSizeMedium,
                                       ),
                                     ),
