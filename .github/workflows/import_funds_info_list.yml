@@ -1,4 +1,4 @@
-name: Sync Funds
+name: Import Funds Info List
 
 # 毎月 1 日のスケジュールと手動実行
 on:
