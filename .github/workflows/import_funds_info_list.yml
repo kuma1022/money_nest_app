@@ -24,9 +24,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests pandas openpyxl supabase
 
-      - name: Run sync_funds.py
+      - name: Run import_funds_info_list.py
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          python sync_funds.py
+          python scripts/import_funds_info_list.py
