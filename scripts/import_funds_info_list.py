@@ -71,8 +71,17 @@ def parse_excel():
 def sync_to_supabase(df: pd.DataFrame, batch_size: int = 500):
     print("[INFO] Syncing to Supabase in batches...")
 
-    # DataFrame を dict のリストに変換
-    records = df.to_dict(orient="records")
+    # DataFrame を dict のリストに変換（foundation_date は ISO 文字列に変換）
+    records = []
+    for _, row in df.iterrows():
+        record = {
+            "code": row["code"],
+            "name": row["name"],
+            "management_company": row["management_company"],
+            "foundation_date": row["foundation_date"].isoformat() if pd.notnull(row["foundation_date"]) else None,
+            "tsumitate_flag": row["tsumitate_flag"],
+        }
+        records.append(record)
 
     # batch_size ごとに分割して UPSERT
     for i in range(0, len(records), batch_size):
