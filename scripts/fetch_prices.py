@@ -16,6 +16,8 @@ key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 supabase: Client = create_client(url, key)
 MARKET = os.environ.get("MARKET")
 isRetry = os.environ.get("IS_RETRY", "0") == "1"
+if not url or not key or not MARKET:
+    raise RuntimeError("SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and MARKET must be set in environment variables.")
 
 # ---------------------------
 # 判断交易日
@@ -61,6 +63,9 @@ def get_last_trading_day(market: str) -> str:
         return None
 
 base_day = get_last_trading_day(MARKET)
+if not base_day:
+    print(f"[ERROR] Cannot determine last trading day for {MARKET}")
+    exit(1)
 print(f"[INFO] Base trading day for {MARKET} is {base_day}")
 
 # ---------------------------
@@ -308,59 +313,50 @@ def main():
                 print(f"[ERROR] Batch fetch timed out")
             except Exception as e:
                 print(f"[ERROR] Exception occurred: {e}")
+            
+    print(f"[INFO] Collected {len(all_rows)} raw rows for market {MARKET}")
 
     # ---------------------------
-    # 校验 price_at 与 base_day 一致性
+    # 删除已有的记录（按 price_at 分组，每组每500条删除）
     # ---------------------------
-    before_check_count = len(all_rows)
-    print(f"[INFO] Collected {before_check_count} raw rows for market {MARKET}")
-
-    mismatched = [r for r in all_rows if r["price_at"] != base_day]
-    if mismatched:
-        print(f"[WARN] Found {len(mismatched)} rows with price_at != base_day, moving to failures")
-
-        for r in mismatched:
-            all_failed.append({
-                "stock_id": r["stock_id"],
-                "price_at": base_day,
-                "reason": f"Price date mismatch (got {r['price_at']})"
-            })
-
-        # 从 all_rows 里去掉这些不一致的记录
-        all_rows = [r for r in all_rows if r["price_at"] == base_day]
-
-
-    print(f"[INFO] Collected {len(all_rows)} valid rows for market {MARKET}")
-
-    batch_size = 500
-    # ---------------------------
-    # 删除当天已有的记录
-    # ---------------------------
-    batch_size = 500
-    stock_ids = list({r["stock_id"] for r in all_rows})
-    for i in range(0, len(stock_ids), batch_size):
-        batch_ids = stock_ids[i:i + batch_size]
-        supabase.table("stock_prices") \
-            .delete() \
-            .in_("stock_id", batch_ids) \
-            .eq("price_at", base_day) \
-            .execute()
-
-    # ---------------------------
-    # 去重 (保证 stock_id + price_at 唯一)
-    # ---------------------------
-    unique = {}
+    from collections import defaultdict
+    rows_by_date = defaultdict(list)
     for r in all_rows:
-        key = (r["stock_id"], r["price_at"])
-        unique[key] = r
-    all_rows = list(unique.values())
-    print(f"[INFO] Deduplicated rows, {len(all_rows)} unique records remain")
-    
+        rows_by_date[r["price_at"]].append(r)
+
+    batch_size = 500
+    for price_at, rows in rows_by_date.items():
+        stock_ids = list({r["stock_id"] for r in rows})
+        for i in range(0, len(stock_ids), batch_size):
+            batch_ids = stock_ids[i:i + batch_size]
+            supabase.table("stock_prices") \
+                .delete() \
+                .in_("stock_id", batch_ids) \
+                .eq("price_at", price_at) \
+                .execute()
+
     # ---------------------------
-    # 插入新记录
+    # 去重 (保证 stock_id + price_at 唯一, 按日期分组)
     # ---------------------------
-    for i in range(0, len(all_rows), batch_size):
-        batch = all_rows[i:i + batch_size]
+    deduped_rows_by_date = {}
+    for price_at, rows in rows_by_date.items():
+        unique = {}
+        for r in rows:
+            key = (r["stock_id"], r["price_at"])
+            unique[key] = r
+        deduped_rows_by_date[price_at] = list(unique.values())
+
+    # ---------------------------
+    # 插入新记录（所有日期合并，每500条一次性插入）
+    # ---------------------------
+    all_insert_rows = []
+    for rows in deduped_rows_by_date.values():
+        all_insert_rows.extend(rows)
+
+    print(f"[INFO] Deduplicated rows, {len(all_insert_rows)} unique records remain")
+
+    for i in range(0, len(all_insert_rows), batch_size):
+        batch = all_insert_rows[i:i + batch_size]
         try:
             res = supabase.table("stock_prices").insert(batch).execute()
             print(f"[OK] Inserted {len(batch)} rows")
@@ -368,7 +364,7 @@ def main():
             print(f"[ERROR] Exception on batch {i}: {e}")
 
     # ---------------------------
-    # 删除已成功的失败记录（仅限最近交易日）
+    # 删除已成功的失败记录（仅限最近交易日 base_day）
     # ---------------------------
     stock_ids = [s["id"] for s in stocks]
     if stock_ids:
@@ -381,7 +377,7 @@ def main():
                 .execute()
 
     # ---------------------------
-    # 保存失败记录
+    # 保存失败记录（all_failed 里的每条 stock_id+base_day 只会有一条，不会重复）
     # ---------------------------
     if all_failed:
         for i in range(0, len(all_failed), batch_size):
