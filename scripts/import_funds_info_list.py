@@ -82,10 +82,11 @@ def sync_to_supabase(df: pd.DataFrame):
 
         # UPSERT: code をユニークキーとして利用
         res = supabase.table("funds").upsert(data, on_conflict=["code"]).execute()
-        if res.status_code in (200, 201):
+
+        if res.error is None:
             print(f"[OK] Upserted fund {row['code']} - {row['name']}")
         else:
-            print(f"[ERROR] Failed for {row['code']}: {res}")
+            print(f"[ERROR] Failed for {row['code']}: {res.error}")
 
 
 # ---------------------------
