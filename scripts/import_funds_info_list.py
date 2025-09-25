@@ -66,26 +66,22 @@ def parse_excel():
 
 
 # ---------------------------
-# Supabase へ UPSERT（例外処理対応）
+# Supabase へ UPSERT（バッチ対応）
 # ---------------------------
-def sync_to_supabase(df: pd.DataFrame):
-    print("[INFO] Syncing to Supabase...")
+def sync_to_supabase(df: pd.DataFrame, batch_size: int = 500):
+    print("[INFO] Syncing to Supabase in batches...")
 
-    for _, row in df.iterrows():
-        data = {
-            "code": row["code"],
-            "name": row["name"],
-            "management_company": row["management_company"],
-            "foundation_date": row["foundation_date"].isoformat() if row["foundation_date"] else None,
-            "tsumitate_flag": row["tsumitate_flag"],
-        }
+    # DataFrame を dict のリストに変換
+    records = df.to_dict(orient="records")
 
+    # batch_size ごとに分割して UPSERT
+    for i in range(0, len(records), batch_size):
+        batch = records[i : i + batch_size]
         try:
-            # UPSERT: code をユニークキーとして利用
-            supabase.table("funds").upsert(data, on_conflict=["code"]).execute()
-            print(f"[OK] Upserted fund {row['code']} - {row['name']}")
+            supabase.table("funds").upsert(batch, on_conflict=["code"]).execute()
+            print(f"[OK] Upserted batch {i + 1} to {i + len(batch)}")
         except Exception as e:
-            print(f"[ERROR] Failed for {row['code']}: {e}")
+            print(f"[ERROR] Failed for batch {i + 1} to {i + len(batch)}: {e}")
 
 
 # ---------------------------
