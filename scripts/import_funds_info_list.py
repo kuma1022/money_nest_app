@@ -66,7 +66,7 @@ def parse_excel():
 
 
 # ---------------------------
-# Supabase へ UPSERT
+# Supabase へ UPSERT（例外処理対応）
 # ---------------------------
 def sync_to_supabase(df: pd.DataFrame):
     print("[INFO] Syncing to Supabase...")
@@ -80,13 +80,12 @@ def sync_to_supabase(df: pd.DataFrame):
             "tsumitate_flag": row["tsumitate_flag"],
         }
 
-        # UPSERT: code をユニークキーとして利用
-        res = supabase.table("funds").upsert(data, on_conflict=["code"]).execute()
-
-        if res.error is None:
+        try:
+            # UPSERT: code をユニークキーとして利用
+            supabase.table("funds").upsert(data, on_conflict=["code"]).execute()
             print(f"[OK] Upserted fund {row['code']} - {row['name']}")
-        else:
-            print(f"[ERROR] Failed for {row['code']}: {res.error}")
+        except Exception as e:
+            print(f"[ERROR] Failed for {row['code']}: {e}")
 
 
 # ---------------------------
