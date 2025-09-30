@@ -21,7 +21,7 @@ df = pd.read_csv(CSV_FILE)
 # 只保留 Date 和 Price
 df = df[["Date", "Price"]]
 
-# 转换日期格式和数值
+# 转换日期和数值
 df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y").dt.date
 df["Price"] = pd.to_numeric(df["Price"], errors="coerce")
 
@@ -36,12 +36,19 @@ records = [
     if pd.notnull(row["Price"])
 ]
 
-# 每 500 条批量插入
+print(f"Prepared {len(records)} records to upsert into fx_rates")
+
+# 每 500 条批量 upsert
 batch_size = 500
 for i in range(0, len(records), batch_size):
     batch = records[i : i + batch_size]
-    resp = supabase.table("fx_rates").insert(batch).execute()
-    if resp.get("error"):
-        print("Error inserting batch:", resp["error"])
+    resp = (
+        supabase.table("fx_rates")
+        .upsert(batch, on_conflict=["fx_pair_id", "rate_date"])
+        .execute()
+    )
+
+    if resp.error:
+        print("Error inserting batch:", resp.error)
     else:
-        print(f"Inserted batch {i // batch_size + 1} ({len(batch)} rows)")
+        print(f"Upserted batch {i // batch_size + 1} ({len(batch)} rows)")
