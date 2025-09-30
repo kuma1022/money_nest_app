@@ -52,7 +52,7 @@ for i in range(0, len(records), batch_size):
     # 3️⃣ 批量 insert
     if insert_list:
         resp = supabase.table("fx_rates").insert(insert_list).execute()
-        if resp.error:
+        if resp.status_code >= 400:   # 判断 HTTP 响应状态码
             print(f"Error inserting batch {i//batch_size+1}: {resp.error}")
         else:
             print(f"Inserted {len(insert_list)} rows in batch {i//batch_size+1}")
@@ -65,6 +65,6 @@ for i in range(0, len(records), batch_size):
     #            .eq("fx_pair_id", 1) \
     #            .eq("rate_date", r["rate_date"]) \
     #            .execute()
-    #        if resp.error:
+    #        if resp.status_code >= 400:
     #            print(f"Error updating rate_date {r['rate_date']}: {resp.error}")
     #    print(f"Updated {len(update_list)} rows in batch {i//batch_size+1}")
