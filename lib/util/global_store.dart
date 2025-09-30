@@ -132,6 +132,8 @@ class GlobalStore {
     );
     DateTime today = DateTime.now();
     today = DateTime(today.year, today.month, today.day); // 只保留年月日
+    // 清空历史，重新计算
+    assetsTotalHistory = [];
     while (currentDate.isBefore(today)) {
       double totalAsset = 0.0;
       Map<int, dynamic> holdings = {}; // 股票ID -> {持仓数量, 货币}
