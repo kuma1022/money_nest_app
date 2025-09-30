@@ -13,6 +13,7 @@
 | 路径 | 方法 | RPC 名称 | 功能说明 |
 |------|------|----------|---------|
 | `/stock-search` | POST | `search_stocks` | 股票搜索，支持模糊查询 ticker，按交易所过滤 |
+| `/users/:userId/latest` | GET | `get_user_info_latest` | 获取指定用户的最新信息（如资产总额、最新持仓、最近交易等） |
 | `/users/:userId/stocks/trades` | POST | `insert_trade_with_mappings` | 新增股票交易，卖出时记录 `trade_sell_mappings` |
 | `/users/:userId/stocks/trades` | PUT | `update_trade_with_mappings` | 更新交易记录，不允许修改 `action`、`stock_id`、`account_id` |
 | `/users/:userId/stocks/trades` | DELETE | `delete_trade_with_mappings` | 删除交易记录，自动删除相关 `trade_sell_mappings` |
@@ -226,6 +227,86 @@ curl -L -X GET 'https://<YOUR_EDGE_DOMAIN>/users/<USER_ID>/assets/chart?start_da
     {"asset_id":1,"value_date":"2025-01-01","amount":9500},
     {"asset_id":1,"value_date":"2025-02-01","amount":9800},
     {"asset_id":1,"value_date":"2025-09-10","amount":10000.5}
+  ]
+}
+```
+
+---
+
+## 7️⃣ 用户最新信息 `/users/:userId/latest` (GET)
+
+```bash
+curl -L -X GET 'https://<YOUR_EDGE_DOMAIN>/users/<USER_ID>/latest' \
+-H 'Authorization: Bearer <SERVICE_ROLE_KEY>'
+```
+
+**返回示例**
+
+```json
+{
+  "success": true,
+  "user_id": "85963d3d-9b09-4a15-840c-05d1ded31c18",
+  "account_info": [
+    {
+      "account_id": 1,
+      "account_name": "test",
+      "type": "",
+      "trade_records": [
+        {
+          "id": 456,
+          "asset_type": "stock",
+          "asset_id": 123,
+          "trade_date": "2025-09-10",
+          "action": "buy",
+          "trade_type": "normal",
+          "quantity": 10,
+          "price": 150.5,
+          "fee_amount": 0,
+          "fee_currency": "JPY",
+          "position_type": null,
+          "leverage": null,
+          "swap_amount": null,
+          "swap_currency": null,
+          "manual_rate_input": false,
+          "remark": "",
+        }
+      ],
+      "stocks": [
+        {
+          "id": 123,
+          "ticker": "ACN",
+          "exchange": "US",
+          "name": "Accenture",
+          "name_us": "Accenture",
+          "currency": "USD",
+          "country": "US",
+          "sector_industry_id": 2,
+          "logo": "",
+          "status": "active",
+          "stock_prices": [
+            {
+              "price": 230.09,
+              "price_at": "2025-09-10",
+            }
+          ],
+        }
+      ],
+      "trade_sell_mapping": [
+        {
+          "id": 123,
+          "buy_id": 12,
+          "sell_id": 15,
+          "quantity": 10,
+        }
+      ],
+      "fx_rates": [
+        {
+          "fx_pair_id": 123,
+          "rate_date": "2025-09-10",
+          "rate": 140.23,
+        }
+      ]
+    }
   ]
 }
 ```

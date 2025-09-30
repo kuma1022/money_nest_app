@@ -19,28 +19,24 @@ void main() async {
 
   await GlobalStore().loadFromPrefs();
   // 这里提前初始化 userID 和 accountID
-  //String userId = 'e226aa2d-1680-468c-8a41-33a3dad9874f'; // 自己用的 userId
-  //int accountId = 1; // 自己用的 accountId
-  String userId = '85963d3d-9b09-4a15-840c-05d1ded31c18'; // 测试用的 userId
-  int accountId = 2; // 测试用的 accountId
+  String userId = 'e226aa2d-1680-468c-8a41-33a3dad9874f'; // 自己用的 userId
+  int accountId = 1; // 自己用的 accountId
+  //String userId = '85963d3d-9b09-4a15-840c-05d1ded31c18'; // 测试用的 userId
+  //int accountId = 2; // 测试用的 accountId
   GlobalStore().userId = userId;
   GlobalStore().accountId = accountId;
   GlobalStore().selectedCurrencyCode = 'JPY'; // 默认日元
-
-  // 判断当天是否同步服务器，如果没有同步，则进行同步
-  DateTime now = DateTime.now();
-  if (GlobalStore().lastSyncTime == null ||
-      GlobalStore().lastSyncTime!.year != now.year ||
-      GlobalStore().lastSyncTime!.month != now.month ||
-      GlobalStore().lastSyncTime!.day != now.day) {
-    // 每天第一次打开 App 时，同步服务器
-    //await AppUtils().syncDataWithSupabase(userId, accountId, db);
-    //await GlobalStore().saveLastSyncTimeToPrefs();
-  }
-
   await GlobalStore().saveUserIdToPrefs();
   await GlobalStore().saveAccountIdToPrefs();
   await GlobalStore().saveSelectedCurrencyCodeToPrefs();
+
+  // 判断是否同步服务器，如果没有同步，则进行同步
+  if (GlobalStore().lastSyncTime == null) {
+    // 每天第一次打开 App 时，同步服务器
+    await AppUtils().syncDataWithSupabase(userId, accountId, db);
+    await GlobalStore().saveLastSyncTimeToPrefs();
+  }
+
   // 计算持仓并更新到 GlobalStore
   await AppUtils().calculatePortfolioValue(userId, accountId, db);
   await AppUtils().getStockPricesByYHFinanceAPI(db);

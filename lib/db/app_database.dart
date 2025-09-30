@@ -147,16 +147,33 @@ class StockPrices extends Table {
       dateTime().nullable().withDefault(currentDateAndTime)();
 
   @override
-  Set<Column> get primaryKey => {id};
-
-  @override
   List<Set<Column>> get uniqueKeys => [
     {stockId, priceAt}, // unique (stock_id, price_at)
   ];
 }
 
-// ----------以下需要修改----------
+// 汇率表
+class FxRates extends Table {
+  // 主键ID
+  IntColumn get id => integer().autoIncrement()();
 
+  // fx_pair_id，关联 fx_pairs 表
+  IntColumn get fxPairId => integer()();
+
+  // 汇率日期（仅日期，无时间）
+  DateTimeColumn get rateDate => dateTime()();
+
+  // 汇率
+  RealColumn get rate => real()();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {fxPairId, rateDate}, // unique (fx_pair_id, rate_date)
+  ];
+}
+
+// ----------以下需要修改----------
+/*
 // 汇率表（可选，用于多货币转换）
 class ExchangeRates extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -209,6 +226,7 @@ class CashBalanceHistories extends Table {
   // 可加索引提高查询性能
   // 索引(currency, timestamp)
 }
+*/
 
 // 交易市场表
 class MarketData extends Table {
@@ -227,7 +245,14 @@ class MarketData extends Table {
 
 // 数据库类
 @DriftDatabase(
-  tables: [TradeRecords, Stocks, TradeSellMappings, Accounts, StockPrices],
+  tables: [
+    TradeRecords,
+    Stocks,
+    TradeSellMappings,
+    Accounts,
+    StockPrices,
+    FxRates,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase._internal() : super(_openConnection());

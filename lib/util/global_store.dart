@@ -91,7 +91,6 @@ class GlobalStore {
   Future<void> calculateAndSaveAssetsTotalHistoryToPrefs(AppDatabase db) async {
     final prefs = await SharedPreferences.getInstance();
 
-    double totalAsset = 0.0;
     final userId = GlobalStore().userId;
     final accountId = GlobalStore().accountId;
     if (userId == null || accountId == null) return;
@@ -121,7 +120,6 @@ class GlobalStore {
     }
 
     // 2. 循环计算最早交易日起的持仓和总资产
-    Map<int, num> holdings = {}; // 股票ID -> 持仓数量
     DateTime firstTradeDate = tradeRows.first
         .readTable(db.tradeRecords)
         .tradeDate;
@@ -135,26 +133,37 @@ class GlobalStore {
     DateTime today = DateTime.now();
     today = DateTime(today.year, today.month, today.day); // 只保留年月日
     while (currentDate.isBefore(today)) {
+      double totalAsset = 0.0;
+      Map<int, dynamic> holdings = {}; // 股票ID -> {持仓数量, 货币}
       // 处理当天的交易
       for (var row in tradeRows) {
         final trade = row.readTable(db.tradeRecords);
         final stock = row.readTable(db.stocks);
-        if (trade.tradeDate.year == currentDate.year &&
-            trade.tradeDate.month == currentDate.month &&
-            trade.tradeDate.day == currentDate.day) {
+        if (trade.tradeDate.isBefore(currentDate) ||
+            (trade.tradeDate.year == currentDate.year &&
+                trade.tradeDate.month == currentDate.month &&
+                trade.tradeDate.day == currentDate.day)) {
           // 是当天的交易
           if (trade.action == 'buy') {
-            holdings[stock.id] = (holdings[stock.id] ?? 0) + trade.quantity;
+            holdings[stock.id] = {
+              'quantity':
+                  (holdings[stock.id]?['quantity'] ?? 0) + trade.quantity,
+              'currency': stock.currency,
+            };
           } else if (trade.action == 'sell') {
-            holdings[stock.id] = (holdings[stock.id] ?? 0) - trade.quantity;
-            if (holdings[stock.id]! < 0) {
-              holdings[stock.id] = 0; // 持仓不能为负
+            holdings[stock.id] = {
+              'quantity':
+                  (holdings[stock.id]?['quantity'] ?? 0) - trade.quantity,
+              'currency': stock.currency,
+            };
+            if (holdings[stock.id]!['quantity'] < 0) {
+              holdings[stock.id]!['quantity'] = 0; // 持仓不能为负
             }
           }
         }
       }
       // 计算当天的总资产
-      double dailyTotal = 0.0;
+      Map<String, double> dailyTotal = {};
       for (var entry in holdings.entries) {
         final stockId = entry.key;
         // 从stock_prices中查找当前价格
@@ -164,10 +173,32 @@ class GlobalStore {
           ..orderBy([(tbl) => OrderingTerm.desc(tbl.priceAt)])
           ..limit(1);
         final currentPrice = await priceQuery.getSingleOrNull();
-        dailyTotal += (holdings[stockId]! * (currentPrice?.price ?? 0.0));
-        // TODO: 处理货币转换
+        dailyTotal[holdings[stockId]!['currency']] =
+            (dailyTotal[holdings[stockId]!['currency']] ?? 0) +
+            (holdings[stockId]!['quantity'] * (currentPrice?.price ?? 0.0));
       }
-      totalAsset = dailyTotal;
+      // 汇总所有货币的总资产, 并进行货币转换
+      final String targetCurrency = selectedCurrencyCode ?? 'JPY';
+      final fxRateQuery = db.fxRates.select()
+        ..where((tbl) => tbl.fxPairId.equals(1))
+        ..where((tbl) => tbl.rateDate.isSmallerOrEqualValue(currentDate))
+        ..orderBy([(tbl) => OrderingTerm.desc(tbl.rateDate)])
+        ..limit(1);
+      final fxRate = await fxRateQuery.getSingleOrNull();
+      final Map<String, double> rates = {}; // 货币对汇率，如
+      rates['USDJPY'] = fxRate?.rate ?? 150.0;
+      rates['JPYUSD'] = 1 / rates['USDJPY']!;
+      // 计算总资产
+      dailyTotal.forEach((currency, amount) {
+        if (currency == targetCurrency) {
+          // 目标货币，直接加
+          totalAsset += amount;
+        } else {
+          // 其他货币，转换后加
+          String pair = currency + targetCurrency;
+          totalAsset += amount * (rates[pair] ?? 1.0);
+        }
+      });
       // 保存当天的总资产到历史
       assetsTotalHistory ??= [];
       assetsTotalHistory!.add((currentDate, totalAsset));

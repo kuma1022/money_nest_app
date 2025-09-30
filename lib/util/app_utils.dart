@@ -467,6 +467,181 @@ class AppUtils {
     ).format(money);
   }
 
+  Future<void> syncDataWithSupabase(
+    String userId,
+    int accountId,
+    AppDatabase db,
+  ) async {
+    final url = Uri.parse('${AppUtils().supabaseApiUrl}/users/$userId/latest');
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer ${AppUtils().supabaseApiKey}'},
+    );
+
+    List<Stock> result = [];
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['account_info'] is List) {
+        final accountInfoList = data['account_info'] as List;
+        for (var accountInfo in accountInfoList) {
+          if (accountInfo['account_id'] == accountId) {
+            // 1. 同步股票信息
+            final stocks = accountInfo['stocks'] as List;
+            final List<StocksCompanion> stockRecordsInsert = [];
+            for (var stock in stocks) {
+              final record = StocksCompanion(
+                id: Value(stock['id']),
+                ticker: Value(stock['ticker']),
+                exchange: Value(stock['exchange']),
+                name: Value(stock['name']),
+                currency: Value(stock['currency']),
+                country: Value(stock['country']),
+                status: Value(stock['status'] ?? 'active'),
+                nameUs: Value(stock['name_us']),
+                sectorIndustryId: Value(stock['sector_industry_id']),
+                logo: Value(stock['logo']),
+              );
+              stockRecordsInsert.add(record);
+
+              // 1-1. 同步股票价格历史
+              final stockPrices = stock['stock_prices'] as List;
+              final List<StockPricesCompanion> stockPricesInsert = [];
+              for (var priceItem in stockPrices) {
+                final record = StockPricesCompanion(
+                  stockId: Value(stock['id']),
+                  price: Value(
+                    (num.tryParse(priceItem['price'].toString()) ?? 0)
+                        .toDouble(),
+                  ),
+                  priceAt: Value(
+                    DateTime.tryParse(priceItem['price_at'].toString()) ??
+                        DateTime.now(),
+                  ),
+                );
+                stockPricesInsert.add(record);
+              }
+              // 清空本地该股票的价格历史
+              await (db.delete(
+                db.stockPrices,
+              )..where((tbl) => tbl.stockId.equals(stock['id']))).go();
+              // 插入最新的股票价格历史
+              await db.batch((batch) {
+                batch.insertAll(db.stockPrices, stockPricesInsert);
+              });
+            }
+            // 清空本地该账户的股票信息
+            await (db.delete(db.stocks)).go();
+            // 插入最新的股票信息
+            await db.batch((batch) {
+              batch.insertAll(db.stocks, stockRecordsInsert);
+            });
+
+            // 2. 同步股票交易信息
+            final tradeRecords = accountInfo['trade_records'] as List;
+            final List<TradeRecordsCompanion> tradeRecordsInsert = [];
+            for (var trade in tradeRecords) {
+              final record = TradeRecordsCompanion(
+                id: Value(trade['trade_id']),
+                userId: Value(userId),
+                accountId: Value(trade['account_id']),
+                assetType: Value(trade['asset_type']),
+                assetId: Value(trade['asset_id']),
+                tradeDate: Value(
+                  DateFormat('yyyy-MM-dd').parse(trade['trade_date']),
+                ),
+                action: Value(trade['action']),
+                tradeType: Value(trade['trade_type']),
+                quantity: Value(
+                  (num.tryParse(trade['quantity'].toString()) ?? 0).toDouble(),
+                ),
+                price: Value(
+                  (num.tryParse(trade['price'].toString()) ?? 0).toDouble(),
+                ),
+                feeAmount: Value(
+                  (num.tryParse(trade['fee_amount']?.toString() ?? '0') ?? 0)
+                      .toDouble(),
+                ),
+                feeCurrency: Value(trade['fee_currency']),
+                positionType: Value(trade['position_type']),
+                leverage: Value(
+                  trade['leverage'] != null
+                      ? (num.tryParse(trade['leverage'].toString()) ?? 0)
+                            .toDouble()
+                      : null,
+                ),
+                swapAmount: Value(
+                  trade['swap_amount'] != null
+                      ? (num.tryParse(trade['swap_amount'].toString()) ?? 0)
+                            .toDouble()
+                      : null,
+                ),
+                swapCurrency: Value(trade['swap_currency']),
+                manualRateInput: Value(trade['manual_rate_input'] ?? false),
+                remark: Value(trade['remark']),
+              );
+              tradeRecordsInsert.add(record);
+            }
+            // 清空本地该账户的交易记录
+            await (db.delete(db.tradeRecords)..where(
+                  (tbl) =>
+                      tbl.userId.equals(userId) &
+                      tbl.accountId.equals(accountId),
+                ))
+                .go();
+            // 插入最新的交易记录
+            await db.batch((batch) {
+              batch.insertAll(db.tradeRecords, tradeRecordsInsert);
+            });
+
+            // 3. 同步卖出映射关系
+            final sellMappings = accountInfo['trade_sell_mapping'] as List;
+            final List<TradeSellMappingsCompanion> sellMappingsInsert = [];
+            for (var mapping in sellMappings) {
+              final record = TradeSellMappingsCompanion(
+                buyId: Value(mapping['buy_id']),
+                sellId: Value(mapping['sell_id']),
+                quantity: Value(
+                  (num.tryParse(mapping['quantity'].toString()) ?? 0)
+                      .toDouble(),
+                ),
+              );
+              sellMappingsInsert.add(record);
+            }
+            // 清空本地该账户的卖出映射关系
+            await (db.delete(db.tradeSellMappings)).go();
+            // 插入最新的卖出映射关系
+            await db.batch((batch) {
+              batch.insertAll(db.tradeSellMappings, sellMappingsInsert);
+            });
+
+            // 4. 同步历史汇率
+            final fxRates = accountInfo['fx_rates'] as List;
+            final List<FxRatesCompanion> fxRatesInsert = [];
+            for (var rate in fxRates) {
+              final record = FxRatesCompanion(
+                fxPairId: Value(rate['fx_pair_id']),
+                rateDate: Value(
+                  DateTime.tryParse(rate['rate_date'].toString()) ??
+                      DateTime.now(),
+                ),
+                rate: Value(
+                  (num.tryParse(rate['rate'].toString()) ?? 0).toDouble(),
+                ),
+              );
+              fxRatesInsert.add(record);
+            }
+            // 清空本地该账户的历史汇率
+            await (db.delete(db.fxRates)).go();
+            // 插入最新的历史汇率
+            await db.batch((batch) {
+              batch.insertAll(db.fxRates, fxRatesInsert);
+            });
+          }
+        }
+      }
+    }
+  }
+
   /*
   Future<double> getCurrencyExchangeRatesByDate(
     String fromCurrency,

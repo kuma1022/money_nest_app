@@ -2796,6 +2796,303 @@ class StockPricesCompanion extends UpdateCompanion<StockPrice> {
   }
 }
 
+class $FxRatesTable extends FxRates with TableInfo<$FxRatesTable, FxRate> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FxRatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _fxPairIdMeta = const VerificationMeta(
+    'fxPairId',
+  );
+  @override
+  late final GeneratedColumn<int> fxPairId = GeneratedColumn<int>(
+    'fx_pair_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rateDateMeta = const VerificationMeta(
+    'rateDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> rateDate = GeneratedColumn<DateTime>(
+    'rate_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rateMeta = const VerificationMeta('rate');
+  @override
+  late final GeneratedColumn<double> rate = GeneratedColumn<double>(
+    'rate',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, fxPairId, rateDate, rate];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'fx_rates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FxRate> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('fx_pair_id')) {
+      context.handle(
+        _fxPairIdMeta,
+        fxPairId.isAcceptableOrUnknown(data['fx_pair_id']!, _fxPairIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fxPairIdMeta);
+    }
+    if (data.containsKey('rate_date')) {
+      context.handle(
+        _rateDateMeta,
+        rateDate.isAcceptableOrUnknown(data['rate_date']!, _rateDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rateDateMeta);
+    }
+    if (data.containsKey('rate')) {
+      context.handle(
+        _rateMeta,
+        rate.isAcceptableOrUnknown(data['rate']!, _rateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rateMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {fxPairId, rateDate},
+  ];
+  @override
+  FxRate map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FxRate(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      fxPairId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fx_pair_id'],
+      )!,
+      rateDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}rate_date'],
+      )!,
+      rate: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}rate'],
+      )!,
+    );
+  }
+
+  @override
+  $FxRatesTable createAlias(String alias) {
+    return $FxRatesTable(attachedDatabase, alias);
+  }
+}
+
+class FxRate extends DataClass implements Insertable<FxRate> {
+  final int id;
+  final int fxPairId;
+  final DateTime rateDate;
+  final double rate;
+  const FxRate({
+    required this.id,
+    required this.fxPairId,
+    required this.rateDate,
+    required this.rate,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['fx_pair_id'] = Variable<int>(fxPairId);
+    map['rate_date'] = Variable<DateTime>(rateDate);
+    map['rate'] = Variable<double>(rate);
+    return map;
+  }
+
+  FxRatesCompanion toCompanion(bool nullToAbsent) {
+    return FxRatesCompanion(
+      id: Value(id),
+      fxPairId: Value(fxPairId),
+      rateDate: Value(rateDate),
+      rate: Value(rate),
+    );
+  }
+
+  factory FxRate.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FxRate(
+      id: serializer.fromJson<int>(json['id']),
+      fxPairId: serializer.fromJson<int>(json['fxPairId']),
+      rateDate: serializer.fromJson<DateTime>(json['rateDate']),
+      rate: serializer.fromJson<double>(json['rate']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'fxPairId': serializer.toJson<int>(fxPairId),
+      'rateDate': serializer.toJson<DateTime>(rateDate),
+      'rate': serializer.toJson<double>(rate),
+    };
+  }
+
+  FxRate copyWith({int? id, int? fxPairId, DateTime? rateDate, double? rate}) =>
+      FxRate(
+        id: id ?? this.id,
+        fxPairId: fxPairId ?? this.fxPairId,
+        rateDate: rateDate ?? this.rateDate,
+        rate: rate ?? this.rate,
+      );
+  FxRate copyWithCompanion(FxRatesCompanion data) {
+    return FxRate(
+      id: data.id.present ? data.id.value : this.id,
+      fxPairId: data.fxPairId.present ? data.fxPairId.value : this.fxPairId,
+      rateDate: data.rateDate.present ? data.rateDate.value : this.rateDate,
+      rate: data.rate.present ? data.rate.value : this.rate,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FxRate(')
+          ..write('id: $id, ')
+          ..write('fxPairId: $fxPairId, ')
+          ..write('rateDate: $rateDate, ')
+          ..write('rate: $rate')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, fxPairId, rateDate, rate);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FxRate &&
+          other.id == this.id &&
+          other.fxPairId == this.fxPairId &&
+          other.rateDate == this.rateDate &&
+          other.rate == this.rate);
+}
+
+class FxRatesCompanion extends UpdateCompanion<FxRate> {
+  final Value<int> id;
+  final Value<int> fxPairId;
+  final Value<DateTime> rateDate;
+  final Value<double> rate;
+  const FxRatesCompanion({
+    this.id = const Value.absent(),
+    this.fxPairId = const Value.absent(),
+    this.rateDate = const Value.absent(),
+    this.rate = const Value.absent(),
+  });
+  FxRatesCompanion.insert({
+    this.id = const Value.absent(),
+    required int fxPairId,
+    required DateTime rateDate,
+    required double rate,
+  }) : fxPairId = Value(fxPairId),
+       rateDate = Value(rateDate),
+       rate = Value(rate);
+  static Insertable<FxRate> custom({
+    Expression<int>? id,
+    Expression<int>? fxPairId,
+    Expression<DateTime>? rateDate,
+    Expression<double>? rate,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (fxPairId != null) 'fx_pair_id': fxPairId,
+      if (rateDate != null) 'rate_date': rateDate,
+      if (rate != null) 'rate': rate,
+    });
+  }
+
+  FxRatesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? fxPairId,
+    Value<DateTime>? rateDate,
+    Value<double>? rate,
+  }) {
+    return FxRatesCompanion(
+      id: id ?? this.id,
+      fxPairId: fxPairId ?? this.fxPairId,
+      rateDate: rateDate ?? this.rateDate,
+      rate: rate ?? this.rate,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (fxPairId.present) {
+      map['fx_pair_id'] = Variable<int>(fxPairId.value);
+    }
+    if (rateDate.present) {
+      map['rate_date'] = Variable<DateTime>(rateDate.value);
+    }
+    if (rate.present) {
+      map['rate'] = Variable<double>(rate.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FxRatesCompanion(')
+          ..write('id: $id, ')
+          ..write('fxPairId: $fxPairId, ')
+          ..write('rateDate: $rateDate, ')
+          ..write('rate: $rate')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2805,6 +3102,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $TradeSellMappingsTable(this);
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $StockPricesTable stockPrices = $StockPricesTable(this);
+  late final $FxRatesTable fxRates = $FxRatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2815,6 +3113,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     tradeSellMappings,
     accounts,
     stockPrices,
+    fxRates,
   ];
 }
 
@@ -4202,6 +4501,175 @@ typedef $$StockPricesTableProcessedTableManager =
       StockPrice,
       PrefetchHooks Function()
     >;
+typedef $$FxRatesTableCreateCompanionBuilder =
+    FxRatesCompanion Function({
+      Value<int> id,
+      required int fxPairId,
+      required DateTime rateDate,
+      required double rate,
+    });
+typedef $$FxRatesTableUpdateCompanionBuilder =
+    FxRatesCompanion Function({
+      Value<int> id,
+      Value<int> fxPairId,
+      Value<DateTime> rateDate,
+      Value<double> rate,
+    });
+
+class $$FxRatesTableFilterComposer
+    extends Composer<_$AppDatabase, $FxRatesTable> {
+  $$FxRatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fxPairId => $composableBuilder(
+    column: $table.fxPairId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get rateDate => $composableBuilder(
+    column: $table.rateDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rate => $composableBuilder(
+    column: $table.rate,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FxRatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $FxRatesTable> {
+  $$FxRatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fxPairId => $composableBuilder(
+    column: $table.fxPairId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get rateDate => $composableBuilder(
+    column: $table.rateDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rate => $composableBuilder(
+    column: $table.rate,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FxRatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FxRatesTable> {
+  $$FxRatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get fxPairId =>
+      $composableBuilder(column: $table.fxPairId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get rateDate =>
+      $composableBuilder(column: $table.rateDate, builder: (column) => column);
+
+  GeneratedColumn<double> get rate =>
+      $composableBuilder(column: $table.rate, builder: (column) => column);
+}
+
+class $$FxRatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FxRatesTable,
+          FxRate,
+          $$FxRatesTableFilterComposer,
+          $$FxRatesTableOrderingComposer,
+          $$FxRatesTableAnnotationComposer,
+          $$FxRatesTableCreateCompanionBuilder,
+          $$FxRatesTableUpdateCompanionBuilder,
+          (FxRate, BaseReferences<_$AppDatabase, $FxRatesTable, FxRate>),
+          FxRate,
+          PrefetchHooks Function()
+        > {
+  $$FxRatesTableTableManager(_$AppDatabase db, $FxRatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FxRatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FxRatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FxRatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> fxPairId = const Value.absent(),
+                Value<DateTime> rateDate = const Value.absent(),
+                Value<double> rate = const Value.absent(),
+              }) => FxRatesCompanion(
+                id: id,
+                fxPairId: fxPairId,
+                rateDate: rateDate,
+                rate: rate,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int fxPairId,
+                required DateTime rateDate,
+                required double rate,
+              }) => FxRatesCompanion.insert(
+                id: id,
+                fxPairId: fxPairId,
+                rateDate: rateDate,
+                rate: rate,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FxRatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FxRatesTable,
+      FxRate,
+      $$FxRatesTableFilterComposer,
+      $$FxRatesTableOrderingComposer,
+      $$FxRatesTableAnnotationComposer,
+      $$FxRatesTableCreateCompanionBuilder,
+      $$FxRatesTableUpdateCompanionBuilder,
+      (FxRate, BaseReferences<_$AppDatabase, $FxRatesTable, FxRate>),
+      FxRate,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4216,4 +4684,6 @@ class $AppDatabaseManager {
       $$AccountsTableTableManager(_db, _db.accounts);
   $$StockPricesTableTableManager get stockPrices =>
       $$StockPricesTableTableManager(_db, _db.stockPrices);
+  $$FxRatesTableTableManager get fxRates =>
+      $$FxRatesTableTableManager(_db, _db.fxRates);
 }
