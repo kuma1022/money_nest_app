@@ -29,6 +29,8 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
   final FocusNode _searchFocusNode = FocusNode();
   final GlobalKey<HomeTabPageState> homeTabPageKey =
       GlobalKey<HomeTabPageState>();
+  final GlobalKey<AssetsTabPageState> assetsTabPageKey =
+      GlobalKey<AssetsTabPageState>();
   double _scrollPixels = 0.0;
 
   late final List<Widget> _pages = [
@@ -52,6 +54,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       },
     ),
     AssetsTabPage(
+      key: assetsTabPageKey,
       onScroll: (pixels) {
         setState(() {
           _scrollPixels = pixels;
@@ -258,6 +261,10 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           // Home Tab刷新资产和成本
                           if (index == 0) {
                             homeTabPageKey.currentState
+                                ?.refreshTotalAssetsAndCosts();
+                          } else if (index == 1) {
+                            // 资产tab刷新数据
+                            assetsTabPageKey.currentState
                                 ?.refreshTotalAssetsAndCosts();
                           }
                           setState(() {

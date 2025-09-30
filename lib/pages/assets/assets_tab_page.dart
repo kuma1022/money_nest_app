@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/services.dart';
 import 'package:money_nest_app/components/card_section.dart';
+import 'package:money_nest_app/components/custom_line_chart.dart';
 import 'package:money_nest_app/components/glass_panel.dart';
 import 'package:money_nest_app/components/glass_tab.dart';
 import 'package:money_nest_app/components/total_asset_analysis_card.dart';
@@ -8,6 +12,8 @@ import 'package:money_nest_app/pages/assets/stock_detail_page.dart';
 import 'package:money_nest_app/pages/assets/other_asset_manage_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
+import 'package:money_nest_app/util/app_utils.dart';
+import 'package:money_nest_app/util/global_store.dart';
 
 class AssetsTabPage extends StatefulWidget {
   final ValueChanged<double>? onScroll;
@@ -16,12 +22,46 @@ class AssetsTabPage extends StatefulWidget {
   const AssetsTabPage({super.key, this.onScroll, this.scrollController});
 
   @override
-  State<AssetsTabPage> createState() => _AssetsTabPageState();
+  State<AssetsTabPage> createState() => AssetsTabPageState();
 }
 
-class _AssetsTabPageState extends State<AssetsTabPage> {
+class AssetsTabPageState extends State<AssetsTabPage> {
   int _tabIndex = 0; // 0:概要 1:日本株 2:米国株 3:その他
-  String _overviewType = '品類';
+  int _selectedTransitionIndex = 0; // 0:资产, 1:负債
+  num totalAssets = 0;
+  num totalCosts = 0;
+  List<(DateTime, double)> priceHistory = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // 页面初次进入时，触发动画
+    //_animatePieChart();
+    refreshTotalAssetsAndCosts();
+  }
+
+  // 刷新总资产和总成本
+  Future<void> refreshTotalAssetsAndCosts() async {
+    final totalMap = AppUtils().getTotalAssetsAndCostsValue();
+    priceHistory = await _loadPriceHistory();
+    setState(() {
+      totalAssets = totalMap['totalAssets'];
+      totalCosts = totalMap['totalCosts'];
+    });
+  }
+
+  Future<List<(DateTime, double)>> _loadPriceHistory() async {
+    //final dataStr = await rootBundle.loadString(
+    //  'assets/data/btc_last_year_price.json',
+    //);
+    //final json = jsonDecode(dataStr) as Map<String, dynamic>;
+    //return (json['prices'] as List).map<(DateTime, double)>((item) {
+    //  final timestamp = item[0] as int;
+    //  final price = item[1] as double;
+    //  return (DateTime.fromMillisecondsSinceEpoch(timestamp), price);
+    //}).toList();
+    return GlobalStore().assetsTotalHistory!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +74,7 @@ class _AssetsTabPageState extends State<AssetsTabPage> {
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [AppColors.appLightBlue, AppColors.appLightBlue],
+                  colors: [AppColors.appBackground, AppColors.appBackground],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
@@ -61,62 +101,24 @@ class _AssetsTabPageState extends State<AssetsTabPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 16),
-                    // 总资产额卡片
-                    GlassPanel(
-                      margin: const EdgeInsets.only(bottom: 18),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 20,
-                          horizontal: 18,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: const [
-                                  Text(
-                                    '資産総額',
-                                    style: TextStyle(
-                                      fontSize: AppTexts.fontSizeLarge,
-                                      color: Colors.black87,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  SizedBox(height: 6),
-                                  Text(
-                                    '¥1,600,000',
-                                    style: TextStyle(
-                                      fontSize: AppTexts.fontSizeHuge,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.trending_up,
-                                        color: Color(0xFF43A047),
-                                        size: AppTexts.fontSizeMedium,
-                                      ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        '¥250,000 (+25%)',
-                                        style: TextStyle(
-                                          color: Color(0xFF43A047),
-                                          fontSize: AppTexts.fontSizeMedium,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                    // tab切换栏（独立于资产总览）
+                    GlassTab(
+                      borderRadius: 24,
+                      margin: const EdgeInsets.only(
+                        left: 0,
+                        right: 0,
+                        bottom: 18,
                       ),
+                      tabs: ['推移', '内訳', 'ポートフォリオ', '配当'],
+                      tabBarContentList: [
+                        buildTransitionWidget(),
+                        buildBreakdownWidget(),
+                        buildPortfolioWidget(),
+                        buildDividendWidget(),
+                      ],
                     ),
+                    const SizedBox(height: 16),
+
                     // 资产总览区块
                     TotalAssetAnalysisCard(),
                     CardSection(
@@ -218,22 +220,6 @@ class _AssetsTabPageState extends State<AssetsTabPage> {
                           ),
                         ],
                       ),
-                    ),
-                    // tab切换栏（独立于资产总览）
-                    GlassTab(
-                      borderRadius: 24,
-                      margin: const EdgeInsets.only(
-                        left: 0,
-                        right: 0,
-                        bottom: 18,
-                      ),
-                      tabs: ['概要', '日本株', '米国株', 'その他'],
-                      tabBarContentList: [
-                        SizedBox.shrink(),
-                        SizedBox.shrink(),
-                        SizedBox.shrink(),
-                        SizedBox.shrink(),
-                      ],
                     ),
                     Container(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -725,6 +711,200 @@ class _AssetsTabPageState extends State<AssetsTabPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget buildTransitionWidget() {
+    return StatefulBuilder(
+      builder: (context, setState) {
+        final double tabBtnHeight = 32;
+        final double tabBtnRadius = tabBtnHeight / 2;
+
+        return Column(
+          children: [
+            Row(
+              children: [
+                const SizedBox(width: 48),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedTransitionIndex = 0),
+                    child: Container(
+                      height: tabBtnHeight,
+                      decoration: BoxDecoration(
+                        color: _selectedTransitionIndex == 0
+                            ? AppColors.appBlue
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(tabBtnRadius),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.trending_up,
+                            color: _selectedTransitionIndex == 0
+                                ? Colors.white
+                                : Colors.grey,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '資産',
+                            style: TextStyle(
+                              color: _selectedTransitionIndex == 0
+                                  ? Colors.white
+                                  : Colors.grey,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedTransitionIndex = 1),
+                    child: Container(
+                      height: tabBtnHeight,
+                      decoration: BoxDecoration(
+                        color: _selectedTransitionIndex == 1
+                            ? AppColors.appDownRed
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(tabBtnRadius),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.trending_down,
+                            color: _selectedTransitionIndex == 1
+                                ? Colors.white
+                                : Colors.grey,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '負債',
+                            style: TextStyle(
+                              color: _selectedTransitionIndex == 1
+                                  ? Colors.white
+                                  : Colors.grey,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 48),
+              ],
+            ),
+            const SizedBox(height: 18),
+            _selectedTransitionIndex == 0
+                ? buildTransitionAssetWidget()
+                : buildTransitionLiabilityWidget(),
+          ],
+        );
+      },
+    );
+  }
+
+  // 资产推移图表卡片
+  Widget buildTransitionAssetWidget() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Text(
+              '資産総額',
+              style: TextStyle(
+                fontSize: AppTexts.fontSizeMedium,
+                color: Colors.black87,
+              ),
+            ),
+            Spacer(),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  AppUtils().formatMoney(
+                    totalAssets.toDouble(),
+                    GlobalStore().selectedCurrencyCode!,
+                  ),
+                  style: const TextStyle(
+                    fontSize: AppTexts.fontSizeHuge,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      totalAssets > totalCosts
+                          ? Icons.trending_up
+                          : totalAssets < totalCosts
+                          ? Icons.trending_down
+                          : Icons.trending_flat,
+                      color: totalAssets > totalCosts
+                          ? AppColors.appUpGreen
+                          : totalAssets < totalCosts
+                          ? AppColors.appDownRed
+                          : AppColors.appGrey,
+                      size: AppTexts.fontSizeMedium,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${AppUtils().formatMoney((totalAssets - totalCosts).toDouble(), GlobalStore().selectedCurrencyCode!)} (${AppUtils().formatNumberByTwoDigits(totalCosts == 0 ? 0 : ((totalAssets - totalCosts) / totalCosts * 100))}%)',
+                      style: TextStyle(
+                        color: totalAssets > totalCosts
+                            ? AppColors.appUpGreen
+                            : totalAssets < totalCosts
+                            ? AppColors.appDownRed
+                            : AppColors.appGrey,
+                        fontSize: AppTexts.fontSizeMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (priceHistory.isNotEmpty)
+          LineChartSample12(priceHistory: priceHistory),
+      ],
+    );
+  }
+
+  Widget buildTransitionLiabilityWidget() {
+    return const SizedBox(
+      height: 200,
+      child: Center(child: Text('負債推移グラフ（未実装）')),
+    );
+  }
+
+  Widget buildBreakdownWidget() {
+    return const SizedBox(
+      height: 200,
+      child: Center(child: Text('内訳グラフ（未実装）')),
+    );
+  }
+
+  Widget buildPortfolioWidget() {
+    return const SizedBox(
+      height: 200,
+      child: Center(child: Text('ポートフォリオグラフ（未実装）')),
+    );
+  }
+
+  Widget buildDividendWidget() {
+    return const SizedBox(
+      height: 200,
+      child: Center(child: Text('配当グラフ（未実装）')),
     );
   }
 }

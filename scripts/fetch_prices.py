@@ -261,9 +261,74 @@ def fetch_batch(batch):
     return rows, failed_rows
 
 # ---------------------------
+# 检查汇率是否已存在
+# ---------------------------
+def fx_rate_exists(supabase, fx_pair_id, rate_date):
+    res = supabase.table("fx_rates") \
+        .select("id") \
+        .eq("fx_pair_id", fx_pair_id) \
+        .eq("rate_date", rate_date) \
+        .limit(1) \
+        .execute()
+    return bool(res.data)
+
+# ---------------------------
+# 抓取 JPY=X 汇率
+# ---------------------------
+def fetch_jpy_fx_rate(base_day):
+    # 用 yfinance 抓取 JPY=X 的收盘价
+    try:
+        df = yf.download(
+            "JPY=X",
+            start=base_day,
+            end=(datetime.fromisoformat(base_day) + timedelta(days=1)).date().isoformat(),
+            progress=False,
+            group_by="ticker",
+            auto_adjust=True,
+            timeout=15,
+        )
+        price = df["Close"].iloc[-1]
+        if pd.isna(price) or math.isinf(price):
+            return None
+        return float(price)
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch JPY=X rate: {e}")
+        return None
+
+# ---------------------------
+# 保存汇率到 supabase
+# ---------------------------
+def save_fx_rate_to_supabase(supabase, fx_pair_id, rate_date, rate):
+    try:
+        supabase.table("fx_rates").upsert([{
+            "fx_pair_id": fx_pair_id,
+            "rate_date": rate_date,
+            "rate": rate,
+        }], on_conflict=["fx_pair_id", "rate_date"]).execute()
+        print(f"[OK] Saved FX rate for {rate_date}: {rate}")
+    except Exception as e:
+        print(f"[ERROR] Failed to save FX rate: {e}")
+
+
+# ---------------------------
 # 主逻辑
 # ---------------------------
 def main():
+    # ---------------------------
+    # 获取当天的 JPY=X 汇率
+    # ---------------------------
+    if not fx_rate_exists(supabase, fx_pair_id=1, rate_date=base_day):
+        fx_rate = fetch_jpy_fx_rate(base_day)
+        if fx_rate is not None:
+            save_fx_rate_to_supabase(supabase, fx_pair_id=1, rate_date=base_day, rate=fx_rate)
+        else:
+            print(f"[WARN] JPY=X rate not available for {base_day}")
+    else:
+        print(f"[INFO] FX rate for {base_day} already exists, skip fetching.")
+    
+    # ---------------------------
+    # 查询待处理的股票
+    # ---------------------------
     if isRetry:
         print("[INFO] Running in retry mode, exiting fetch_prices.py")
         stocks = fetch_all_failures_joined(supabase, MARKET)

@@ -5,6 +5,7 @@ import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
 import 'package:money_nest_app/pages/trade_history/trade_detail_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
 import 'package:intl/intl.dart';
 
@@ -121,7 +122,14 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: _FilterDropdown(
-                            items: const ['all', '日本株', '米国株'],
+                            items: const [
+                              'all',
+                              '株式',
+                              'FX（為替）',
+                              '暗号資産',
+                              '貴金属',
+                              'その他資産',
+                            ],
                             value: 'all',
                           ),
                         ),
@@ -165,7 +173,7 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
 class _FilterDropdown extends StatelessWidget {
   final List<String> items;
   final String value;
-  const _FilterDropdown({required this.items, required this.value, super.key});
+  const _FilterDropdown({required this.items, required this.value});
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -227,8 +235,8 @@ class _TradeRecordListState extends State<_TradeRecordList> {
               db.stocks.id.equalsExp(db.tradeRecords.assetId),
             ),
           ])
-          ..where(db.tradeRecords.userId.equals(userId!))
-          ..where(db.tradeRecords.accountId.equals(accountId!))
+          ..where(db.tradeRecords.userId.equals(userId))
+          ..where(db.tradeRecords.accountId.equals(accountId))
           ..where(db.tradeRecords.assetType.equals('stock'))
           ..orderBy([OrderingTerm.desc(db.tradeRecords.tradeDate)]);
 
@@ -257,13 +265,20 @@ class _TradeRecordListState extends State<_TradeRecordList> {
       }
 
       // 金额格式
-      final amount = trade.quantity * trade.price;
+      final currency = stock.currency;
+      final stockPrices = GlobalStore().currentStockPrices;
+      final amount =
+          trade.quantity * trade.price -
+          (trade.feeAmount ?? 0) *
+              (trade.action == 'sell' ? 1 : -1) *
+              (stockPrices['${trade.feeCurrency == 'USD' ? '' : trade.feeCurrency}${stock.currency}=X'] ??
+                  1);
       final amountStr =
-          '${type == ActionType.dividend ? '+' : ''}¥${formatter.format(amount)}';
+          '${type == ActionType.dividend ? '+' : ''}${AppUtils().formatMoney(amount, currency)}';
 
       // 明细
       final detail =
-          '${formatter.format(trade.quantity)}株 * ¥${formatter.format(trade.price)}';
+          '${formatter.format(trade.quantity)}株 * ${AppUtils().formatMoney(trade.price, currency)}';
 
       return TradeRecord(
         type: type,
@@ -271,8 +286,14 @@ class _TradeRecordListState extends State<_TradeRecordList> {
         name: stock.name,
         date: DateFormat('yyyy-MM-dd').format(trade.tradeDate),
         amount: amountStr,
+        price: trade.price,
+        quantity: trade.quantity,
+        currency: currency,
+        feeAmount: trade.feeAmount ?? 0,
+        feeCurrency: trade.feeCurrency ?? currency,
         detail: type == ActionType.dividend ? '' : detail,
         exchange: stock.exchange ?? '',
+        assetType: trade.assetType,
       );
     }).toList();
 
@@ -305,16 +326,16 @@ class _TradeRecordListState extends State<_TradeRecordList> {
 // 交易记录卡片
 class _TradeRecordCard extends StatelessWidget {
   final TradeRecord record;
-  const _TradeRecordCard({required this.record, super.key});
+  const _TradeRecordCard({required this.record});
 
   Color get typeColor {
     switch (record.type) {
       case ActionType.buy:
-        return const Color(0xFFEF5350);
+        return AppColors.appUpGreen;
       case ActionType.sell:
-        return const Color(0xFF43A047);
+        return AppColors.appDownRed;
       case ActionType.dividend:
-        return const Color(0xFF1976D2);
+        return AppColors.appBlue;
     }
   }
 
@@ -332,9 +353,9 @@ class _TradeRecordCard extends StatelessWidget {
   IconData get typeIcon {
     switch (record.type) {
       case ActionType.buy:
-        return Icons.arrow_downward;
+        return Icons.add_outlined;
       case ActionType.sell:
-        return Icons.arrow_upward;
+        return Icons.remove_outlined;
       case ActionType.dividend:
         return Icons.card_giftcard;
     }
@@ -364,7 +385,7 @@ class _TradeRecordCard extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: typeColor.withOpacity(0.08),
+                color: typeColor.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(typeIcon, color: typeColor, size: 20),
@@ -391,7 +412,7 @@ class _TradeRecordCard extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: typeColor.withOpacity(0.12),
+                          color: typeColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -416,15 +437,25 @@ class _TradeRecordCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Text(
-                    record.name,
-                    style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  Row(
+                    children: [
+                      Text(
+                        record.name,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        record.detail,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
-                  if (record.detail.isNotEmpty)
-                    Text(
-                      record.detail,
-                      style: const TextStyle(fontSize: 13, color: Colors.grey),
-                    ),
                   Text(
                     record.date,
                     style: const TextStyle(fontSize: 13, color: Colors.grey),
@@ -450,6 +481,12 @@ class TradeRecord {
   final String date;
   final String amount;
   final String detail;
+  final String assetType;
+  final double price;
+  final double quantity;
+  final String currency;
+  final double feeAmount;
+  final String feeCurrency;
   TradeRecord({
     required this.type,
     required this.code,
@@ -458,5 +495,11 @@ class TradeRecord {
     required this.date,
     required this.amount,
     required this.detail,
+    required this.assetType,
+    required this.price,
+    required this.quantity,
+    required this.currency,
+    required this.feeAmount,
+    required this.feeCurrency,
   });
 }

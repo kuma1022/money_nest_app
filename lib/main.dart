@@ -19,8 +19,10 @@ void main() async {
 
   await GlobalStore().loadFromPrefs();
   // 这里提前初始化 userID 和 accountID
-  String userId = 'e226aa2d-1680-468c-8a41-33a3dad9874f'; // 测试用的 userId
-  int accountId = 1; // 测试用的 accountId
+  //String userId = 'e226aa2d-1680-468c-8a41-33a3dad9874f'; // 自己用的 userId
+  //int accountId = 1; // 自己用的 accountId
+  String userId = '85963d3d-9b09-4a15-840c-05d1ded31c18'; // 测试用的 userId
+  int accountId = 2; // 测试用的 accountId
   GlobalStore().userId = userId;
   GlobalStore().accountId = accountId;
   GlobalStore().selectedCurrencyCode = 'JPY'; // 默认日元
@@ -30,6 +32,7 @@ void main() async {
   // 计算持仓并更新到 GlobalStore
   await AppUtils().calculatePortfolioValue(userId, accountId, db);
   await AppUtils().getStockPricesByYHFinanceAPI(db);
+  await GlobalStore().calculateAndSaveAssetsTotalHistoryToPrefs(db);
 
   final marketDataProvider = MarketDataProvider(db);
   final buyRecordsProvider = BuyRecordsProvider(db);

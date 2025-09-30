@@ -1,0 +1,26 @@
+name: Import FX Rates
+
+on:
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install pandas supabase
+
+      - name: Upload FX Rates
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FX_RATES_CSV: scripts/data/fx_rates.csv
+        run: python scripts/import_fx_rates.py

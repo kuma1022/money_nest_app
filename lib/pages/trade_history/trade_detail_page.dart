@@ -1,31 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
+import 'package:money_nest_app/models/categories.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
+import 'package:money_nest_app/util/app_utils.dart';
 import 'trade_history_tab_page.dart'; // 导入 TradeRecord/TradeType
 
 class TradeDetailPage extends StatelessWidget {
   final TradeRecord record;
   const TradeDetailPage({required this.record, super.key});
 
-  String get category =>
-      record.code == 'AAPL' || record.code == 'MSFT' ? '米国株' : '日本株';
+  String get category => Categories.values
+      .firstWhere(
+        (sub) => sub.code == record.assetType,
+        orElse: () => Categories.otherAsset,
+      )
+      .name;
 
   Color get typeColor {
     switch (record.type) {
       case ActionType.buy:
-        return const Color(0xFFEF5350);
+        return AppColors.appUpGreen;
       case ActionType.sell:
-        return const Color(0xFF43A047);
+        return AppColors.appDownRed;
       case ActionType.dividend:
-        return const Color(0xFF1976D2);
+        return AppColors.appBlue;
     }
   }
 
   IconData get typeIcon {
     switch (record.type) {
       case ActionType.buy:
-        return Icons.arrow_downward;
+        return Icons.add_outlined;
       case ActionType.sell:
-        return Icons.arrow_upward;
+        return Icons.remove_outlined;
       case ActionType.dividend:
         return Icons.card_giftcard;
     }
@@ -44,23 +50,6 @@ class TradeDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 示例数据
-    final detail = record.detail.split('*');
-    final qty = detail.length > 0
-        ? detail[0].replaceAll(RegExp(r'\D'), '')
-        : '1';
-    final unit = detail.length > 1
-        ? detail[1].replaceAll(RegExp(r'\D'), '')
-        : '';
-    final fee = record.type == ActionType.dividend
-        ? '¥0'
-        : (record.code == 'AAPL' ? '¥500' : '¥300');
-    final total = record.type == ActionType.dividend
-        ? record.amount
-        : record.code == 'AAPL'
-        ? '¥88,000'
-        : '¥120,300';
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       body: SafeArea(
@@ -192,7 +181,7 @@ class TradeDetailPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${qty}株',
+                                '${record.quantity}株',
                                 style: const TextStyle(fontSize: 16),
                               ),
                             ],
@@ -211,7 +200,10 @@ class TradeDetailPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                unit.isNotEmpty ? '¥$unit' : '-',
+                                AppUtils().formatMoney(
+                                  record.price,
+                                  record.currency,
+                                ),
                                 style: const TextStyle(fontSize: 16),
                               ),
                             ],
@@ -235,7 +227,10 @@ class TradeDetailPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                record.amount,
+                                AppUtils().formatMoney(
+                                  record.quantity * record.price,
+                                  record.currency,
+                                ),
                                 style: const TextStyle(fontSize: 16),
                               ),
                             ],
@@ -253,7 +248,13 @@ class TradeDetailPage extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              Text(fee, style: const TextStyle(fontSize: 16)),
+                              Text(
+                                AppUtils().formatMoney(
+                                  record.feeAmount,
+                                  record.feeCurrency,
+                                ),
+                                style: const TextStyle(fontSize: 16),
+                              ),
                             ],
                           ),
                         ),
@@ -271,7 +272,7 @@ class TradeDetailPage extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          total,
+                          record.amount,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,

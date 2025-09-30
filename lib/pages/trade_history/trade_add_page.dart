@@ -89,6 +89,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
   int? selectedSellStockId;
   String selectedSellStockCode = '';
   String selectedSellStockName = '';
+  String selectedSellStockExchange = '';
   // 取引詳細
   // 取引日
   // String? tradeDate; // 共用buy/sell
@@ -570,6 +571,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
         sellTotalQty = 0;
         selectedSellStockId = null;
         selectedSellStockName = '';
+        selectedSellStockExchange = '';
         _sellUnitPriceController.text = '';
         _sellAmountController.text = '¥0';
       }
@@ -608,6 +610,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
         orElse: () => <String, dynamic>{},
       );
       selectedSellStockName = holding['name'] ?? '';
+      selectedSellStockExchange = holding['exchange'] ?? '';
       sellBatches = (holding['batches'] is List) ? holding['batches'] : [];
       // 初始化controller
       sellBatchControllers.clear();
@@ -1564,6 +1567,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
           'id': stock.id,
           'code': stock.ticker,
           'name': stock.name,
+          'exchange': stock.exchange,
           'batches': <Map<String, dynamic>>[],
         };
       }
@@ -1705,7 +1709,9 @@ class _TradeAddPageState extends State<TradeAddPage> {
                 "account_id": GlobalStore().accountId!,
                 "asset_type": "stock",
                 "asset_id": selectedStockInfo!.id,
+                "asset_code": selectedStockInfo!.ticker,
                 "trade_date": tradeDate,
+                "exchange": selectedStockInfo!.exchange,
                 "action": tradeAction,
                 "trade_type": tradeTypeCode,
                 "position_type": null,
@@ -1744,7 +1750,9 @@ class _TradeAddPageState extends State<TradeAddPage> {
                 "account_id": GlobalStore().accountId!,
                 "asset_type": "stock",
                 "asset_id": selectedSellStockId,
+                "asset_code": selectedSellStockCode,
                 "trade_date": tradeDate,
+                "exchange": selectedSellStockExchange,
                 "action": tradeAction,
                 "trade_type": null,
                 "position_type": null,
@@ -1771,6 +1779,9 @@ class _TradeAddPageState extends State<TradeAddPage> {
             );
           }
         }
+        // 计算并保存资产总额历史到本地
+        final db = AppDatabase();
+        await GlobalStore().calculateAndSaveAssetsTotalHistoryToPrefs(db);
       } else {
         // 負債tab保存逻辑
         // ...

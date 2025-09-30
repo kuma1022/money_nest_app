@@ -129,6 +129,9 @@ class AppUtils {
                 .toList()
           : null;
 
+      final warning = data['warning'] as String?;
+      print('warning: $warning');
+
       if (assetId != null) {
         final db = AppDatabase();
 
@@ -350,12 +353,25 @@ class AppUtils {
     final stocksList = await db.select(db.stocks).get();
     stocksList.add(
       Stock(
-        id: 0,
+        id: -1,
         ticker: 'JPY=X',
         exchange: 'US',
         name: '',
         currency: 'USD',
         country: 'US',
+        sectorIndustryId: null,
+        logo: '',
+        status: '',
+      ),
+    );
+    stocksList.add(
+      Stock(
+        id: 0,
+        ticker: 'JPYUSD=X',
+        exchange: 'JP',
+        name: '',
+        currency: 'JPY',
+        country: 'JP',
         sectorIndustryId: null,
         logo: '',
         status: '',
