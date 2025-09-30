@@ -51,20 +51,22 @@ for i in range(0, len(records), batch_size):
 
     # 3️⃣ 批量 insert
     if insert_list:
-        resp = supabase.table("fx_rates").insert(insert_list).execute()
-        if resp.status_code >= 400:   # 判断 HTTP 响应状态码
-            print(f"Error inserting batch {i//batch_size+1}: {resp.error}")
-        else:
+        try:
+            resp = supabase.table("fx_rates").insert(insert_list).execute()
+            # 如果没有异常，认为成功
             print(f"Inserted {len(insert_list)} rows in batch {i//batch_size+1}")
+        except Exception as e:
+            print(f"Error inserting batch {i//batch_size+1}: {e}")
 
     # 4️⃣ 批量 update（单条 update）
     #if update_list:
     #    for r in update_list:
-    #        resp = supabase.table("fx_rates") \
-    #            .update({"rate": r["rate"]}) \
-    #            .eq("fx_pair_id", 1) \
-    #            .eq("rate_date", r["rate_date"]) \
-    #            .execute()
-    #        if resp.status_code >= 400:
-    #            print(f"Error updating rate_date {r['rate_date']}: {resp.error}")
+    #        try:
+    #            resp = supabase.table("fx_rates") \
+    #                .update({"rate": r["rate"]}) \
+    #                .eq("fx_pair_id", 1) \
+    #                .eq("rate_date", r["rate_date"]) \
+    #                .execute()
+    #        except Exception as e:
+    #            print(f"Error updating rate_date {r['rate_date']}: {e}")
     #    print(f"Updated {len(update_list)} rows in batch {i//batch_size+1}")
