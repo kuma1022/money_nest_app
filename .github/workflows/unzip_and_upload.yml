@@ -21,17 +21,28 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
     steps:
+      # 1️⃣ Checkout repo
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      # 2️⃣ Debug当前目录
+      - name: Debug workspace
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Listing files:"
+          ls -R
+
+      # 3️⃣ Set up Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
+      # 4️⃣ Install dependencies
       - name: Install dependencies
         run: npm install @supabase/supabase-js adm-zip
 
+      # 5️⃣ Set ZIP path and target prefix based on region
       - name: Set ZIP path and target prefix
         run: |
           if [ "${{ github.event.inputs.region }}" = "US" ]; then
@@ -44,5 +55,15 @@ jobs:
             echo "TARGET_PREFIX=historical_prices_split/JP_github/" >> $GITHUB_ENV
           fi
 
+      # 6️⃣ Check that the script exists
+      - name: Check script file
+        run: |
+          if [ ! -f scripts/unzip_and_upload.js ]; then
+            echo "ERROR: scripts/unzip_and_upload.js not found!"
+            exit 1
+          fi
+          echo "Script file found: scripts/unzip_and_upload.js"
+
+      # 7️⃣ Run upload script
       - name: Run upload script
         run: node scripts/unzip_and_upload.js
