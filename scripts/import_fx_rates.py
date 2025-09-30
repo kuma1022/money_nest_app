@@ -35,7 +35,12 @@ for i in range(0, len(records), batch_size):
 
     # 1️⃣ 查询已有 rate_date
     dates = [r["rate_date"] for r in batch]
-    existing_resp = supabase.table("fx_rates").select("rate_date").eq("fx_pair_id", 1).in_("rate_date", dates).execute()
+    existing_resp = supabase.table("fx_rates") \
+        .select("rate_date") \
+        .eq("fx_pair_id", 1) \
+        .in_("rate_date", dates) \
+        .execute()
+
     existing_dates = set()
     if existing_resp.data:
         existing_dates = set([r["rate_date"] for r in existing_resp.data])
@@ -52,10 +57,14 @@ for i in range(0, len(records), batch_size):
         else:
             print(f"Inserted {len(insert_list)} rows in batch {i//batch_size+1}")
 
-    # 4️⃣ 批量 update
-    if update_list:
-        for r in update_list:
-            resp = supabase.table("fx_rates").update({"rate": r["rate"]}).eq("fx_pair_id", 1).eq("rate_date", r["rate_date"]).execute()
-            if resp.error:
-                print(f"Error updating rate_date {r['rate_date']}: {resp.error}")
-        print(f"Updated {len(update_list)} rows in batch {i//batch_size+1}")
+    # 4️⃣ 批量 update（单条 update）
+    #if update_list:
+    #    for r in update_list:
+    #        resp = supabase.table("fx_rates") \
+    #            .update({"rate": r["rate"]}) \
+    #            .eq("fx_pair_id", 1) \
+    #            .eq("rate_date", r["rate_date"]) \
+    #            .execute()
+    #        if resp.error:
+    #            print(f"Error updating rate_date {r['rate_date']}: {resp.error}")
+    #    print(f"Updated {len(update_list)} rows in batch {i//batch_size+1}")
