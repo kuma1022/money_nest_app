@@ -26,6 +26,18 @@ void main() async {
   GlobalStore().userId = userId;
   GlobalStore().accountId = accountId;
   GlobalStore().selectedCurrencyCode = 'JPY'; // 默认日元
+
+  // 判断当天是否同步服务器，如果没有同步，则进行同步
+  DateTime now = DateTime.now();
+  if (GlobalStore().lastSyncTime == null ||
+      GlobalStore().lastSyncTime!.year != now.year ||
+      GlobalStore().lastSyncTime!.month != now.month ||
+      GlobalStore().lastSyncTime!.day != now.day) {
+    // 每天第一次打开 App 时，同步服务器
+    //await AppUtils().syncDataWithSupabase(userId, accountId, db);
+    //await GlobalStore().saveLastSyncTimeToPrefs();
+  }
+
   await GlobalStore().saveUserIdToPrefs();
   await GlobalStore().saveAccountIdToPrefs();
   await GlobalStore().saveSelectedCurrencyCodeToPrefs();

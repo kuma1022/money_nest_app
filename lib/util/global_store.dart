@@ -16,11 +16,13 @@ class GlobalStore {
   Map<String, double> currentStockPrices = {}; // 股票价格
   DateTime? stockPricesLastUpdated;
   List<(DateTime, double)>? assetsTotalHistory; // 资产总值历史
+  DateTime? lastSyncTime; // 最近与服务器同步时间
 
   Future<void> loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     userId = prefs.getString('userId');
     accountId = prefs.getInt('accountId');
+    lastSyncTime = DateTime.tryParse(prefs.getString('lastSyncTime') ?? '');
     selectedCurrencyCode = prefs.getString('selectedCurrencyCode') ?? 'JPY';
     portfolio = jsonDecode(prefs.getString('portfolio') ?? '[]');
     currentStockPrices = Map<String, double>.from(
@@ -50,6 +52,11 @@ class GlobalStore {
     if (accountId != null) {
       prefs.setInt('accountId', accountId!);
     }
+  }
+
+  Future<void> saveLastSyncTimeToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('lastSyncTime', DateTime.now().toIso8601String());
   }
 
   Future<void> saveSelectedCurrencyCodeToPrefs() async {

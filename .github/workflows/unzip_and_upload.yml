@@ -1,0 +1,48 @@
+name: Upload ZIP to Supabase Storage
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: 'Choose region'
+        required: true
+        default: 'US'
+        type: choice
+        options:
+          - US
+          - JP
+
+jobs:
+  unzip-and-upload:
+    runs-on: ubuntu-latest
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install @supabase/supabase-js adm-zip
+
+      - name: Set ZIP path and target prefix
+        run: |
+          if [ "${{ github.event.inputs.region }}" = "US" ]; then
+            echo "ZIP_PATH=scripts/data/historical_prices_split_US.zip" >> $GITHUB_ENV
+            echo "TARGET_BUCKET=money_grow_app" >> $GITHUB_ENV
+            echo "TARGET_PREFIX=historical_prices_split/US_github/" >> $GITHUB_ENV
+          else
+            echo "ZIP_PATH=scripts/data/historical_prices_split_JP.zip" >> $GITHUB_ENV
+            echo "TARGET_BUCKET=money_grow_app" >> $GITHUB_ENV
+            echo "TARGET_PREFIX=historical_prices_split/JP_github/" >> $GITHUB_ENV
+          fi
+
+      - name: Run upload script
+        run: node scripts/unzip_and_upload.js
