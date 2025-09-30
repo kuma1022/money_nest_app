@@ -44,7 +44,7 @@ for i in range(0, len(records), batch_size):
     batch = records[i : i + batch_size]
     resp = (
         supabase.table("fx_rates")
-        .upsert(batch, on_conflict=["fx_pair_id", "rate_date"])
+        .upsert(batch, on_conflict="fx_rates_fx_pair_id_rate_date_key")
         .execute()
     )
 
