@@ -286,20 +286,23 @@ def fetch_jpy_fx_rate(base_day):
         df = yf.download(
                 "JPY=X",
                 start=base_day,
-                end=base_day,
+                end=(datetime.fromisoformat(base_day) + timedelta(days=1)).date().isoformat(),
                 period="1d",
                 progress=False,
                 group_by="ticker",
                 auto_adjust=True,
                 timeout=15,
             )
-
-        if not isinstance(df.columns, pd.MultiIndex):
-            price = df["Close"].iloc[-1]
-            if pd.isna(price) or math.isinf(price):
-                price = None
-        else:
-            price = None
+        if df is None or df.empty:
+            print(f"[WARN] No data for JPY=X on {base_day}")
+            return None
+        if "Close" not in df.columns:
+            print(f"[WARN] No 'Close' column for JPY=X on {base_day}, columns: {df.columns}")
+            return None
+        price = df["Close"].iloc[-1]
+        if pd.isna(price) or math.isinf(price):
+            print(f"[WARN] Invalid price for JPY=X on {base_day}: {price}")
+            return None
         return float(price)
     except Exception as e:
         print(f"[ERROR] Failed to fetch JPY=X rate: {e}")
