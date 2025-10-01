@@ -330,6 +330,18 @@ def save_fx_rate_to_supabase(supabase, fx_pair_id, rate_date, rate):
     except Exception as e:
         print(f"[ERROR] Failed to save FX rate: {e}")
 
+# ---------------------------
+# 获取前一个交易日
+# ---------------------------
+def get_prev_trading_day(base_day: str) -> str:
+    cal = mcal.get_calendar("NYSE")
+    base = datetime.fromisoformat(base_day).date()
+    # 往前推10天，找前一个交易日
+    schedule = cal.schedule(start_date=base - timedelta(days=10), end_date=base)
+    prev_days = schedule.index[schedule.index.date < base]
+    if len(prev_days) == 0:
+        raise RuntimeError("No previous trading day found")
+    return prev_days[-1].date().isoformat()
 
 # ---------------------------
 # 主逻辑
@@ -338,14 +350,15 @@ def main():
     # ---------------------------
     # 获取当天的 JPY=X 汇率
     # ---------------------------
-    if not fx_rate_exists(supabase, fx_pair_id=1, rate_date=base_day):
-        fx_rate = fetch_jpy_fx_rate(base_day)
+    prev_trading_day = get_prev_trading_day(base_day)
+    if not fx_rate_exists(supabase, fx_pair_id=1, rate_date=prev_trading_day):
+        fx_rate = fetch_jpy_fx_rate(prev_trading_day)
         if fx_rate is not None:
-            save_fx_rate_to_supabase(supabase, fx_pair_id=1, rate_date=base_day, rate=fx_rate)
+            save_fx_rate_to_supabase(supabase, fx_pair_id=1, rate_date=prev_trading_day, rate=fx_rate)
         else:
-            print(f"[WARN] JPY=X rate not available for {base_day}")
+            print(f"[WARN] JPY=X rate not available for {prev_trading_day}")
     else:
-        print(f"[INFO] FX rate for {base_day} already exists, skip fetching.")
+        print(f"[INFO] FX rate for {prev_trading_day} already exists, skip fetching.")
     
     # ---------------------------
     # 查询待处理的股票
