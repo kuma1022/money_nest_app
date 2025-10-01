@@ -280,12 +280,12 @@ def fetch_existing_fx_dates(supabase, fx_pair_id, start_day, end_day):
 # ---------------------------
 # 抓取 JPY=X 汇率
 # ---------------------------
-def fetch_jpy_fx_rate(start_day, end_day):
+def fetch_jpy_fx_rate(start_day, end):
     try:
         df = yf.download(
             "JPY=X",
             start=start_day,
-            end=(datetime.fromisoformat(end_day) + timedelta(days=1)).date().isoformat(),
+            end=(datetime.fromisoformat(end) + timedelta(days=1)).date().isoformat(),
             progress=False,
             group_by="ticker",
             auto_adjust=True,
@@ -341,8 +341,9 @@ def main():
     # 获取最近10个交易日的 JPY=X 汇率
     # ---------------------------
     end = get_prev_trading_day(base_day)
-    start = end - timedelta(days=10)
-    rates = fetch_jpy_fx_rate(start, end)
+    end_dt = datetime.fromisoformat(end).date()
+    start = end_dt - timedelta(days=10)
+    rates = fetch_jpy_fx_rate(start.isoformat(), end)
     print(f"[INFO] Fetched {len(rates)} FX rates from {start} to {end}")
     if not rates or len(rates) == 0:
         print("[WARN] No FX rates fetched")
