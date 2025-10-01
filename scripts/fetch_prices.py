@@ -281,24 +281,33 @@ def fx_rate_exists(supabase, fx_pair_id, rate_date):
 # 抓取 JPY=X 汇率
 # ---------------------------
 def fetch_jpy_fx_rate(base_day):
-    # 用 yfinance 抓取 JPY=X 的收盘价
     try:
         df = yf.download(
-                "JPY=X",
-                start=base_day,
-                end=(datetime.fromisoformat(base_day) + timedelta(days=1)).date().isoformat(),
-                progress=False,
-                group_by="ticker",
-                auto_adjust=True,
-                timeout=15,
-            )
+            "JPY=X",
+            start=base_day,
+            end=(datetime.fromisoformat(base_day) + timedelta(days=1)).date().isoformat(),
+            progress=False,
+            group_by="ticker",
+            auto_adjust=True,
+            timeout=15,
+        )
         if df is None or df.empty:
             print(f"[WARN] No data for JPY=X on {base_day}")
             return None
-        if "Close" not in df.columns:
+
+        # 兼容 MultiIndex 和普通 DataFrame
+        price = None
+        if isinstance(df.columns, pd.MultiIndex):
+            try:
+                price = df[("JPY=X", "Close")].iloc[-1]
+            except Exception as e:
+                print(f"[WARN] MultiIndex but cannot get ('JPY=X','Close'): {e}")
+        elif "Close" in df.columns:
+            price = df["Close"].iloc[-1]
+        else:
             print(f"[WARN] No 'Close' column for JPY=X on {base_day}, columns: {df.columns}")
             return None
-        price = df["Close"].iloc[-1]
+
         if pd.isna(price) or math.isinf(price):
             print(f"[WARN] Invalid price for JPY=X on {base_day}: {price}")
             return None
