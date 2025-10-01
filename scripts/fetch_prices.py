@@ -287,7 +287,6 @@ def fetch_jpy_fx_rate(base_day):
                 "JPY=X",
                 start=base_day,
                 end=(datetime.fromisoformat(base_day) + timedelta(days=1)).date().isoformat(),
-                period="1d",
                 progress=False,
                 group_by="ticker",
                 auto_adjust=True,
