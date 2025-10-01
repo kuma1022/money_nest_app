@@ -321,11 +321,11 @@ def fetch_jpy_fx_rate(base_day):
 # ---------------------------
 def save_fx_rate_to_supabase(supabase, fx_pair_id, rate_date, rate):
     try:
-        supabase.table("fx_rates").upsert([{
+        supabase.table("fx_rates").insert([{
             "fx_pair_id": fx_pair_id,
             "rate_date": rate_date,
             "rate": rate,
-        }], on_conflict=["fx_pair_id", "rate_date"]).execute()
+        }]).execute()
         print(f"[OK] Saved FX rate for {rate_date}: {rate}")
     except Exception as e:
         print(f"[ERROR] Failed to save FX rate: {e}")
