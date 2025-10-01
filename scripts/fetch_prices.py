@@ -268,67 +268,57 @@ def fetch_batch(batch):
 # ---------------------------
 # 检查汇率是否已存在
 # ---------------------------
-def fx_rate_exists(supabase, fx_pair_id, rate_date):
+def fetch_existing_fx_dates(supabase, fx_pair_id, start_day, end_day):
     res = supabase.table("fx_rates") \
-        .select("id") \
+        .select("rate_date") \
         .eq("fx_pair_id", fx_pair_id) \
-        .eq("rate_date", rate_date) \
-        .limit(1) \
+        .gte("rate_date", start_day) \
+        .lte("rate_date", end_day) \
         .execute()
-    return bool(res.data)
+    return {row["rate_date"] for row in res.data}
 
 # ---------------------------
 # 抓取 JPY=X 汇率
 # ---------------------------
-def fetch_jpy_fx_rate(base_day):
+def fetch_jpy_fx_rate(start_day, end_day):
     try:
         df = yf.download(
             "JPY=X",
-            start=base_day,
-            end=(datetime.fromisoformat(base_day) + timedelta(days=1)).date().isoformat(),
+            start=start_day,
+            end=(datetime.fromisoformat(end_day) + timedelta(days=1)).date().isoformat(),
             progress=False,
             group_by="ticker",
             auto_adjust=True,
             timeout=15,
         )
-        if df is None or df.empty:
-            print(f"[WARN] No data for JPY=X on {base_day}")
-            return None
-
-        # 兼容 MultiIndex 和普通 DataFrame
-        price = None
-        if isinstance(df.columns, pd.MultiIndex):
-            try:
-                price = df[("JPY=X", "Close")].iloc[-1]
-            except Exception as e:
-                print(f"[WARN] MultiIndex but cannot get ('JPY=X','Close'): {e}")
-        elif "Close" in df.columns:
-            price = df["Close"].iloc[-1]
-        else:
-            print(f"[WARN] No 'Close' column for JPY=X on {base_day}, columns: {df.columns}")
-            return None
-
-        if pd.isna(price) or math.isinf(price):
-            print(f"[WARN] Invalid price for JPY=X on {base_day}: {price}")
-            return None
-        return float(price)
+        rates = []
+        if df is not None and not df.empty:
+            if isinstance(df.columns, pd.MultiIndex):
+                close = df[("JPY=X", "Close")]
+            else:
+                close = df["Close"]
+            for dt, price in close.items():
+                if not pd.isna(price) and not math.isinf(price):
+                    rates.append({"rate_date": dt.date().isoformat(), "rate": float(price)})
+        return rates
     except Exception as e:
         print(f"[ERROR] Failed to fetch JPY=X rate: {e}")
-        return None
+        return []
 
 # ---------------------------
-# 保存汇率到 supabase
+# 检查某日期的汇率是否存在，存在返回 True
 # ---------------------------
-def save_fx_rate_to_supabase(supabase, fx_pair_id, rate_date, rate):
-    try:
-        supabase.table("fx_rates").insert([{
-            "fx_pair_id": fx_pair_id,
-            "rate_date": rate_date,
-            "rate": rate,
-        }]).execute()
-        print(f"[OK] Saved FX rate for {rate_date}: {rate}")
-    except Exception as e:
-        print(f"[ERROR] Failed to save FX rate: {e}")
+def insert_missing_fx_rates(supabase, fx_pair_id, rates, existing_dates):
+    to_insert = [
+        {"fx_pair_id": fx_pair_id, "rate_date": r["rate_date"], "rate": r["rate"]}
+        for r in rates if r["rate_date"] not in existing_dates
+    ]
+    if to_insert:
+        supabase.table("fx_rates").insert(to_insert).execute()
+        print(f"[OK] Inserted {len(to_insert)} missing FX rates")
+    else:
+        print("[INFO] No missing FX rates to insert")
+
 
 # ---------------------------
 # 获取前一个交易日
@@ -348,17 +338,19 @@ def get_prev_trading_day(base_day: str) -> str:
 # ---------------------------
 def main():
     # ---------------------------
-    # 获取当天的 JPY=X 汇率
+    # 获取最近10个交易日的 JPY=X 汇率
     # ---------------------------
-    prev_trading_day = get_prev_trading_day(base_day)
-    if not fx_rate_exists(supabase, fx_pair_id=1, rate_date=prev_trading_day):
-        fx_rate = fetch_jpy_fx_rate(prev_trading_day)
-        if fx_rate is not None:
-            save_fx_rate_to_supabase(supabase, fx_pair_id=1, rate_date=prev_trading_day, rate=fx_rate)
-        else:
-            print(f"[WARN] JPY=X rate not available for {prev_trading_day}")
+    end = get_prev_trading_day(base_day)
+    start = end - timedelta(days=10)
+    rates = fetch_jpy_fx_rate(start, end)
+    print(f"[INFO] Fetched {len(rates)} FX rates from {start} to {end}")
+    if not rates or len(rates) == 0:
+        print("[WARN] No FX rates fetched")
     else:
-        print(f"[INFO] FX rate for {prev_trading_day} already exists, skip fetching.")
+        start_date = min(r["rate_date"] for r in rates)
+        end_date = max(r["rate_date"] for r in rates)
+        existing_dates = fetch_existing_fx_dates(supabase, 1, start_date, end_date)
+        insert_missing_fx_rates(supabase, 1, rates, existing_dates)
     
     # ---------------------------
     # 查询待处理的股票
