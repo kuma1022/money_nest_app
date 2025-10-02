@@ -306,18 +306,28 @@ def fetch_jpy_fx_rate(start_day, end):
         return []
 
 # ---------------------------
-# 检查某日期的汇率是否存在，存在返回 True
+# 检查某日期的汇率是否存在，存在则更新，不存在则插入
 # ---------------------------
-def insert_missing_fx_rates(supabase, fx_pair_id, rates, existing_dates):
+def insert_and_update_missing_fx_rates(supabase, fx_pair_id, rates, existing_dates):
     to_insert = [
         {"fx_pair_id": fx_pair_id, "rate_date": r["rate_date"], "rate": r["rate"]}
         for r in rates if r["rate_date"] not in existing_dates
+    ]
+    to_update = [
+        {"fx_pair_id": fx_pair_id, "rate_date": r["rate_date"], "rate": r["rate"]}
+        for r in rates if r["rate_date"] in existing_dates
     ]
     if to_insert:
         supabase.table("fx_rates").insert(to_insert).execute()
         print(f"[OK] Inserted {len(to_insert)} missing FX rates")
     else:
         print("[INFO] No missing FX rates to insert")
+
+    if to_update:
+        supabase.table("fx_rates").update(to_update).execute()
+        print(f"[OK] Updated {len(to_update)} existing FX rates")
+    else:
+        print("[INFO] No existing FX rates to update")
 
 
 # ---------------------------
@@ -340,7 +350,7 @@ def main():
     # ---------------------------
     # 获取最近10个交易日的 JPY=X 汇率
     # ---------------------------
-    end = get_prev_trading_day(base_day)
+    end = base_day#get_prev_trading_day(base_day)
     end_dt = datetime.fromisoformat(end).date()
     start = end_dt - timedelta(days=10)
     rates = fetch_jpy_fx_rate(start.isoformat(), end)
@@ -351,7 +361,7 @@ def main():
         start_date = min(r["rate_date"] for r in rates)
         end_date = max(r["rate_date"] for r in rates)
         existing_dates = fetch_existing_fx_dates(supabase, 1, start_date, end_date)
-        insert_missing_fx_rates(supabase, 1, rates, existing_dates)
+        insert_and_update_missing_fx_rates(supabase, 1, rates, existing_dates)
     
     # ---------------------------
     # 查询待处理的股票
