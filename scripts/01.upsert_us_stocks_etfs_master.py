@@ -55,12 +55,13 @@ def parse_file(text: str, use_nasdaq_symbol=True):
         nasdaq_symbol_raw = parts[idx_nasdaq]
 
         ticker = normalize_ticker_for_yahoo(nasdaq_symbol_raw) if use_nasdaq_symbol else act_symbol_raw
-        act_symbol = act_symbol_raw.replace(".", "-")  # ACT Symbol も正規化
+        act_symbol = act_symbol_raw.replace(".", "-").replace("$", "_")  # ACT Symbol も正規化
 
         result.append({
             "ticker": ticker,
             "exchange": "US",
             "name": parts[idx_name],
+            "name_us": parts[idx_name],
             "act_symbol": act_symbol,
             "status": "active",
             "currency": "USD",
@@ -100,28 +101,31 @@ def batch_update_insert(rows, batch_size=BATCH_SIZE):
         for r in to_rename:
             upd_resp = supabase.table("stocks").update({
                 "ticker": r["ticker"],
-                "name_us": r["name"],
+                "name_us": r["name_us"],
+                "updated_at": "now()"
             }).eq("ticker", r["act_symbol"]).eq("exchange", r["exchange"]).execute()
             if upd_resp.error:
                 print(f"ACT→NASDAQ 更新失败: {r['act_symbol']} → {r['ticker']} {upd_resp.error}")
+            else:
+                print(f"🔄 ACT→NASDAQ 更新: {r['act_symbol']} → {r['ticker']}")
 
         # 既存 NASDAQ Symbol 更新
-        for r in to_update:
-            upd_resp = supabase.table("stocks").update({
-                "name": r["name"],
-                "status": r["status"],
-                "currency": r["currency"],
-                "country": r["country"],
-                "sector": r["sector"],
-                "industry": r["industry"],
-                "isin": r["isin"]
-            }).eq("ticker", r["ticker"]).eq("exchange", r["exchange"]).execute()
-            if upd_resp.error:
-                print(f"更新失败: {r['ticker']}, {upd_resp.error}")
+        #for r in to_update:
+        #    upd_resp = supabase.table("stocks").update({
+        #        "name_us": r["name_us"],
+        #        "updated_at": "now()"
+        #    }).eq("ticker", r["ticker"]).eq("exchange", r["exchange"]).execute()
+        #    if upd_resp.error:
+        #        print(f"更新失败: {r['ticker']}, {upd_resp.error}")
 
         # 新規挿入
         if to_insert:
-            ins_resp = supabase.table("stocks").insert(to_insert).execute()
+            # 去掉 act_symbol 字段
+            to_insert_clean = [
+                {k: v for k, v in r.items() if k != "act_symbol"}
+                for r in to_insert
+            ]
+            ins_resp = supabase.table("stocks").insert(to_insert_clean).execute()
             if ins_resp.error:
                 print(f"插入失败: {ins_resp.error}")
 
