@@ -1,0 +1,151 @@
+import os
+import json
+import requests
+from supabase import create_client, Client
+
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+NASDAQ_URL = "https://www.nasdaqtrader.com/dynamic/symdir/nasdaqlisted.txt"
+OTHER_URL = "https://www.nasdaqtrader.com/dynamic/symdir/otherlisted.txt"
+
+BATCH_SIZE = 200
+
+# ------------------------
+# 例外読み込み
+# ------------------------
+with open("yahoo_exceptions.json", "r") as f:
+    YAHOO_EXCEPTIONS = json.load(f)
+
+
+# ------------------------
+# ユーティリティ
+# ------------------------
+def normalize_ticker_for_yahoo(symbol: str) -> str:
+    """ファイル内 NASDAQ Symbol → Yahoo Finance 用ティッカー"""
+    if not symbol:
+        return symbol
+    if symbol in YAHOO_EXCEPTIONS:
+        return YAHOO_EXCEPTIONS[symbol]
+    return symbol.replace(".", "-")
+
+
+def download_text(url: str) -> str:
+    res = requests.get(url)
+    res.raise_for_status()
+    return res.text
+
+
+def parse_file(text: str, use_nasdaq_symbol=True):
+    lines = text.strip().split("\n")
+    headers = lines.pop(0).split("|")
+
+    idx_act = headers.index("ACT Symbol")
+    idx_name = headers.index("Security Name")
+    idx_nasdaq = headers.index("NASDAQ Symbol")
+
+    result = []
+    for line in lines:
+        parts = line.split("|")
+        if not parts[idx_nasdaq] or not parts[idx_name]:
+            continue
+
+        act_symbol_raw = parts[idx_act]
+        nasdaq_symbol_raw = parts[idx_nasdaq]
+
+        ticker = normalize_ticker_for_yahoo(nasdaq_symbol_raw) if use_nasdaq_symbol else act_symbol_raw
+        act_symbol = act_symbol_raw.replace(".", "-")  # ACT Symbol も正規化
+
+        result.append({
+            "ticker": ticker,
+            "exchange": "US",
+            "name": parts[idx_name],
+            "act_symbol": act_symbol,
+            "status": "active",
+            "currency": "USD",
+            "country": "USA"
+        })
+    return result
+
+
+# ------------------------
+# DB 更新
+# ------------------------
+def batch_update_insert(rows, batch_size=BATCH_SIZE):
+    for i in range(0, len(rows), batch_size):
+        batch = rows[i:i + batch_size]
+        tickers = [r["ticker"] for r in batch]
+        act_symbols = [r["act_symbol"] for r in batch]
+
+        # 既存の NASDAQ Symbol / ACT Symbol を取得
+        resp = supabase.table("stocks").select("ticker,exchange").in_("ticker", tickers + act_symbols).execute()
+        if resp.error:
+            print(f"查询已有记录失败: {resp.error}")
+            continue
+
+        existing_tickers = {r["ticker"] for r in resp.data}
+
+        to_insert, to_update, to_rename = [], [], []
+
+        for r in batch:
+            if r["ticker"] in existing_tickers:
+                to_update.append(r)
+            elif r["act_symbol"] in existing_tickers:
+                to_rename.append(r)
+            else:
+                to_insert.append(r)
+
+        # ACT Symbol → NASDAQ/Yahoo ティッカーに更新
+        for r in to_rename:
+            upd_resp = supabase.table("stocks").update({
+                "ticker": r["ticker"],
+                "name_us": r["name"],
+            }).eq("ticker", r["act_symbol"]).eq("exchange", r["exchange"]).execute()
+            if upd_resp.error:
+                print(f"ACT→NASDAQ 更新失败: {r['act_symbol']} → {r['ticker']} {upd_resp.error}")
+
+        # 既存 NASDAQ Symbol 更新
+        for r in to_update:
+            upd_resp = supabase.table("stocks").update({
+                "name": r["name"],
+                "status": r["status"],
+                "currency": r["currency"],
+                "country": r["country"],
+                "sector": r["sector"],
+                "industry": r["industry"],
+                "isin": r["isin"]
+            }).eq("ticker", r["ticker"]).eq("exchange", r["exchange"]).execute()
+            if upd_resp.error:
+                print(f"更新失败: {r['ticker']}, {upd_resp.error}")
+
+        # 新規挿入
+        if to_insert:
+            ins_resp = supabase.table("stocks").insert(to_insert).execute()
+            if ins_resp.error:
+                print(f"插入失败: {ins_resp.error}")
+
+        print(f"✅ 批次完成 [{i}-{i+len(batch)}], 更新 {len(to_update)}, rename {len(to_rename)}, insert {len(to_insert)}")
+
+
+# ------------------------
+# 実行
+# ------------------------
+def main():
+    print("🔹 Step 1: ダウンロード")
+    nasdaq_text = download_text(NASDAQ_URL)
+    other_text = download_text(OTHER_URL)
+
+    print("🔹 Step 2: 解析")
+    nasdaq_data = parse_file(nasdaq_text)
+    other_data = parse_file(other_text)
+
+    all_data = {f"{r['ticker']}-US": r for r in (nasdaq_data + other_data)}
+    rows = list(all_data.values())
+
+    print(f"🔹 Step 3: DB 更新 (total {len(rows)} 件)")
+    batch_update_insert(rows)
+
+
+if __name__ == "__main__":
+    main()

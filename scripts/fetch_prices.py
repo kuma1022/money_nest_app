@@ -324,7 +324,12 @@ def insert_and_update_missing_fx_rates(supabase, fx_pair_id, rates, existing_dat
         print("[INFO] No missing FX rates to insert")
 
     if to_update:
-        supabase.table("fx_rates").update(to_update).execute()
+        for row in to_update:
+            supabase.table("fx_rates") \
+                .update({"rate": row["rate"]}) \
+                .eq("fx_pair_id", row["fx_pair_id"]) \
+                .eq("rate_date", row["rate_date"]) \
+                .execute()
         print(f"[OK] Updated {len(to_update)} existing FX rates")
     else:
         print("[INFO] No existing FX rates to update")
