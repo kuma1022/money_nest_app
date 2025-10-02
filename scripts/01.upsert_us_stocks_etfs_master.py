@@ -128,10 +128,11 @@ def batch_update_insert(rows, batch_size=BATCH_SIZE):
         ticker_befores = [r["ticker_before"] for r in batch]
         all_tickers = list(set(tickers + act_symbols + ticker_befores))
 
-        # 既存の NASDAQ Symbol / ACT Symbol を取得
-        resp = supabase.table("stocks").select("ticker,exchange").in_("ticker", all_tickers).execute()
-        if resp.error:
-            print(f"查询已有记录失败: {resp.error}")
+        try:
+            # 既存の NASDAQ Symbol / ACT Symbol を取得
+            resp = supabase.table("stocks").select("ticker,exchange").in_("ticker", all_tickers).execute()
+        except Exception as e:
+            print(f"查询已有记录失败: {e}")
             continue
 
         existing_tickers = {r["ticker"] for r in resp.data}
@@ -150,23 +151,25 @@ def batch_update_insert(rows, batch_size=BATCH_SIZE):
 
         # ACT Symbol → NASDAQ/Yahoo ティッカーに更新
         for r in to_rename_act:
-            upd_resp = supabase.table("stocks").update({
-                "ticker": r["ticker"],
-                "name_us": r["name_us"],
-                "updated_at": datetime.now(datetime.timezone.utc)
-            }).eq("ticker", r["act_symbol"]).eq("exchange", r["exchange"]).execute()
-            if upd_resp.error:
-                print(f"ACT→NASDAQ 更新失败: {r['act_symbol']} → {r['ticker']} {upd_resp.error}")
+            try:
+                supabase.table("stocks").update({
+                    "ticker": r["ticker"],
+                    "name_us": r["name_us"],
+                    "updated_at": datetime.now(datetime.timezone.utc)
+                }).eq("ticker", r["act_symbol"]).eq("exchange", r["exchange"]).execute()
+            except Exception as e:
+                print(f"ACT→NASDAQ 更新失败: {r['act_symbol']} → {r['ticker']} {e}")
 
         # Before Symbol → NASDAQ/Yahoo ティッカーに更新
         for r in to_rename_before:
-            upd_resp = supabase.table("stocks").update({
-                "ticker": r["ticker"],
-                "name_us": r["name_us"],
-                "updated_at": datetime.now(datetime.timezone.utc)
-            }).eq("ticker", r["ticker_before"]).eq("exchange", r["exchange"]).execute()
-            if upd_resp.error:
-                print(f"Before→NASDAQ 更新失败: {r['ticker_before']} → {r['ticker']} {upd_resp.error}")
+            try:
+                supabase.table("stocks").update({
+                    "ticker": r["ticker"],
+                    "name_us": r["name_us"],
+                    "updated_at": datetime.now(datetime.timezone.utc)
+                }).eq("ticker", r["ticker_before"]).eq("exchange", r["exchange"]).execute()
+            except Exception as e:
+                print(f"Before→NASDAQ 更新失败: {r['ticker_before']} → {r['ticker']} {e}")
             else:
                 print(f"🔄 Before→NASDAQ 更新: {r['ticker_before']} → {r['ticker']}")
 
@@ -179,16 +182,17 @@ def batch_update_insert(rows, batch_size=BATCH_SIZE):
         #    if upd_resp.error:
         #        print(f"更新失败: {r['ticker']}, {upd_resp.error}")
 
+        try:
         # 新規挿入
-        if to_insert:
-            # 去掉 act_symbol 字段
-            to_insert_clean = [
-                {k: v for k, v in r.items() if k != "act_symbol" and k != "ticker_before"}
-                for r in to_insert
-            ]
-            ins_resp = supabase.table("stocks").insert(to_insert_clean).execute()
-            if ins_resp.error:
-                print(f"插入失败: {ins_resp.error}")
+            if to_insert:
+                # 去掉 act_symbol 字段
+                to_insert_clean = [
+                    {k: v for k, v in r.items() if k != "act_symbol" and k != "ticker_before"}
+                    for r in to_insert
+                ]
+                supabase.table("stocks").insert(to_insert_clean).execute()
+        except Exception as e:
+            print(f"插入失败: {e}")
 
         print(f"✅ 批次完成 [{i}-{i+len(batch)}], 更新 {len(to_update)}, rename {len(to_rename_act)}, rename_before {len(to_rename_before)}, insert {len(to_insert)}")
 
