@@ -2,7 +2,7 @@ import os
 import json
 import requests
 from supabase import create_client, Client
-from datetime import datetime
+from datetime import datetime, timezone
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
@@ -11,25 +11,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 NASDAQ_URL = "https://www.nasdaqtrader.com/dynamic/symdir/nasdaqlisted.txt"
 OTHER_URL = "https://www.nasdaqtrader.com/dynamic/symdir/otherlisted.txt"
 
-BATCH_SIZE = 100
-
-# ------------------------
-# 例外読み込み
-# ------------------------
-with open("scripts/data/yahoo_exceptions.json", "r") as f:
-    YAHOO_EXCEPTIONS = json.load(f)
-
-
-# ------------------------
-# ユーティリティ
-# ------------------------
-def normalize_ticker_for_yahoo(symbol: str) -> str:
-    """ファイル内 NASDAQ Symbol → Yahoo Finance 用ティッカー"""
-    if not symbol:
-        return symbol
-    if symbol in YAHOO_EXCEPTIONS:
-        return YAHOO_EXCEPTIONS[symbol]
-    return symbol.replace(".", "-")
+BATCH_SIZE = 200
 
 # ------------------------
 # ファイルダウンロードと解析
@@ -59,16 +41,14 @@ def parse_nasdaq_file(text: str):
         if not parts[idx_symbol] or not parts[idx_name]:
             continue
 
-        act_symbol_raw = parts[idx_symbol]
-        act_symbol = act_symbol_raw.replace(".", "-").replace("$", "_")  # ACT Symbol も正規化
-        ticker = normalize_ticker_for_yahoo(parts[idx_symbol])
+        ticker, file_name = formatTickerAndFileName(parts[idx_symbol])
+
         result.append({
             "ticker": ticker,
-            "ticker_before": parts[idx_symbol],
             "exchange": "US",
             "name": parts[idx_name],
             "name_us": parts[idx_name],
-            "act_symbol": act_symbol,
+            "all_fetch_file_name": file_name,
             "status": "active",
             "currency": "USD",
             "country": "USA"
@@ -82,7 +62,6 @@ def parse_other_file(text: str):
     lines = text.strip().split("\n")
     headers = [h.strip() for h in lines.pop(0).split("|")]
 
-    idx_act = headers.index("ACT Symbol")
     idx_name = headers.index("Security Name")
     idx_nasdaq = headers.index("NASDAQ Symbol")
 
@@ -91,31 +70,36 @@ def parse_other_file(text: str):
         parts = [p.strip() for p in line.split("|")]
 
         # カラム数がヘッダー未満の場合はスキップ
-        if len(parts) <= max(idx_act, idx_name, idx_nasdaq):
+        if len(parts) <= max(idx_name, idx_nasdaq):
             continue
         # 必須カラムが空の場合はスキップ
         if not parts[idx_nasdaq] or not parts[idx_name]:
             continue
 
-        act_symbol_raw = parts[idx_act]
-        nasdaq_symbol_raw = parts[idx_nasdaq]
-
-        ticker = normalize_ticker_for_yahoo(nasdaq_symbol_raw)
-        act_symbol = act_symbol_raw.replace(".", "-").replace("$", "_")  # ACT Symbol も正規化
+        ticker, file_name = formatTickerAndFileName(parts[idx_nasdaq])
 
         result.append({
             "ticker": ticker,
-            "ticker_before": nasdaq_symbol_raw,
             "exchange": "US",
             "name": parts[idx_name],
             "name_us": parts[idx_name],
-            "act_symbol": act_symbol,
+            "all_fetch_file_name": file_name,
             "status": "active",
             "currency": "USD",
             "country": "USA"
         })
     return result
 
+# ------------------------
+# NASDAQ Symbol → ティッカーとファイル名
+# ------------------------
+def formatTickerAndFileName(nasdaq_symbol: str):
+    
+    ticker = nasdaq_symbol.replace("-", "-P").replace("+", "-WT").replace("=", "-UN").replace(".", "-")
+    file_name = nasdaq_symbol.replace("-", "_").replace("+", "-WS").replace("=", "-U").replace(".", "-").lower() + ".us.txt"
+
+    print(f"Ticker: {ticker}, FileName: {file_name}")
+    return ticker, file_name
 
 # ------------------------
 # DB 更新
@@ -124,77 +108,30 @@ def batch_update_insert(rows, batch_size=BATCH_SIZE):
     for i in range(0, len(rows), batch_size):
         batch = rows[i:i + batch_size]
         tickers = [r["ticker"] for r in batch]
-        act_symbols = [r["act_symbol"] for r in batch]
-        ticker_befores = [r["ticker_before"] for r in batch]
-        all_tickers = list(set(tickers + act_symbols + ticker_befores))
 
         try:
-            # 既存の NASDAQ Symbol / ACT Symbol を取得
-            resp = supabase.table("stocks").select("ticker,exchange").in_("ticker", all_tickers).execute()
+            # 既存の NASDAQ Symbol を取得
+            resp = supabase.table("stocks").select("ticker,exchange").in_("ticker", tickers).execute()
         except Exception as e:
             print(f"查询已有记录失败: {e}")
             continue
 
         existing_tickers = {r["ticker"] for r in resp.data}
 
-        to_insert, to_update, to_rename_act, to_rename_before = [], [], [], []
+        to_insert = []
 
         for r in batch:
-            if r["ticker"] in existing_tickers:
-                to_update.append(r)
-            elif r["act_symbol"] in existing_tickers:
-                to_rename_act.append(r)
-            elif r["ticker_before"] in existing_tickers:
-                to_rename_before.append(r)
-            else:
+            if r["ticker"] not in existing_tickers:
                 to_insert.append(r)
 
-        # ACT Symbol → NASDAQ/Yahoo ティッカーに更新
-        for r in to_rename_act:
-            try:
-                supabase.table("stocks").update({
-                    "ticker": r["ticker"],
-                    "name_us": r["name_us"],
-                    "updated_at": datetime.now(datetime.timezone.utc)
-                }).eq("ticker", r["act_symbol"]).eq("exchange", r["exchange"]).execute()
-            except Exception as e:
-                print(f"ACT→NASDAQ 更新失败: {r['act_symbol']} → {r['ticker']} {e}")
-
-        # Before Symbol → NASDAQ/Yahoo ティッカーに更新
-        for r in to_rename_before:
-            try:
-                supabase.table("stocks").update({
-                    "ticker": r["ticker"],
-                    "name_us": r["name_us"],
-                    "updated_at": datetime.now(datetime.timezone.utc)
-                }).eq("ticker", r["ticker_before"]).eq("exchange", r["exchange"]).execute()
-            except Exception as e:
-                print(f"Before→NASDAQ 更新失败: {r['ticker_before']} → {r['ticker']} {e}")
-            else:
-                print(f"🔄 Before→NASDAQ 更新: {r['ticker_before']} → {r['ticker']}")
-
-        # 既存 NASDAQ Symbol 更新
-        #for r in to_update:
-        #    upd_resp = supabase.table("stocks").update({
-        #        "name_us": r["name_us"],
-        #        "updated_at": datetime.now(datetime.timezone.utc)
-        #    }).eq("ticker", r["ticker"]).eq("exchange", r["exchange"]).execute()
-        #    if upd_resp.error:
-        #        print(f"更新失败: {r['ticker']}, {upd_resp.error}")
-
         try:
-        # 新規挿入
+            # 新規挿入
             if to_insert:
-                # 去掉 act_symbol 字段
-                to_insert_clean = [
-                    {k: v for k, v in r.items() if k != "act_symbol" and k != "ticker_before"}
-                    for r in to_insert
-                ]
-                supabase.table("stocks").insert(to_insert_clean).execute()
+                supabase.table("stocks").insert(to_insert).execute()
         except Exception as e:
             print(f"插入失败: {e}")
 
-        print(f"✅ 批次完成 [{i}-{i+len(batch)}], 更新 {len(to_update)}, rename {len(to_rename_act)}, rename_before {len(to_rename_before)}, insert {len(to_insert)}")
+        print(f"✅ 批次完成 [{i}-{i+len(batch)}], insert {len(to_insert)}")
 
 
 # ------------------------
