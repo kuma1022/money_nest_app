@@ -16,7 +16,7 @@ BATCH_SIZE = 100
 # ------------------------
 # 例外読み込み
 # ------------------------
-with open("yahoo_exceptions.json", "r") as f:
+with open("scripts/data/yahoo_exceptions.json", "r") as f:
     YAHOO_EXCEPTIONS = json.load(f)
 
 
