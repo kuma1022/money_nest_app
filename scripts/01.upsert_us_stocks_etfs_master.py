@@ -95,8 +95,8 @@ def parse_other_file(text: str):
 # ------------------------
 def formatTickerAndFileName(nasdaq_symbol: str):
     
-    ticker = nasdaq_symbol.replace("-", "-P").replace("+", "-WT").replace("=", "-UN").replace(".", "-")
-    file_name = nasdaq_symbol.replace("-", "_").replace("+", "-WS").replace("=", "-U").replace(".", "-").lower() + ".us.txt"
+    ticker = nasdaq_symbol.replace("-", "-P").replace("+", "-WT").replace("=", "-UN").replace("^", "-RI").replace(".", "-")
+    file_name = nasdaq_symbol.replace("-", "_").replace("+", "-WS").replace("=", "-U").replace("^", "-R").replace(".", "-").lower() + ".us.txt"
 
     print(f"Ticker: {ticker}, FileName: {file_name}")
     return ticker, file_name
@@ -123,6 +123,7 @@ def batch_update_insert(rows, batch_size=BATCH_SIZE):
         for r in batch:
             if r["ticker"] not in existing_tickers:
                 to_insert.append(r)
+                print(f"新增: {r['ticker']}")
 
         try:
             # 新規挿入
