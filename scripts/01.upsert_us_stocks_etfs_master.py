@@ -44,14 +44,14 @@ def download_text(url: str) -> str:
 # ------------------------
 def parse_nasdaq_file(text: str):
     lines = text.strip().split("\n")
-    headers = lines.pop(0).split("|")
+    headers = [h.strip() for h in lines.pop(0).split("|")]
 
     idx_symbol = headers.index("Symbol")
     idx_name = headers.index("Security Name")
 
     result = []
     for line in lines:
-        parts = line.split("|")
+        parts = [p.strip() for p in line.split("|")]
         if not parts[idx_symbol] or not parts[idx_name]:
             continue
 
@@ -76,7 +76,7 @@ def parse_nasdaq_file(text: str):
 # ------------------------
 def parse_other_file(text: str):
     lines = text.strip().split("\n")
-    headers = lines.pop(0).split("|")
+    headers = [h.strip() for h in lines.pop(0).split("|")]
 
     idx_act = headers.index("ACT Symbol")
     idx_name = headers.index("Security Name")
@@ -84,7 +84,7 @@ def parse_other_file(text: str):
 
     result = []
     for line in lines:
-        parts = line.split("|")
+        parts = [p.strip() for p in line.split("|")]
         if not parts[idx_nasdaq] or not parts[idx_name]:
             continue
 
