@@ -31,14 +31,50 @@ def normalize_ticker_for_yahoo(symbol: str) -> str:
         return YAHOO_EXCEPTIONS[symbol]
     return symbol.replace(".", "-")
 
-
+# ------------------------
+# ファイルダウンロードと解析
+# ------------------------
 def download_text(url: str) -> str:
     res = requests.get(url)
     res.raise_for_status()
     return res.text
 
+# ------------------------
+# ファイル解析 (NASDAQ Listed)
+# ------------------------
+def parse_nasdaq_file(text: str):
+    lines = text.strip().split("\n")
+    headers = lines.pop(0).split("|")
 
-def parse_file(text: str):
+    idx_symbol = headers.index("Symbol")
+    idx_name = headers.index("Security Name")
+
+    result = []
+    for line in lines:
+        parts = line.split("|")
+        if not parts[idx_symbol] or not parts[idx_name]:
+            continue
+
+        act_symbol_raw = parts[idx_symbol]
+        act_symbol = act_symbol_raw.replace(".", "-").replace("$", "_")  # ACT Symbol も正規化
+        ticker = normalize_ticker_for_yahoo(parts[idx_symbol])
+        result.append({
+            "ticker": ticker,
+            "ticker_before": parts[idx_symbol],
+            "exchange": "US",
+            "name": parts[idx_name],
+            "name_us": parts[idx_name],
+            "act_symbol": act_symbol,
+            "status": "active",
+            "currency": "USD",
+            "country": "USA"
+        })
+    return result
+
+# ------------------------
+# ファイル解析 (Other Listed)
+# ------------------------
+def parse_other_file(text: str):
     lines = text.strip().split("\n")
     headers = lines.pop(0).split("|")
 
@@ -157,8 +193,8 @@ def main():
     other_text = download_text(OTHER_URL)
 
     print("🔹 Step 2: 解析")
-    nasdaq_data = parse_file(nasdaq_text)
-    other_data = parse_file(other_text)
+    nasdaq_data = parse_nasdaq_file(nasdaq_text)
+    other_data = parse_other_file(other_text)
 
     all_data = {f"{r['ticker']}-US": r for r in (nasdaq_data + other_data)}
     rows = list(all_data.values())
