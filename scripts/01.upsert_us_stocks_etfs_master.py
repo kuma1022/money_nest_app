@@ -52,6 +52,10 @@ def parse_nasdaq_file(text: str):
     result = []
     for line in lines:
         parts = [p.strip() for p in line.split("|")]
+        # カラム数がヘッダー未満の場合はスキップ
+        if len(parts) <= max(idx_symbol, idx_name):
+            continue
+        # 必須カラムが空の場合はスキップ
         if not parts[idx_symbol] or not parts[idx_name]:
             continue
 
@@ -85,6 +89,11 @@ def parse_other_file(text: str):
     result = []
     for line in lines:
         parts = [p.strip() for p in line.split("|")]
+
+        # カラム数がヘッダー未満の場合はスキップ
+        if len(parts) <= max(idx_act, idx_name, idx_nasdaq):
+            continue
+        # 必須カラムが空の場合はスキップ
         if not parts[idx_nasdaq] or not parts[idx_name]:
             continue
 
