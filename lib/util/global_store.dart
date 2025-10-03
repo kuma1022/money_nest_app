@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +17,7 @@ class GlobalStore {
   Map<String, double> currentStockPrices = {}; // 股票价格
   DateTime? stockPricesLastUpdated;
   List<(DateTime, double)>? assetsTotalHistory; // 资产总值历史
+  List<(DateTime, double)>? costBasisHistory; // 成本基础历史
   DateTime? lastSyncTime; // 最近与服务器同步时间
 
   Future<void> loadFromPrefs() async {
@@ -33,6 +35,13 @@ class GlobalStore {
     );
     assetsTotalHistory =
         (jsonDecode(prefs.getString('assetsTotalHistory') ?? '[]') as List)
+            .map(
+              (e) =>
+                  (DateTime.parse(e['date']), (e['value'] as num).toDouble()),
+            )
+            .toList();
+    costBasisHistory =
+        (jsonDecode(prefs.getString('costBasisHistory') ?? '[]') as List)
             .map(
               (e) =>
                   (DateTime.parse(e['date']), (e['value'] as num).toDouble()),
@@ -107,15 +116,33 @@ class GlobalStore {
           ..where(db.tradeRecords.assetType.equals('stock'))
           ..orderBy([
             OrderingTerm.asc(db.tradeRecords.tradeDate),
-            OrderingTerm.asc(db.stocks.ticker),
+            OrderingTerm.asc(db.tradeRecords.id),
+          ]);
+    // 2. 查询所有卖出mapping记录
+    final sellMappingQuery =
+        db.select(db.tradeSellMappings).join([
+            leftOuterJoin(
+              db.tradeRecords,
+              db.tradeRecords.id.equalsExp(db.tradeSellMappings.buyId),
+            ),
+          ])
+          ..where(db.tradeRecords.userId.equals(userId))
+          ..where(db.tradeRecords.accountId.equals(accountId))
+          ..where(db.tradeRecords.assetType.equals('stock'))
+          ..orderBy([
+            OrderingTerm.asc(db.tradeSellMappings.sellId),
+            OrderingTerm.asc(db.tradeSellMappings.buyId),
           ]);
 
     final tradeRows = await tradeQuery.get();
+    final sellMappingRows = await sellMappingQuery.get();
 
     if (tradeRows.isEmpty) {
       // 如果没有交易记录，清空历史
       assetsTotalHistory = [];
+      costBasisHistory = [];
       prefs.setString('assetsTotalHistory', jsonEncode([]));
+      prefs.setString('costBasisHistory', jsonEncode([]));
       return;
     }
 
@@ -134,9 +161,20 @@ class GlobalStore {
     today = DateTime(today.year, today.month, today.day); // 只保留年月日
     // 清空历史，重新计算
     assetsTotalHistory = [];
+    costBasisHistory = [];
     while (currentDate.isBefore(today)) {
       double totalAsset = 0.0;
-      Map<int, dynamic> holdings = {}; // 股票ID -> {持仓数量, 货币}
+      double totalCostBasis = 0.0;
+      // 当前持仓，股票ID -> {股票信息, 交易信息List}
+      Map<int, Map<String, dynamic>> holdings = {};
+
+      // 汇总所有货币的总资产, 并进行货币转换
+      final String targetCurrency = selectedCurrencyCode ?? 'JPY';
+      final Map<String, double> rates = await currencyExchangeRate(
+        currentDate,
+        db,
+      );
+
       // 处理当天的交易
       for (var row in tradeRows) {
         final trade = row.readTable(db.tradeRecords);
@@ -147,25 +185,59 @@ class GlobalStore {
                 trade.tradeDate.day == currentDate.day)) {
           // 是当天的交易
           if (trade.action == 'buy') {
-            holdings[stock.id] = {
-              'quantity':
-                  (holdings[stock.id]?['quantity'] ?? 0) + trade.quantity,
-              'currency': stock.currency,
-            };
-          } else if (trade.action == 'sell') {
-            holdings[stock.id] = {
-              'quantity':
-                  (holdings[stock.id]?['quantity'] ?? 0) - trade.quantity,
-              'currency': stock.currency,
-            };
-            if (holdings[stock.id]!['quantity'] < 0) {
-              holdings[stock.id]!['quantity'] = 0; // 持仓不能为负
+            if (holdings[stock.id] == null) {
+              holdings[stock.id] = {
+                'stock': stock,
+                'trades': [trade],
+              };
+            } else {
+              (holdings[stock.id]?['trades'] as List).add(trade);
             }
+          } else if (trade.action == 'sell') {
+            sellMappingRows
+                .where(
+                  (mappingRow) =>
+                      mappingRow.readTable(db.tradeSellMappings).sellId ==
+                      trade.id,
+                )
+                .forEach((mappingRow) {
+                  final sellQuantity = mappingRow
+                      .readTable(db.tradeSellMappings)
+                      .quantity;
+                  final buyTrade = mappingRow.readTable(db.tradeRecords);
+                  if (holdings[stock.id] != null) {
+                    final tradesList = (holdings[stock.id]?['trades'] as List)
+                        .cast<TradeRecord>();
+                    final idx = tradesList.indexWhere(
+                      (t) => t.id == buyTrade.id,
+                    );
+
+                    if (idx != -1) {
+                      final existingBuyTrade = tradesList[idx];
+                      final updatedBuyTrade = existingBuyTrade.copyWith(
+                        quantity: existingBuyTrade.quantity - sellQuantity,
+                        feeAmount: Value(
+                          (existingBuyTrade.feeAmount ?? 0) *
+                              ((existingBuyTrade.quantity - sellQuantity) /
+                                  (existingBuyTrade.quantity)),
+                        ),
+                      );
+                      tradesList[idx] = updatedBuyTrade;
+                    } else {
+                      // 找不到对应的买入交易，可能数据有问题，忽略
+                      print(
+                        'Warning: Cannot find corresponding buy trade for sell trade id ${trade.id}',
+                      );
+                    }
+                  }
+                });
           }
         }
       }
       // 计算当天的总资产
       Map<String, double> dailyTotal = {};
+      // 计算当天的成本基础
+      Map<String, double> dailyCostBasis = {};
       for (var entry in holdings.entries) {
         final stockId = entry.key;
         // 从stock_prices中查找当前价格
@@ -175,35 +247,37 @@ class GlobalStore {
           ..orderBy([(tbl) => OrderingTerm.desc(tbl.priceAt)])
           ..limit(1);
         final currentPrice = await priceQuery.getSingleOrNull();
-        dailyTotal[holdings[stockId]!['currency']] =
-            (dailyTotal[holdings[stockId]!['currency']] ?? 0) +
-            (holdings[stockId]!['quantity'] * (currentPrice?.price ?? 0.0));
+        // 计算该股票的总价值
+        for (var trade in (holdings[stockId]!['trades'] as List)) {
+          dailyTotal[holdings[stockId]!['stock'].currency] =
+              (dailyTotal[holdings[stockId]!['stock'].currency] ?? 0) +
+              trade.quantity * (currentPrice?.price ?? 0.0);
+          dailyCostBasis[holdings[stockId]!['stock'].currency] =
+              (dailyCostBasis[holdings[stockId]!['stock'].currency] ?? 0) +
+              (trade.quantity * trade.price) +
+              (trade.feeAmount ?? 0) *
+                  (rates[trade.feeCurrency! +
+                          holdings[stockId]!['stock'].currency] ??
+                      1.0);
+        }
       }
-      // 汇总所有货币的总资产, 并进行货币转换
-      final String targetCurrency = selectedCurrencyCode ?? 'JPY';
-      final fxRateQuery = db.fxRates.select()
-        ..where((tbl) => tbl.fxPairId.equals(1))
-        ..where((tbl) => tbl.rateDate.isSmallerOrEqualValue(currentDate))
-        ..orderBy([(tbl) => OrderingTerm.desc(tbl.rateDate)])
-        ..limit(1);
-      final fxRate = await fxRateQuery.getSingleOrNull();
-      final Map<String, double> rates = {}; // 货币对汇率，如
-      rates['USDJPY'] = fxRate?.rate ?? 150.0;
-      rates['JPYUSD'] = 1 / rates['USDJPY']!;
       // 计算总资产
       dailyTotal.forEach((currency, amount) {
-        if (currency == targetCurrency) {
-          // 目标货币，直接加
-          totalAsset += amount;
-        } else {
-          // 其他货币，转换后加
-          String pair = currency + targetCurrency;
-          totalAsset += amount * (rates[pair] ?? 1.0);
-        }
+        // 转换为目标货币
+        String pair = currency + targetCurrency;
+        totalAsset += amount * (rates[pair] ?? 1.0);
+      });
+      // 计算总成本基础
+      dailyCostBasis.forEach((currency, amount) {
+        // 转换为目标货币
+        String pair = currency + targetCurrency;
+        totalCostBasis += amount * (rates[pair] ?? 1.0);
       });
       // 保存当天的总资产到历史
       assetsTotalHistory ??= [];
+      costBasisHistory ??= [];
       assetsTotalHistory!.add((currentDate, totalAsset));
+      costBasisHistory!.add((currentDate, totalCostBasis));
       // 日期加1天
       currentDate = currentDate.add(const Duration(days: 1));
     }
@@ -215,5 +289,32 @@ class GlobalStore {
             .toList(),
       ),
     );
+    prefs.setString(
+      'costBasisHistory',
+      jsonEncode(
+        costBasisHistory!
+            .map((e) => {'date': e.$1.toIso8601String(), 'value': e.$2})
+            .toList(),
+      ),
+    );
+  }
+
+  Future<Map<String, double>> currencyExchangeRate(
+    DateTime baseDate,
+    AppDatabase db,
+  ) async {
+    // 汇总所有货币的总资产, 并进行货币转换
+    final fxRateQuery = db.fxRates.select()
+      ..where((tbl) => tbl.fxPairId.equals(1))
+      ..where((tbl) => tbl.rateDate.isSmallerOrEqualValue(baseDate))
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.rateDate)])
+      ..limit(1);
+
+    final fxRate = await fxRateQuery.getSingleOrNull();
+    final Map<String, double> rates = {}; // 货币对汇率，如
+    rates['USDJPY'] = fxRate?.rate ?? 150.0;
+    rates['JPYUSD'] = 1 / rates['USDJPY']!;
+
+    return rates;
   }
 }

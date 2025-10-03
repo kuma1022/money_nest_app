@@ -439,20 +439,26 @@ class _TradeRecordCard extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      Text(
-                        record.name,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
+                      Expanded(
+                        child: Text(
+                          record.name,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       Text(
                         record.detail,
                         style: const TextStyle(
                           fontSize: 13,
                           color: Colors.grey,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ],
                   ),

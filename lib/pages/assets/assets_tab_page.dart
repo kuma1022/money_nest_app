@@ -31,6 +31,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   num totalAssets = 0;
   num totalCosts = 0;
   List<(DateTime, double)> priceHistory = [];
+  List<(DateTime, double)> costBasisHistory = [];
 
   @override
   void initState() {
@@ -43,24 +44,46 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   // 刷新总资产和总成本
   Future<void> refreshTotalAssetsAndCosts() async {
     final totalMap = AppUtils().getTotalAssetsAndCostsValue();
-    priceHistory = await _loadPriceHistory();
+    priceHistory = GlobalStore().assetsTotalHistory ?? [];
+    costBasisHistory = GlobalStore().costBasisHistory ?? [];
     setState(() {
       totalAssets = totalMap['totalAssets'];
       totalCosts = totalMap['totalCosts'];
     });
   }
 
-  Future<List<(DateTime, double)>> _loadPriceHistory() async {
-    //final dataStr = await rootBundle.loadString(
-    //  'assets/data/btc_last_year_price.json',
-    //);
-    //final json = jsonDecode(dataStr) as Map<String, dynamic>;
-    //return (json['prices'] as List).map<(DateTime, double)>((item) {
-    //  final timestamp = item[0] as int;
-    //  final price = item[1] as double;
-    //  return (DateTime.fromMillisecondsSinceEpoch(timestamp), price);
-    //}).toList();
-    return GlobalStore().assetsTotalHistory!;
+  List<Map<String, dynamic>> groupConsecutive(
+    List<(DateTime, double)> items,
+    List<(DateTime, double)> compareItems,
+  ) {
+    if (items.isEmpty) return [];
+    List<(DateTime, double)> currentGroup = [items.first];
+    bool currentFlag = items.first.$2 > compareItems.first.$2;
+    List<Map<String, dynamic>> datas = [];
+
+    for (int i = 1; i < items.length; i++) {
+      final nextFlag = items[i].$2 > compareItems[i].$2;
+      if (nextFlag != currentFlag) {
+        // 标志变化，结束当前组，开始新组
+        datas.add({
+          'label': '資産総額',
+          'color': currentFlag ? AppColors.appUpGreen : AppColors.appDownRed,
+          'dataList': List.from(currentGroup),
+        });
+        currentGroup = [items[i]];
+        currentFlag = nextFlag;
+      } else {
+        currentGroup.add(items[i]);
+      }
+    }
+    // 添加最后一组
+    datas.add({
+      'label': '資産総額',
+      'color': currentFlag ? AppColors.appUpGreen : AppColors.appDownRed,
+      'dataList': List.from(currentGroup),
+    });
+
+    return datas;
   }
 
   @override
@@ -813,6 +836,38 @@ class AssetsTabPageState extends State<AssetsTabPage> {
 
   // 资产推移图表卡片
   Widget buildTransitionAssetWidget() {
+    final List<Map<String, dynamic>> datas = [];
+    if (priceHistory.isNotEmpty && costBasisHistory.isNotEmpty) {
+      /*final List<Map<String, dynamic>> grouped = groupConsecutive(
+        priceHistory,
+        costBasisHistory,
+      );
+
+      for (var group in grouped) {
+        datas.add({
+          'label': group['label'],
+          'color': group['color'],
+          'dataList': (group['dataList'] as List).cast<(DateTime, double)>(),
+        });
+      }
+      */
+      datas.add({
+        'label': '評価総額',
+        'lineColor': AppColors.appChartBlue,
+        'tooltipText1Color': AppColors.appChartLightBlue,
+        'tooltipText2Color': AppColors.appChartLightBlue,
+        'dataList': priceHistory,
+      });
+
+      datas.add({
+        'label': '取得総額',
+        'lineColor': AppColors.appGrey,
+        'tooltipText1Color': AppColors.appLightGrey,
+        'tooltipText2Color': AppColors.appLightGrey,
+        'dataList': costBasisHistory,
+      });
+    }
+
     return Column(
       children: [
         Row(
@@ -874,8 +929,11 @@ class AssetsTabPageState extends State<AssetsTabPage> {
           ],
         ),
         const SizedBox(height: 12),
-        if (priceHistory.isNotEmpty)
-          LineChartSample12(priceHistory: priceHistory),
+        if (datas.isNotEmpty)
+          _TransitionAssetChart(
+            datas: datas,
+            currencyCode: GlobalStore().selectedCurrencyCode ?? 'JPY',
+          ),
       ],
     );
   }
@@ -1183,6 +1241,56 @@ class _OtherAssetItem extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TransitionAssetChart extends StatefulWidget {
+  final List<Map<String, dynamic>> datas;
+  final String currencyCode;
+  const _TransitionAssetChart({
+    required this.datas,
+    required this.currencyCode,
+  });
+
+  @override
+  State<_TransitionAssetChart> createState() => _TransitionAssetChartState();
+}
+
+class _TransitionAssetChartState extends State<_TransitionAssetChart>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        // 这里直接传完整 dataList
+        return LineChartSample12(
+          datas: widget.datas,
+          currencyCode: widget.currencyCode,
+          animationValue: _animation.value, // 0.0~1.0
+        );
+      },
     );
   }
 }
