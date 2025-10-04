@@ -122,6 +122,19 @@ Deno.serve(async (req)=>{
     if (subPath === 'assets/chart' && method === 'GET') {
       return handleGetAssetChart(userId, url.searchParams);
     }
+    // ------------------- 用户摘要 -------------------
+    if (subPath === 'summary' && method === 'GET') {
+      return handleGetUserSummary(userId);
+    }
+    // ------------------- 用户历史记录 -------------------
+    if (subPath === 'history' && method === 'GET') {
+      const start = url.searchParams.get('start');
+      const end = url.searchParams.get('end');
+      if (!start || !end) {
+        return new Response(JSON.stringify({ error: 'Missing start or end param' }), { status: 400 });
+      }
+      return handleGetUserHistory(userId, start, end);
+    }
     return new Response(JSON.stringify({
       error: 'Not Found'
     }), {
@@ -887,6 +900,143 @@ async function handleGetAssetChart(userId, searchParams) {
   return new Response(JSON.stringify({
     success: true,
     chart: data
+  }), {
+    status: 200
+  });
+}
+
+// ------------------- 用户摘要 -------------------
+// 只查DB，返回账户、持仓、最近一个月的fx_rates和stock_prices
+async function handleGetUserSummary(userId: string) {
+  const t0 = Date.now();
+  // 1. 查账户基本信息
+  const { data: accountData } = await supabase.rpc('get_user_account_info', { p_user_id: userId });
+  const t_db2 = Date.now();
+  console.log(`[PERF] get_user_account_info: ${t_db2 - t0} ms`);
+  // 2. 查最近一个月的 stock_prices
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+  const startDate = oneMonthAgo.toISOString().slice(0, 10);
+  const { data: stockPrices } = await supabase.rpc('get_user_stock_prices', {
+    p_user_id: userId,
+    p_start_date: startDate
+  });
+  const t_db3 = Date.now();
+  console.log(`[PERF] get_user_stock_prices: ${t_db3 - t_db2} ms`);
+  // 3. 查最近一个月的 fx_rates
+  const { data: fxRates } = await supabase.rpc('get_user_fx_rates', {
+    p_user_id: userId,
+    p_start_date: startDate
+  });
+  const t_db4 = Date.now();
+  console.log(`[PERF] get_user_fx_rates: ${t_db4 - t_db3} ms`);
+
+  // 4. 组装账户信息
+  const accountsMap = {};
+  accountData.forEach((row)=>{
+    const accId = row.account_id;
+    if (!accountsMap[accId]) {
+      accountsMap[accId] = {
+        account_id: accId,
+        account_name: row.account_name,
+        type: row.type || '',
+        trade_records: [],
+        stocks: [],
+        trade_sell_mapping: [],
+        fx_rates: []
+      };
+    }
+    const acc = accountsMap[accId];
+    // 添加交易记录，去重
+    if (!acc.trade_record_ids) acc.trade_record_ids = new Set();
+    if (row.trade_id && !acc.trade_record_ids.has(row.trade_id)) {
+      acc.trade_record_ids.add(row.trade_id);
+      acc.trade_records.push(row.trade);
+    }
+    // 添加 trade_sell_mapping，去重
+    if (!acc.trade_sell_mapping_ids) acc.trade_sell_mapping_ids = new Set();
+    if (row.trade_sell_mapping_id && !acc.trade_sell_mapping_ids.has(row.trade_sell_mapping_id)) {
+      acc.trade_sell_mapping_ids.add(row.trade_sell_mapping_id);
+      acc.trade_sell_mapping.push(row.trade_sell_mapping);
+    }
+    // 添加股票，去重
+    if (!acc.stock_ids) acc.stock_ids = new Set();
+    if (row.stock_id && !acc.stock_ids.has(row.stock_id)) {
+      acc.stock_ids.add(row.stock_id);
+      // 初始化 stock 时附带空的 stock_prices
+      acc.stocks.push({
+        ...row.stock,
+        stock_prices: []
+      });
+    }
+  });
+
+  // 分配 fx_rates
+  if (fxRates) {
+    fxRates.forEach((fr)=>{
+      const acc = accountsMap[fr.account_id];
+      if (acc) {
+        if (!acc.fx_rate_ids) acc.fx_rate_ids = new Set();
+        if (!acc.fx_rate_ids.has(fr.fx_rate_id)) {
+          acc.fx_rate_ids.add(fr.fx_rate_id);
+          acc.fx_rates.push(fr.fx_rate);
+        }
+      }
+    });
+  }
+
+  // 分配 stock_prices
+  if (stockPrices) {
+    stockPrices.forEach((sp)=>{
+      for (const acc of Object.values(accountsMap)){
+        const stock = acc.stocks.find((s)=>s.id === sp.stock_id);
+        if (stock) {
+          if (!stock._stock_price_ids) stock._stock_price_ids = new Set();
+          const key = `${sp.stock_price.price_at}_${sp.stock_price.price}`;
+          if (!stock._stock_price_ids.has(key)) {
+            stock._stock_price_ids.add(key);
+            stock.stock_prices.push({
+              price: sp.stock_price.price,
+              price_at: sp.stock_price.price_at
+            });
+          }
+        }
+      }
+    });
+  }
+
+  // 去除临时Set字段
+  const result = Object.values(accountsMap).map((acc)=>{
+    const { trade_record_ids, trade_sell_mapping_ids, stock_ids, fx_rate_ids, ...rest } = acc;
+    return rest;
+  });
+
+  const t1 = Date.now();
+  console.log(`[PERF] handleGetUserSummary: ${t1 - t0} ms`);
+  return new Response(JSON.stringify({
+    success: true,
+    user_id: userId,
+    account_info: result
+  }), {
+    status: 200
+  });
+}
+
+// ------------------- 用户历史记录 -------------------
+async function handleGetUserHistory(userId, start, end) {
+  const { data, error } = await supabase.rpc('get_user_history', {
+    p_user_id: userId,
+    p_start_date: start,
+    p_end_date: end
+  });
+  if (error) return new Response(JSON.stringify({
+    error: error.message
+  }), {
+    status: 500
+  });
+  return new Response(JSON.stringify({
+    success: true,
+    history: data
   }), {
     status: 200
   });

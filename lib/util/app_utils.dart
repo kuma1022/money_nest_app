@@ -473,7 +473,7 @@ class AppUtils {
     AppDatabase db,
   ) async {
     final t0 = DateTime.now();
-    final url = Uri.parse('${AppUtils().supabaseApiUrl}/users/$userId/latest');
+    final url = Uri.parse('${AppUtils().supabaseApiUrl}/users/$userId/summary');
     final response = await http.get(
       url,
       headers: {'Authorization': 'Bearer ${AppUtils().supabaseApiKey}'},
