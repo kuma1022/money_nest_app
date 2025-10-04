@@ -472,10 +472,15 @@ class AppUtils {
     int accountId,
     AppDatabase db,
   ) async {
+    final t0 = DateTime.now();
     final url = Uri.parse('${AppUtils().supabaseApiUrl}/users/$userId/latest');
     final response = await http.get(
       url,
       headers: {'Authorization': 'Bearer ${AppUtils().supabaseApiKey}'},
+    );
+    final t1 = DateTime.now();
+    print(
+      'Fetch data from supabase time: ${t1.difference(t0).inMilliseconds} ms',
     );
 
     List<Stock> result = [];
@@ -536,6 +541,11 @@ class AppUtils {
               batch.insertAll(db.stocks, stockRecordsInsert);
             });
 
+            final t2 = DateTime.now();
+            print(
+              'Sync stocks and stock prices time: ${t2.difference(t1).inMilliseconds} ms',
+            );
+
             // 2. 同步股票交易信息
             final tradeRecords = accountInfo['trade_records'] as List;
             final List<TradeRecordsCompanion> tradeRecordsInsert = [];
@@ -593,6 +603,11 @@ class AppUtils {
               batch.insertAll(db.tradeRecords, tradeRecordsInsert);
             });
 
+            final t3 = DateTime.now();
+            print(
+              'Sync trade records time: ${t3.difference(t2).inMilliseconds} ms',
+            );
+
             // 3. 同步卖出映射关系
             final sellMappings = accountInfo['trade_sell_mapping'] as List;
             final List<TradeSellMappingsCompanion> sellMappingsInsert = [];
@@ -613,6 +628,11 @@ class AppUtils {
             await db.batch((batch) {
               batch.insertAll(db.tradeSellMappings, sellMappingsInsert);
             });
+
+            final t4 = DateTime.now();
+            print(
+              'Sync sell mappings time: ${t4.difference(t3).inMilliseconds} ms',
+            );
 
             // 4. 同步历史汇率
             final fxRates = accountInfo['fx_rates'] as List;
@@ -636,6 +656,9 @@ class AppUtils {
             await db.batch((batch) {
               batch.insertAll(db.fxRates, fxRatesInsert);
             });
+
+            final t5 = DateTime.now();
+            print('Sync fx rates time: ${t5.difference(t4).inMilliseconds} ms');
           }
         }
       }
