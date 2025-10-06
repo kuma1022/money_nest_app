@@ -5,6 +5,8 @@ const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("
     persistSession: false
   }
 });
+import { gzip } from "https://deno.land/x/compress@v0.4.5/mod.ts";
+
 console.info('Edge Function initialized');
 Deno.serve(async (req)=>{
   try {
@@ -1013,13 +1015,19 @@ async function handleGetUserSummary(userId: string) {
 
   const t1 = Date.now();
   console.log(`[PERF] handleGetUserSummary: ${t1 - t0} ms`);
-  return new Response(JSON.stringify({
+  const json = JSON.stringify({
     success: true,
     user_id: userId,
     account_info: result
-  }), {
-    status: 200
   });
+  const gzipped = gzip(new TextEncoder().encode(json));
+  return new Response(gzipped, {
+  status: 200,
+  headers: {
+    "Content-Type": "application/json",
+    "Content-Encoding": "gzip"
+  }
+});
 }
 
 // ------------------- 用户历史记录 -------------------

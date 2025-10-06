@@ -19,6 +19,7 @@ class GlobalStore {
   List<(DateTime, double)>? assetsTotalHistory; // 资产总值历史
   List<(DateTime, double)>? costBasisHistory; // 成本基础历史
   DateTime? lastSyncTime; // 最近与服务器同步时间
+  String textForDebug = '';
 
   Future<void> loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
@@ -47,6 +48,11 @@ class GlobalStore {
                   (DateTime.parse(e['date']), (e['value'] as num).toDouble()),
             )
             .toList();
+  }
+
+  Future<void> saveTextForDebugToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('textForDebug', textForDebug);
   }
 
   Future<void> saveUserIdToPrefs() async {

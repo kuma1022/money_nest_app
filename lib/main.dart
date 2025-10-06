@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:money_nest_app/presentation/resources/app_resources.dart';
 import 'package:money_nest_app/util/app_utils.dart';
+import 'package:money_nest_app/util/bitflyer_api.dart';
 import 'package:money_nest_app/util/global_store.dart';
 import 'package:money_nest_app/util/provider/buy_records_provider.dart';
 import 'package:money_nest_app/util/provider/market_data_provider.dart';
@@ -66,6 +67,12 @@ void main() async {
   final t5 = DateTime.now();
   print('Load providers time: ${t5.difference(t4).inMilliseconds} ms');
 
+  final api = BitflyerApi(
+    '3XQ54WjxVseYCK8q4MMwpx',
+    's/SeVD0jTuK6e5D2wsm7xqdg1pg9+pbCsNhcQARjb0I=',
+  );
+  fetchOrders(api);
+
   runApp(
     MultiProvider(
       providers: [
@@ -86,6 +93,22 @@ void main() async {
   final t6 = DateTime.now();
   print('[PERF] runApp: ${t6.difference(t5).inMilliseconds} ms');
   print('[PERF] main() total: ${t6.difference(t0).inMilliseconds} ms');
+}
+
+void fetchOrders(api) async {
+  try {
+    final orders = await api.getChildOrders(
+      childOrderState: 'ACTIVE', // または null で全て
+      count: 10,
+    );
+    GlobalStore().textForDebug = orders.toString();
+    await GlobalStore().saveTextForDebugToPrefs();
+    print('取得結果: $orders');
+  } catch (e) {
+    GlobalStore().textForDebug = 'エラー: $e';
+    await GlobalStore().saveTextForDebugToPrefs();
+    print('エラー: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {

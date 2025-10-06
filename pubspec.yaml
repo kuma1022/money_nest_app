@@ -52,6 +52,7 @@ dependencies:
   dropdown_button2: ^2.3.9
   collection: ^1.19.1
   shared_preferences: ^2.5.3
+  crypto: ^3.0.0
 
 dependency_overrides:
   vector_math: 2.2.0
