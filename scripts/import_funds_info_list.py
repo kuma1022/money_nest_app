@@ -50,9 +50,11 @@ def fetch_fund_info(name: str):
         "&draw=4"
         "&searchBtnClickFlg=true"
     )
+    print(f"[INFO] Fetching fund info for: {name}")
     resp = requests.post(API_URL, headers=API_HEADERS, data=data_raw.encode("utf-8"))
     resp.raise_for_status()
     data = resp.json()
+    print(f"[DEBUG] API response: {data}")
 
     if not data.get("resultInfoMapList"):
         return {}
