@@ -118,40 +118,43 @@ def parse_excel():
 def sync_to_supabase(df: pd.DataFrame, batch_size: int = 500, lookup_size: int = 100):
     print("[INFO] Syncing to Supabase in batches...")
 
-    # DataFrame を dict のリストに変換（foundation_date は ISO 文字列に変換）
-    records = []
-    # コードごとにまとめて既存データを取得
+    # 1️⃣ 先批量获取数据库中已有的 isin_cd
     codes = df["code"].tolist()
     existing_map = {}
 
     for i in range(0, len(codes), lookup_size):
         chunk = codes[i:i + lookup_size]
         res = supabase.table("funds").select("code,isin_cd").in_("code", chunk).execute()
-        for row in res.data or []:
-            existing_map[row["code"]] = {
-                "isin_cd": row.get("isin_cd"),
-            }
-        time.sleep(0.2)  # 200ms 待つ
+        if res.data:
+            for row in res.data:
+                existing_map[row["code"]] = {"isin_cd": row.get("isin_cd")}
+        time.sleep(0.1)  # 避免短时间大量请求
 
-    # データ作成
+    # 2️⃣ 构建待 upsert 的 records
+    records = []
     for _, row in df.iterrows():
+        code = row["code"]
+        existing = existing_map.get(code)
+        # 数据库已有值
+        isin_cd = existing.get("isin_cd") if existing else None
+
+        # 只有数据库中缺失才调用 API
+        if not isin_cd:
+            api_data = fetch_fund_info(row["name"])
+            if api_data.get("isin_cd"):  # 仅在有值时更新
+                isin_cd = api_data["isin_cd"]
+
         record = {
-            "code": row["code"],
+            "code": code,
             "name": row["name"],
             "management_company": row["management_company"],
             "foundation_date": row["foundation_date"].isoformat() if pd.notnull(row["foundation_date"]) else None,
             "tsumitate_flag": row["tsumitate_flag"],
+            "isin_cd": isin_cd,
         }
-
-        existing = existing_map.get(row["code"])
-        if not existing or not existing.get("isin_cd"):
-            # API呼び出しして不足分を取得
-            api_data = fetch_fund_info(row["name"])
-            record.update(api_data)
-
         records.append(record)
 
-    # Supabaseへアップサート
+    # 3️⃣ 批量 upsert
     for i in range(0, len(records), batch_size):
         batch = records[i:i + batch_size]
         try:
@@ -159,6 +162,10 @@ def sync_to_supabase(df: pd.DataFrame, batch_size: int = 500, lookup_size: int =
             print(f"[OK] Upserted batch {i+1} to {i+len(batch)}")
         except Exception as e:
             print(f"[ERROR] Failed for batch {i+1} to {i+len(batch)}: {e}")
+
+    # 4️⃣ 打印统计信息
+    null_count = sum(1 for r in records if not r.get("isin_cd"))
+    print(f"[INFO] Total records with empty isin_cd after sync: {null_count}")
 
 
 # ---------------------------
