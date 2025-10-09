@@ -45,7 +45,16 @@ def upload_files_batch(file_list):
         storage_path = f"{STORAGE_PATH}{filename}"
         for attempt in range(1, 4):  # 最多重试3次
             try:
-                supabase.storage.from_(BUCKET_NAME).upload(
+                bucket = supabase.storage.from_(BUCKET_NAME)
+                # 先删除旧文件（如果存在）
+                try:
+                    bucket.remove([storage_path])
+                except Exception as e:
+                    # 删除失败（文件不存在等情况）忽略
+                    pass
+
+                # 再上传
+                bucket.upload(
                     path=storage_path,
                     file=filepath,
                 )
