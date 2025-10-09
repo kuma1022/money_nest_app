@@ -54,10 +54,9 @@ def fetch_fund_info(name: str):
     print(f"[DEBUG] Payload: {payload}")
 
     resp = requests.post(API_URL, headers=API_HEADERS, data=payload)
-    print(f"[DEBUG] Response: {resp}")
-
     resp.raise_for_status()
     data = resp.json()
+    print(f"[DEBUG] Response: {data}")
 
     if not data.get("resultInfoMapList"):
         return {}
@@ -113,7 +112,7 @@ def parse_excel():
 
     # 为了测试，只处理前 10 行
     df = df.head(10)
-    
+
 
     print(f"[INFO] Parsed {len(df)} rows")
     return df
