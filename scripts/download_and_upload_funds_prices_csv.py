@@ -1,5 +1,6 @@
 import os
 import time
+import sys
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from supabase import create_client, Client
@@ -125,6 +126,8 @@ def main():
             future.result()
 
     print("[INFO] All files downloaded and uploaded successfully.")
+    sys.exit(0)  # 强制退出
+
 
 if __name__ == "__main__":
     main()
