@@ -61,16 +61,18 @@ def get_all_funds(batch_size=500):
         res = (
             supabase.table("funds")
             .select("code,isin_cd")
-            .filter("isin_cd", "neq", "")     # 排除空字符串
-            .filter("isin_cd", "not.is", None)  # 排除 NULL
             .range(offset, offset + batch_size - 1)
             .execute()
         )
         data = res.data or []
         if not data:
             break
+
+        # Python 层过滤
+        data = [row for row in data if row.get("isin_cd")]
         all_funds.extend(data)
         offset += batch_size
+
     print(f"[INFO] Total funds retrieved: {len(all_funds)}")
     return all_funds
 
