@@ -50,14 +50,9 @@ def fetch_fund_info(name: str):
         "&draw=4"
         "&searchBtnClickFlg=true"
     )
-
-    print(f"[INFO] Fetching fund info for: {name}")
-    print(f"[DEBUG] Payload: {data_raw}")
-
     resp = requests.post(API_URL, headers=API_HEADERS, data=data_raw.encode("utf-8"))
     resp.raise_for_status()
     data = resp.json()
-    print(f"[DEBUG] Response: {data}")
 
     if not data.get("resultInfoMapList"):
         return {}
@@ -110,11 +105,6 @@ def parse_excel():
             return None  # 空欄や不明な場合
 
     df["tsumitate_flag"] = df["tsumitate_flag"].apply(to_bool)
-
-    # 为了测试，只处理前 10 行
-    df = df.head(10)
-
-
     print(f"[INFO] Parsed {len(df)} rows")
     return df
 
