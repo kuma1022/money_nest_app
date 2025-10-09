@@ -46,7 +46,6 @@ def upload_files_batch(file_list):
             supabase.storage.from_(BUCKET_NAME).upload(
                 path=storage_path,
                 file=filepath,
-                options={"upsert": True},  # 覆盖同名文件
             )
         except Exception as e:
             print(f"[ERROR] Failed to upload {filename}: {e}")
