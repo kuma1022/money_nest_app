@@ -16,41 +16,48 @@ BUCKET_NAME = "money_grow_app"
 STORAGE_PATH = "funds_history_prices/"
 
 # ---------------------------
-# 下载并上传单个基金 CSV 文件
+# 下载单个基金 CSV 文件
 # ---------------------------
-def download_and_upload_one(fund):
+def download_fund_csv(fund):
     isin_cd = fund["isin_cd"]
     code = fund["code"]
     filename = f"{code}_{isin_cd}.csv"
-    filepath = os.path.join("/tmp", filename)
     url = f"https://toushin-lib.fwg.ne.jp/FdsWeb/FDST030000/csv-file-download?isinCd={isin_cd}&associFundCd={code}"
 
-    # 下载 CSV
     try:
         resp = requests.get(url)
         resp.raise_for_status()
-        with open(filepath, "wb") as f:
+        with open(filename, "wb") as f:
             f.write(resp.content)
+        return filename
     except Exception as e:
         print(f"[ERROR] Failed to download {filename}: {e}")
-        return False
+        return None
 
-    # 上传 CSV，最多重试3次
-    storage_path = f"{STORAGE_PATH}{filename}"
-    for attempt in range(1, 4):
-        try:
-            supabase.storage.from_(BUCKET_NAME).upload(
-                path=storage_path,
-                file=filepath,
-            )
-            return True  # 成功
-        except Exception as e:
-            print(f"[WARN] Attempt {attempt} failed for {filename}: {e}")
-            if attempt < 3:
-                time.sleep(2 * attempt)
-            else:
-                print(f"[ERROR] Failed to upload {filename} after 3 attempts")
-                return False
+# ---------------------------
+# 分批上传 CSV 文件
+# ---------------------------
+def upload_files_batch(file_list):
+    for filepath in file_list:
+        if not filepath:
+            continue
+        filename = os.path.basename(filepath)
+        storage_path = f"{STORAGE_PATH}{filename}"
+        for attempt in range(1, 4):  # 最多重试3次
+            try:
+                supabase.storage.from_(BUCKET_NAME).upload(
+                    path=storage_path,
+                    file=filepath,
+                )
+                break  # 成功就跳出重试循环
+            except Exception as e:
+                print(f"[ERROR] Failed to upload {filename}: {e}")
+                if attempt < 3:
+                    wait_time = 1 * attempt  # 指数退避，例如 1s, 2s
+                    print(f"[INFO] Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"[ERROR] Failed to upload {filename} after 3 attempts")
 
 # ---------------------------
 # 分页获取所有 funds 数据
@@ -68,6 +75,7 @@ def get_all_funds(batch_size=500):
         data = res.data or []
         if not data:
             break
+
         # Python 层过滤
         data = [row for row in data if row.get("isin_cd")]
         all_funds.extend(data)
@@ -87,16 +95,27 @@ def main():
 
     print(f"[INFO] Total funds to process: {len(funds)}")
 
-    # 并行下载+上传
+    # 1️⃣ 并行下载 CSV 文件，带进度条
+    downloaded_files = []
     max_workers = 10
-    success_count = 0
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {executor.submit(download_and_upload_one, fund): fund for fund in funds}
-        for future in tqdm(as_completed(futures), total=len(funds), desc="Processing funds"):
-            if future.result():
-                success_count += 1
+        futures = {executor.submit(download_fund_csv, fund): fund for fund in funds}
+        for future in tqdm(as_completed(futures), total=len(funds), desc="Downloading CSVs"):
+            file = future.result()
+            if file:
+                downloaded_files.append(file)
 
-    print(f"[INFO] Completed. Successfully processed {success_count}/{len(funds)} funds.")
+    print(f"[INFO] Total downloaded files: {len(downloaded_files)}")
+
+    # 2️⃣ 分批上传，每批 20 个文件，上传也可并行，带进度条
+    batch_size = 20
+    batches = [downloaded_files[i:i + batch_size] for i in range(0, len(downloaded_files), batch_size)]
+    with ThreadPoolExecutor(max_workers=5) as upload_executor:
+        upload_futures = {upload_executor.submit(upload_files_batch, batch): batch for batch in batches}
+        for future in tqdm(as_completed(upload_futures), total=len(batches), desc="Uploading batches"):
+            future.result()
+
+    print("[INFO] All files downloaded and uploaded successfully.")
 
 if __name__ == "__main__":
     main()
