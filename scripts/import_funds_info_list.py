@@ -1,5 +1,6 @@
 import os
 import requests
+import urllib.parse
 import pandas as pd
 from supabase import create_client, Client
 
@@ -16,6 +17,50 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 EXCEL_URL = "https://www.toushin.or.jp/files/static/486/unlisted_fund_for_investor.xlsx"
 LOCAL_FILE = "/tmp/unlisted_fund_for_investor.xlsx"
 
+# ---------------------------
+# API 情報（投資信託情報検索用）
+# ---------------------------
+API_URL = "https://toushin-lib.fwg.ne.jp/FdsWeb/FDST999900/fundDataSearch"
+API_HEADERS = {
+    "Accept": "application/json, text/javascript, */*; q=0.01",
+    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+}
+
+# ---------------------------
+# 投資信託情報を API から取得
+# ---------------------------
+def fetch_fund_info(name: str):
+    """APIからisin_cd, associ_fund_cdを取得"""
+    payload = {
+        "s_keyword": urllib.parse.quote(name),
+        "s_kensakuKbn": "1",
+        "s_supplementKindCd": "1",
+        "f_etfKBun": "1",
+        "s_standardPriceCond1": "0",
+        "s_standardPriceCond2": "0",
+        "s_riskCond1": "0",
+        "s_riskCond2": "0",
+        "s_sharpCond1": "0",
+        "s_sharpCond2": "0",
+        "s_buyFee": "1",
+        "s_trustReward": "1",
+        "s_monthlyCancelCreateVal": "1",
+        "startNo": "0",
+        "draw": "4",
+        "searchBtnClickFlg": "true",
+    }
+
+    resp = requests.post(API_URL, headers=API_HEADERS, data=payload)
+    resp.raise_for_status()
+    data = resp.json()
+
+    if not data.get("resultInfoMapList"):
+        return {}
+
+    info = data["resultInfoMapList"][0]
+    return {
+        "isin_cd": info.get("isinCd"),
+    }
 
 def download_excel():
     print("[INFO] Downloading Excel file...")
@@ -68,11 +113,24 @@ def parse_excel():
 # ---------------------------
 # Supabase へ UPSERT（バッチ対応）
 # ---------------------------
-def sync_to_supabase(df: pd.DataFrame, batch_size: int = 500):
+def sync_to_supabase(df: pd.DataFrame, batch_size: int = 500, lookup_size: int = 100):
     print("[INFO] Syncing to Supabase in batches...")
 
     # DataFrame を dict のリストに変換（foundation_date は ISO 文字列に変換）
     records = []
+    # コードごとにまとめて既存データを取得
+    codes = df["code"].tolist()
+    existing_map = {}
+
+    for i in range(0, len(codes), lookup_size):
+        chunk = codes[i:i + lookup_size]
+        res = supabase.table("funds").select("code,isin_cd").in_("code", chunk).execute()
+        for row in res.data or []:
+            existing_map[row["code"]] = {
+                "isin_cd": row.get("isin_cd"),
+            }
+
+    # データ作成
     for _, row in df.iterrows():
         record = {
             "code": row["code"],
@@ -81,16 +139,23 @@ def sync_to_supabase(df: pd.DataFrame, batch_size: int = 500):
             "foundation_date": row["foundation_date"].isoformat() if pd.notnull(row["foundation_date"]) else None,
             "tsumitate_flag": row["tsumitate_flag"],
         }
+
+        existing = existing_map.get(row["code"])
+        if not existing or not existing.get("isin_cd"):
+            # API呼び出しして不足分を取得
+            api_data = fetch_fund_info(row["name"])
+            record.update(api_data)
+
         records.append(record)
 
-    # batch_size ごとに分割して UPSERT
+    # Supabaseへアップサート
     for i in range(0, len(records), batch_size):
-        batch = records[i : i + batch_size]
+        batch = records[i:i + batch_size]
         try:
             supabase.table("funds").upsert(batch, on_conflict=["code"]).execute()
-            print(f"[OK] Upserted batch {i + 1} to {i + len(batch)}")
+            print(f"[OK] Upserted batch {i+1} to {i+len(batch)}")
         except Exception as e:
-            print(f"[ERROR] Failed for batch {i + 1} to {i + len(batch)}: {e}")
+            print(f"[ERROR] Failed for batch {i+1} to {i+len(batch)}: {e}")
 
 
 # ---------------------------
