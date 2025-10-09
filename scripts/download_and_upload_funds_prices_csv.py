@@ -61,7 +61,8 @@ def get_all_funds(batch_size=500):
         res = (
             supabase.table("funds")
             .select("code,isin_cd")
-            .not_("isin_cd", "is", None)
+            .is_("isin_cd", None, negate=True)  # 过滤掉 NULL
+            .neq("isin_cd", "")                 # 过滤掉空字符串
             .range(offset, offset + batch_size - 1)
             .execute()
         )
@@ -70,6 +71,7 @@ def get_all_funds(batch_size=500):
             break
         all_funds.extend(data)
         offset += batch_size
+    print(f"[INFO] Total funds retrieved: {len(all_funds)}")
     return all_funds
 
 # ---------------------------
@@ -97,12 +99,9 @@ def main():
 
     # 2️⃣ 分批上传，每批 50 个文件，上传也可并行，带进度条
     batch_size = 50
+    batches = [downloaded_files[i:i + batch_size] for i in range(0, len(downloaded_files), batch_size)]
     with ThreadPoolExecutor(max_workers=5) as upload_executor:
-        upload_futures = []
-        batches = [downloaded_files[i:i + batch_size] for i in range(0, len(downloaded_files), batch_size)]
-        for batch in batches:
-            upload_futures.append(upload_executor.submit(upload_files_batch, batch))
-
+        upload_futures = {upload_executor.submit(upload_files_batch, batch): batch for batch in batches}
         for future in tqdm(as_completed(upload_futures), total=len(batches), desc="Uploading batches"):
             future.result()
 

@@ -1,4 +1,4 @@
-name: Daily Fund CSV Sync
+name: Download and Upload Funds Prices CSV
 
 on:
   schedule:
