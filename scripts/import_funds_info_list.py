@@ -1,4 +1,5 @@
 import os
+from time import time
 import requests
 import urllib.parse
 import pandas as pd
@@ -130,6 +131,7 @@ def sync_to_supabase(df: pd.DataFrame, batch_size: int = 500, lookup_size: int =
             existing_map[row["code"]] = {
                 "isin_cd": row.get("isin_cd"),
             }
+        time.sleep(0.2)  # 200ms 待つ
 
     # データ作成
     for _, row in df.iterrows():
