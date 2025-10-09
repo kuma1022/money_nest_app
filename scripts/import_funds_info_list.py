@@ -31,29 +31,30 @@ API_HEADERS = {
 # ---------------------------
 def fetch_fund_info(name: str):
     """APIからisin_cd, associ_fund_cdを取得"""
-    payload = {
-        "s_keyword": urllib.parse.quote(name),
-        "s_kensakuKbn": "1",
-        "s_supplementKindCd": "1",
-        "f_etfKBun": "1",
-        "s_standardPriceCond1": "0",
-        "s_standardPriceCond2": "0",
-        "s_riskCond1": "0",
-        "s_riskCond2": "0",
-        "s_sharpCond1": "0",
-        "s_sharpCond2": "0",
-        "s_buyFee": "1",
-        "s_trustReward": "1",
-        "s_monthlyCancelCreateVal": "1",
-        "startNo": "0",
-        "draw": "4",
-        "searchBtnClickFlg": "true",
-    }
+    encoded_name = urllib.parse.quote(name)  # 1回だけURLエンコード
+    data_raw = (
+        f"s_keyword={encoded_name}"
+        "&s_kensakuKbn=1"
+        "&s_supplementKindCd=1"
+        "&f_etfKBun=1"
+        "&s_standardPriceCond1=0"
+        "&s_standardPriceCond2=0"
+        "&s_riskCond1=0"
+        "&s_riskCond2=0"
+        "&s_sharpCond1=0"
+        "&s_sharpCond2=0"
+        "&s_buyFee=1"
+        "&s_trustReward=1"
+        "&s_monthlyCancelCreateVal=1"
+        "&startNo=0"
+        "&draw=4"
+        "&searchBtnClickFlg=true"
+    )
 
     print(f"[INFO] Fetching fund info for: {name}")
-    print(f"[DEBUG] Payload: {payload}")
+    print(f"[DEBUG] Payload: {data_raw}")
 
-    resp = requests.post(API_URL, headers=API_HEADERS, data=payload)
+    resp = requests.post(API_URL, headers=API_HEADERS, data=data_raw.encode("utf-8"))
     resp.raise_for_status()
     data = resp.json()
     print(f"[DEBUG] Response: {data}")
