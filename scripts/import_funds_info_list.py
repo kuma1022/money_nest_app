@@ -50,7 +50,12 @@ def fetch_fund_info(name: str):
         "searchBtnClickFlg": "true",
     }
 
+    print(f"[INFO] Fetching fund info for: {name}")
+    print(f"[DEBUG] Payload: {payload}")
+
     resp = requests.post(API_URL, headers=API_HEADERS, data=payload)
+    print(f"[DEBUG] Response: {resp}")
+
     resp.raise_for_status()
     data = resp.json()
 
@@ -68,6 +73,10 @@ def download_excel():
     response.raise_for_status()
     with open(LOCAL_FILE, "wb") as f:
         f.write(response.content)
+    # 为了测试，只下载前10行数据
+    df = pd.read_excel(LOCAL_FILE, sheet_name="対象商品一覧", header=1)
+    df.head(10).to_excel(LOCAL_FILE, index=False)
+    
     print("[INFO] Download complete:", LOCAL_FILE)
 
 
