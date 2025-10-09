@@ -61,8 +61,8 @@ def get_all_funds(batch_size=500):
         res = (
             supabase.table("funds")
             .select("code,isin_cd")
-            .is_("isin_cd", None, negate=True)  # 过滤掉 NULL
-            .neq("isin_cd", "")                 # 过滤掉空字符串
+            .not_("isin_cd", "is", None)  # 过滤掉 NULL
+            .neq("isin_cd", "")           # 排除空字符串
             .range(offset, offset + batch_size - 1)
             .execute()
         )
