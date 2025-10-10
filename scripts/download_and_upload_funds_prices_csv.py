@@ -5,6 +5,8 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from supabase import create_client, Client
 from tqdm import tqdm
+import pandas_market_calendars as mcal
+from datetime import datetime, timedelta
 
 # ---------------------------
 # Supabase 接続設定
@@ -15,6 +17,23 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 BUCKET_NAME = "money_grow_app"
 STORAGE_PATH = "funds_history_prices/"
+
+# ---------------------------
+# 判断交易日
+# ---------------------------
+def is_trading_day(market: str) -> bool:
+    if market == "US":
+        cal = mcal.get_calendar("NYSE")
+    elif market == "JP":
+        cal = mcal.get_calendar("JPX")
+    else:
+        return True
+
+    now = datetime.now().astimezone(cal.tz)
+    # 看昨天是不是交易日
+    prev_day = now.date() - timedelta(days=1)
+    schedule = cal.schedule(start_date=prev_day, end_date=prev_day)
+    return not schedule.empty
 
 # ---------------------------
 # 下载单个基金 CSV 文件
@@ -61,10 +80,12 @@ def upload_files_batch(file_list):
                 )
                 break  # 成功就跳出重试循环
             except Exception as e:
-                print(f"[ERROR] Failed to upload {filename}: {e}")
+                if (e.error =="Duplicate"):
+                    print(f"[WARNING] Duplicate file {filename} already exists.")
+                    break # 文件已存在，跳出重试循环
                 if attempt < 3:
                     wait_time = 1 * attempt  # 指数退避，例如 1s, 2s
-                    print(f"[INFO] Retrying in {wait_time}s...")
+                    #print(f"[INFO] Retrying in {wait_time}s...")
                     time.sleep(wait_time)
                 else:
                     print(f"[ERROR] Failed to upload {filename} after 3 attempts")
@@ -98,6 +119,11 @@ def get_all_funds(batch_size=500):
 # 主流程
 # ---------------------------
 def main():
+    # 仅在交易日运行
+    if not (is_trading_day("JP")):
+        print("[INFO] Today is not a trading day. Exiting.")
+        sys.exit(0)
+        
     funds = get_all_funds()
     if not funds:
         print("[INFO] No funds to process.")
