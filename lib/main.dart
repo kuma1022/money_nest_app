@@ -87,7 +87,7 @@ void main() async {
     '3XQ54WjxVseYCK8q4MMwpx',
     's/SeVD0jTuK6e5D2wsm7xqdg1pg9+pbCsNhcQARjb0I=',
   );
-  fetchOrders(api);
+  //fetchOrders(api);
 
   runApp(
     MultiProvider(
@@ -117,12 +117,12 @@ void fetchOrders(api) async {
       childOrderState: 'ACTIVE', // または null で全て
       count: 10,
     );
-    GlobalStore().textForDebug = orders.toString();
-    await GlobalStore().saveTextForDebugToPrefs();
+    //GlobalStore().textForDebug = orders.toString();
+    //await GlobalStore().saveTextForDebugToPrefs();
     print('取得結果: $orders');
   } catch (e) {
-    GlobalStore().textForDebug = 'エラー: $e';
-    await GlobalStore().saveTextForDebugToPrefs();
+    //GlobalStore().textForDebug = 'エラー: $e';
+    //await GlobalStore().saveTextForDebugToPrefs();
     print('エラー: $e');
   }
 }

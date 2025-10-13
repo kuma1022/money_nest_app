@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'package:drift/drift.dart';
-import 'package:money_nest_app/db/app_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class GlobalStore {
@@ -16,8 +14,6 @@ class GlobalStore {
       {}; // 历史持仓，key 是日期，value 是{持仓列表，成本基础，总资产}
   Map<String, double> currentStockPrices = {}; // 股票价格
   DateTime? stockPricesLastUpdated;
-  //List<(DateTime, double)>? assetsTotalHistory; // 资产总值历史
-  //List<(DateTime, double)>? costBasisHistory; // 成本基础历史
   DateTime? lastSyncTime; // 最近与服务器同步时间
   DateTime? earliestHistoricalDataTime; // 取得的最早的历史数据时间
   String textForDebug = '';
@@ -44,11 +40,6 @@ class GlobalStore {
     stockPricesLastUpdated = DateTime.tryParse(
       prefs.getString('stockPricesLastUpdated') ?? '',
     );
-  }
-
-  Future<void> saveTextForDebugToPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setString('textForDebug', textForDebug);
   }
 
   Future<void> saveUserIdToPrefs() async {

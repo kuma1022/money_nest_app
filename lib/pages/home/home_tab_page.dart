@@ -252,7 +252,7 @@ class HomeTabPageState extends State<HomeTabPage> {
                             ),
                           ),
                           subtitle: Text(
-                            '資産の推移や損益をグラフで分析${GlobalStore().textForDebug}',
+                            '資産の推移や損益をグラフで分析',
                             style: TextStyle(fontSize: 13),
                           ),
                           trailing: Icon(

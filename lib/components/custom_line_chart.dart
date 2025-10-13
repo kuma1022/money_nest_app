@@ -25,10 +25,6 @@ class _LineChartSample12State extends State<LineChartSample12> {
   @override
   Widget build(BuildContext context) {
     const leftReservedSize = 52.0;
-    final TransformationController _transformationController =
-        TransformationController();
-    bool _isPanEnabled = true;
-    bool _isScaleEnabled = true;
 
     // 获取所有数据的最小值和最大值
     final allDataList = widget.datas
@@ -112,8 +108,8 @@ class _LineChartSample12State extends State<LineChartSample12> {
                         minX: 0.0,
                         maxX: (widget.datas.last['dataList'].length - 1)
                             .toDouble(), // 用最后一个数据的长度
-                        minY: minY, // 固定最小值
-                        maxY: maxY, // 固定最大值
+                        minY: 0.0, // 固定最小值
+                        maxY: maxY * 1.2, // 固定最大值
                         lineBarsData: lineBarsData,
                         lineTouchData: LineTouchData(
                           touchSpotThreshold: 5,
@@ -177,13 +173,46 @@ class _LineChartSample12State extends State<LineChartSample12> {
                           topTitles: const AxisTitles(
                             sideTitles: SideTitles(showTitles: false),
                           ),
-                          leftTitles: const AxisTitles(
+                          leftTitles: AxisTitles(
                             drawBelowEverything: true,
                             sideTitles: SideTitles(
                               showTitles: true,
                               reservedSize: leftReservedSize,
                               maxIncluded: false,
                               minIncluded: false,
+                              getTitlesWidget: (double value, TitleMeta meta) {
+                                String label;
+                                if (widget.currencyCode == 'JPY') {
+                                  // 日元：大于1万显示“X万円”，否则“X千円”
+                                  if (value >= 10000) {
+                                    label = '${(value ~/ 10000)}万円';
+                                  } else if (value >= 1000) {
+                                    label = '${(value ~/ 1000)}千円';
+                                  } else {
+                                    label = '${value.toInt()}円';
+                                  }
+                                } else if (widget.currencyCode == 'USD') {
+                                  // 美元：加千分位和$
+                                  label = AppUtils().formatMoney(value, 'USD');
+                                } else {
+                                  // 其它货币
+                                  label = AppUtils().formatMoney(
+                                    value,
+                                    widget.currencyCode,
+                                  );
+                                }
+
+                                return SideTitleWidget(
+                                  meta: meta,
+                                  child: Text(
+                                    label,
+                                    style: const TextStyle(
+                                      color: AppColors.appGrey,
+                                      fontSize: AppTexts.fontSizeTiny,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           bottomTitles: AxisTitles(
@@ -195,21 +224,34 @@ class _LineChartSample12State extends State<LineChartSample12> {
                                 final dataList =
                                     widget.datas.last['dataList']
                                         as List<(DateTime, double)>;
+                                final totalCount = dataList.length;
                                 final date =
-                                    dataList.isNotEmpty &&
-                                        value.toInt() < dataList.length
-                                    ? dataList[value.toInt()].$1
-                                    : DateTime.now();
+                                    dataList[value.toInt().clamp(
+                                          0,
+                                          totalCount - 1,
+                                        )]
+                                        .$1;
+                                // --------------------------
+                                // 格式化日期 label
+                                // --------------------------
+                                String label;
+                                if (totalCount < 95) {
+                                  label = '${date.month}月${date.day}日';
+                                } else if (totalCount < 370) {
+                                  label = '${date.month}月';
+                                } else {
+                                  label = '${date.year % 100}年${date.month}月';
+                                }
+
                                 return SideTitleWidget(
                                   meta: meta,
                                   child: Transform.rotate(
-                                    angle: -45 * 3.14 / 180,
+                                    angle: 0,
                                     child: Text(
-                                      '${date.year}/${date.month}/${date.day}',
+                                      label,
                                       style: const TextStyle(
                                         color: AppColors.appGrey,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                        fontSize: AppTexts.fontSizeTiny,
                                       ),
                                     ),
                                   ),

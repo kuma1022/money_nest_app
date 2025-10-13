@@ -1,12 +1,12 @@
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_line_chart.dart';
+import 'package:money_nest_app/components/custom_tab.dart';
 import 'package:money_nest_app/components/glass_panel.dart';
 import 'package:money_nest_app/components/glass_tab.dart';
+import 'package:money_nest_app/components/summary_category_card.dart';
 import 'package:money_nest_app/components/total_asset_analysis_card.dart';
 import 'package:money_nest_app/pages/assets/stock_detail_page.dart';
 import 'package:money_nest_app/pages/assets/other_asset_manage_page.dart';
@@ -166,16 +166,9 @@ class AssetsTabPageState extends State<AssetsTabPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 16),
-                    // tab切换栏（独立于资产总览）
-                    GlassTab(
-                      borderRadius: 24,
-                      margin: const EdgeInsets.only(
-                        left: 0,
-                        right: 0,
-                        bottom: 18,
-                      ),
+                    CustomTab(
                       tabs: ['推移', '内訳', 'ポートフォリオ', '配当'],
-                      tabBarContentList: [
+                      tabViews: [
                         buildTransitionWidget(),
                         buildBreakdownWidget(),
                         buildPortfolioWidget(),
@@ -868,11 +861,109 @@ class AssetsTabPageState extends State<AssetsTabPage> {
             ),
             const SizedBox(height: 18),
             _selectedTransitionIndex == 0
-                ? buildTransitionAssetWidget()
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [buildTransitionAssetWidget(), createAssetList()],
+                  )
                 : buildTransitionLiabilityWidget(),
           ],
         );
       },
+    );
+  }
+
+  Widget createAssetList() {
+    final totalStocksMap = AppUtils().getTotalAssetsAndCostsValue();
+    final double totalStocksSum = totalStocksMap['totalAssets'];
+    final double totalStocksCostsSum = totalStocksMap['totalCosts'];
+    final double totalStocksNetSum = totalStocksSum - totalStocksCostsSum;
+    final String totalStocksNetRate = totalStocksCostsSum == 0
+        ? '0.0%'
+        : '${AppUtils().formatNumberByTwoDigits((totalStocksNetSum / totalStocksCostsSum) * 100)}%';
+
+    final List categories = [
+      {
+        'label': '株式',
+        'dotColor': AppColors.appChartGreen,
+        'rateLabel': '100%',
+        'value': AppUtils().formatMoney(
+          totalStocksSum,
+          GlobalStore().selectedCurrencyCode!,
+        ),
+        'profitText': AppUtils().formatMoney(
+          totalStocksNetSum,
+          GlobalStore().selectedCurrencyCode!,
+        ),
+        'profitRateText': '($totalStocksNetRate)',
+        'profitColor': AppColors.appUpGreen,
+        'subCategories': [],
+      },
+      {
+        'label': '投資信託',
+        'dotColor': AppColors.appDarkGrey,
+        'rateLabel': '0%',
+        'value': '¥0',
+        'profitText': '¥0',
+        'profitRateText': '(0%)',
+        'profitColor': AppColors.appGrey,
+        'subCategories': [],
+      },
+      {
+        'label': 'FX（為替）',
+        'dotColor': AppColors.appChartBlue,
+        'rateLabel': '0%',
+        'value': '¥0',
+        'profitText': '¥0',
+        'profitRateText': '(0%)',
+        'profitColor': AppColors.appGrey,
+        'subCategories': [],
+      },
+      {
+        'label': '暗号資産',
+        'dotColor': AppColors.appChartPurple,
+        'rateLabel': '0%',
+        'value': '¥0',
+        'profitText': '¥0',
+        'profitRateText': '(+0%)',
+        'profitColor': AppColors.appGrey,
+        'subCategories': [],
+      },
+      {
+        'label': '貴金属',
+        'dotColor': AppColors.appChartOrange,
+        'rateLabel': '0%',
+        'value': '¥0',
+        'profitText': '¥0',
+        'profitRateText': '(0%)',
+        'profitColor': AppColors.appGrey,
+        'subCategories': [],
+      },
+      {
+        'label': 'その他資産',
+        'dotColor': AppColors.appChartLightBlue,
+        'rateLabel': '0%',
+        'value': '¥0',
+        'profitText': '¥0',
+        'profitRateText': '(+0%)',
+        'profitColor': AppColors.appGrey,
+        'subCategories': [],
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: categories.map((category) {
+        return SummaryCategoryCard(
+          label: category['label'],
+          dotColor: category['dotColor'],
+          rateLabel: category['rateLabel'],
+          value: category['value'],
+          profitText: category['profitText'],
+          profitRateText: category['profitRateText'],
+          profitColor: category['profitColor'],
+          subCategories: [],
+        );
+      }).toList(),
     );
   }
 
@@ -1344,10 +1435,12 @@ class _TransitionAssetChartState extends State<_TransitionAssetChart>
       animation: _animation,
       builder: (context, child) {
         // 这里直接传完整 dataList
-        return LineChartSample12(
-          datas: widget.datas,
-          currencyCode: widget.currencyCode,
-          animationValue: _animation.value, // 0.0~1.0
+        return CardSection(
+          child: LineChartSample12(
+            datas: widget.datas,
+            currencyCode: widget.currencyCode,
+            animationValue: _animation.value, // 0.0~1.0
+          ),
         );
       },
     );
@@ -1368,21 +1461,21 @@ class _PlatformRangeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 使用 Theme.of(context).platform 或 defaultTargetPlatform 判断
     final platform = Theme.of(context).platform;
     if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
+      // iOS/macOS: ActionSheet风格
       return _CupertinoRangeSelector(
         value: value,
         values: values,
         onChanged: onChanged,
       );
     }
-    // Material (Android / Web / Windows / Linux)
+    // 其它平台: Material Dropdown
     return DropdownButtonHideUnderline(
       child: DropdownButton<String>(
         value: value,
         isDense: true,
-        style: const TextStyle(fontSize: 13),
+        style: const TextStyle(fontSize: 13, color: Colors.black),
         borderRadius: BorderRadius.circular(10),
         items: values
             .map((v) => DropdownMenuItem<String>(value: v, child: Text(v)))

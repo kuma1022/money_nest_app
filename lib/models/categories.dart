@@ -3,18 +3,19 @@ import 'dart:convert';
 
 enum Categories {
   stock(id: 1, code: 'stock', name: '株式', type: 'asset', displayOrder: 1),
-  fx(id: 2, code: 'fx', name: 'FX（為替）', type: 'asset', displayOrder: 2),
-  crypto(id: 3, code: 'crypto', name: '暗号資産', type: 'asset', displayOrder: 3),
-  metal(id: 4, code: 'metal', name: '貴金属', type: 'asset', displayOrder: 4),
+  fund(id: 2, code: 'fund', name: '投資信託', type: 'asset', displayOrder: 2),
+  fx(id: 3, code: 'fx', name: 'FX（為替）', type: 'asset', displayOrder: 3),
+  crypto(id: 4, code: 'crypto', name: '暗号資産', type: 'asset', displayOrder: 4),
+  metal(id: 5, code: 'metal', name: '貴金属', type: 'asset', displayOrder: 5),
   otherAsset(
-    id: 5,
+    id: 6,
     code: 'other_asset',
     name: 'その他資産',
     type: 'asset',
-    displayOrder: 5,
+    displayOrder: 6,
   ),
-  loan(id: 6, code: 'loan', name: 'ローン', type: 'liability', displayOrder: 6),
-  debt(id: 7, code: 'debt', name: '借金', type: 'liability', displayOrder: 7);
+  loan(id: 7, code: 'loan', name: 'ローン', type: 'liability', displayOrder: 7),
+  debt(id: 8, code: 'debt', name: '借金', type: 'liability', displayOrder: 8);
 
   final int id;
   final String code;
@@ -73,8 +74,7 @@ enum Subcategories {
     name: '不動産',
     displayOrder: 3,
   ),
-  fund(id: 13, categoryId: 5, code: 'fund', name: '投資信託', displayOrder: 4),
-  bond(id: 14, categoryId: 5, code: 'bond', name: '債券', displayOrder: 5),
+  bond(id: 14, categoryId: 5, code: 'bond', name: '債券', displayOrder: 4),
   mortgage(
     id: 15,
     categoryId: 6,
