@@ -1,6 +1,4 @@
 import 'dart:convert';
-
-import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,10 +12,12 @@ class GlobalStore {
   int? accountId;
   String? selectedCurrencyCode;
   List<dynamic> portfolio = []; // 持仓列表
+  Map<DateTime, dynamic> historicalPortfolio =
+      {}; // 历史持仓，key 是日期，value 是{持仓列表，成本基础，总资产}
   Map<String, double> currentStockPrices = {}; // 股票价格
   DateTime? stockPricesLastUpdated;
-  List<(DateTime, double)>? assetsTotalHistory; // 资产总值历史
-  List<(DateTime, double)>? costBasisHistory; // 成本基础历史
+  //List<(DateTime, double)>? assetsTotalHistory; // 资产总值历史
+  //List<(DateTime, double)>? costBasisHistory; // 成本基础历史
   DateTime? lastSyncTime; // 最近与服务器同步时间
   String textForDebug = '';
 
@@ -28,26 +28,18 @@ class GlobalStore {
     lastSyncTime = DateTime.tryParse(prefs.getString('lastSyncTime') ?? '');
     selectedCurrencyCode = prefs.getString('selectedCurrencyCode') ?? 'JPY';
     portfolio = jsonDecode(prefs.getString('portfolio') ?? '[]');
+    historicalPortfolio =
+        jsonDecode(
+          prefs.getString('historicalPortfolio') ?? '{}',
+        ).map<DateTime, dynamic>(
+          (key, value) => MapEntry(DateTime.parse(key), value),
+        );
     currentStockPrices = Map<String, double>.from(
       jsonDecode(prefs.getString('stockPrices') ?? '{}'),
     );
     stockPricesLastUpdated = DateTime.tryParse(
       prefs.getString('stockPricesLastUpdated') ?? '',
     );
-    assetsTotalHistory =
-        (jsonDecode(prefs.getString('assetsTotalHistory') ?? '[]') as List)
-            .map(
-              (e) =>
-                  (DateTime.parse(e['date']), (e['value'] as num).toDouble()),
-            )
-            .toList();
-    costBasisHistory =
-        (jsonDecode(prefs.getString('costBasisHistory') ?? '[]') as List)
-            .map(
-              (e) =>
-                  (DateTime.parse(e['date']), (e['value'] as num).toDouble()),
-            )
-            .toList();
   }
 
   Future<void> saveTextForDebugToPrefs() async {
@@ -101,6 +93,18 @@ class GlobalStore {
         stockPricesLastUpdated!.toIso8601String(),
       );
     }
+  }
+
+  Future<void> saveHistoricalPortfolioToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString(
+      'historicalPortfolio',
+      jsonEncode(
+        historicalPortfolio.map<String, dynamic>(
+          (key, value) => MapEntry(key.toIso8601String(), value),
+        ),
+      ),
+    );
   }
 
   Future<void> calculateAndSaveAssetsTotalHistoryToPrefs(AppDatabase db) async {
@@ -303,24 +307,5 @@ class GlobalStore {
             .toList(),
       ),
     );
-  }
-
-  Future<Map<String, double>> currencyExchangeRate(
-    DateTime baseDate,
-    AppDatabase db,
-  ) async {
-    // 汇总所有货币的总资产, 并进行货币转换
-    final fxRateQuery = db.fxRates.select()
-      ..where((tbl) => tbl.fxPairId.equals(1))
-      ..where((tbl) => tbl.rateDate.isSmallerOrEqualValue(baseDate))
-      ..orderBy([(tbl) => OrderingTerm.desc(tbl.rateDate)])
-      ..limit(1);
-
-    final fxRate = await fxRateQuery.getSingleOrNull();
-    final Map<String, double> rates = {}; // 货币对汇率，如
-    rates['USDJPY'] = fxRate?.rate ?? 150.0;
-    rates['JPYUSD'] = 1 / rates['USDJPY']!;
-
-    return rates;
   }
 }

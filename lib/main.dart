@@ -41,7 +41,21 @@ void main() async {
   // 判断是否同步服务器，如果没有同步，则进行同步
   if (GlobalStore().lastSyncTime == null) {
     // 每天第一次打开 App 时，同步服务器
-    await AppUtils().syncDataWithSupabase(userId, accountId, db);
+    final String startDate = DateTime.now()
+        .subtract(Duration(days: 30))
+        .toIso8601String()
+        .substring(0, 10); // 过去 30 天的数据
+    final String endDate = DateTime.now().toIso8601String().substring(
+      0,
+      10,
+    ); // 今天的日期
+    await AppUtils().syncDataWithSupabase(
+      userId,
+      accountId,
+      db,
+      startDate,
+      endDate,
+    );
     final t3_1 = DateTime.now();
     print('Sync data time: ${t3_1.difference(t2).inMilliseconds} ms');
     await GlobalStore().saveLastSyncTimeToPrefs();
@@ -54,7 +68,8 @@ void main() async {
   // 计算持仓并更新到 GlobalStore
   await AppUtils().calculatePortfolioValue(userId, accountId, db);
   await AppUtils().getStockPricesByYHFinanceAPI(db);
-  await GlobalStore().calculateAndSaveAssetsTotalHistoryToPrefs(db);
+  await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs(db);
+  //await GlobalStore().calculateAndSaveAssetsTotalHistoryToPrefs(db);
   final t4 = DateTime.now();
   print('Calculate portfolio time: ${t4.difference(t3).inMilliseconds} ms');
 

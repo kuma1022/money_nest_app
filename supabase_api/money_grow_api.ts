@@ -6,7 +6,6 @@ const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("
   }
 });
 import { gzip } from "https://deno.land/x/compress@v0.4.5/mod.ts";
-
 console.info('Edge Function initialized');
 Deno.serve(async (req)=>{
   try {
@@ -126,14 +125,20 @@ Deno.serve(async (req)=>{
     }
     // ------------------- 用户摘要 -------------------
     if (subPath === 'summary' && method === 'GET') {
-      return handleGetUserSummary(userId);
+      const startDate = url.searchParams.get('start_date');
+      const endDate = url.searchParams.get('end_date');
+      return handleGetUserSummary(userId, startDate, endDate);
     }
     // ------------------- 用户历史记录 -------------------
     if (subPath === 'history' && method === 'GET') {
       const start = url.searchParams.get('start');
       const end = url.searchParams.get('end');
       if (!start || !end) {
-        return new Response(JSON.stringify({ error: 'Missing start or end param' }), { status: 400 });
+        return new Response(JSON.stringify({
+          error: 'Missing start or end param'
+        }), {
+          status: 400
+        });
       }
       return handleGetUserHistory(userId, start, end);
     }
@@ -906,33 +911,32 @@ async function handleGetAssetChart(userId, searchParams) {
     status: 200
   });
 }
-
 // ------------------- 用户摘要 -------------------
 // 只查DB，返回账户、持仓、最近一个月的fx_rates和stock_prices
-async function handleGetUserSummary(userId: string) {
+async function handleGetUserSummary(userId, startDate, endDate) {
   const t0 = Date.now();
   // 1. 查账户基本信息
-  const { data: accountData } = await supabase.rpc('get_user_account_info', { p_user_id: userId });
+  const { data: accountData } = await supabase.rpc('get_user_account_info', {
+    p_user_id: userId
+  });
   const t_db2 = Date.now();
   console.log(`[PERF] get_user_account_info: ${t_db2 - t0} ms`);
   // 2. 查最近一个月的 stock_prices
-  const oneMonthAgo = new Date();
-  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-  const startDate = oneMonthAgo.toISOString().slice(0, 10);
   const { data: stockPrices } = await supabase.rpc('get_user_stock_prices', {
     p_user_id: userId,
-    p_start_date: startDate
+    ...(startDate ? { p_start_date: startDate } : {}),
+    ...(endDate ? { p_end_date: endDate } : {})
   });
   const t_db3 = Date.now();
   console.log(`[PERF] get_user_stock_prices: ${t_db3 - t_db2} ms`);
   // 3. 查最近一个月的 fx_rates
   const { data: fxRates } = await supabase.rpc('get_user_fx_rates', {
     p_user_id: userId,
-    p_start_date: startDate
+    ...(startDate ? { p_start_date: startDate } : {}),
+    ...(endDate ? { p_end_date: endDate } : {})
   });
   const t_db4 = Date.now();
   console.log(`[PERF] get_user_fx_rates: ${t_db4 - t_db3} ms`);
-
   // 4. 组装账户信息
   const accountsMap = {};
   accountData.forEach((row)=>{
@@ -972,7 +976,6 @@ async function handleGetUserSummary(userId: string) {
       });
     }
   });
-
   // 分配 fx_rates
   if (fxRates) {
     fxRates.forEach((fr)=>{
@@ -986,7 +989,6 @@ async function handleGetUserSummary(userId: string) {
       }
     });
   }
-
   // 分配 stock_prices
   if (stockPrices) {
     stockPrices.forEach((sp)=>{
@@ -1006,13 +1008,11 @@ async function handleGetUserSummary(userId: string) {
       }
     });
   }
-
   // 去除临时Set字段
   const result = Object.values(accountsMap).map((acc)=>{
     const { trade_record_ids, trade_sell_mapping_ids, stock_ids, fx_rate_ids, ...rest } = acc;
     return rest;
   });
-
   const t1 = Date.now();
   console.log(`[PERF] handleGetUserSummary: ${t1 - t0} ms`);
   const json = JSON.stringify({
@@ -1022,14 +1022,13 @@ async function handleGetUserSummary(userId: string) {
   });
   const gzipped = gzip(new TextEncoder().encode(json));
   return new Response(gzipped, {
-  status: 200,
-  headers: {
-    "Content-Type": "application/json",
-    "Content-Encoding": "gzip"
-  }
-});
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Encoding": "gzip"
+    }
+  });
 }
-
 // ------------------- 用户历史记录 -------------------
 async function handleGetUserHistory(userId, start, end) {
   const { data, error } = await supabase.rpc('get_user_history', {
