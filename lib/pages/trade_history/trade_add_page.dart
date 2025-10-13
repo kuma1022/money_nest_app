@@ -1781,7 +1781,8 @@ class _TradeAddPageState extends State<TradeAddPage> {
         }
         // 计算并保存资产总额历史到本地
         final db = AppDatabase();
-        await GlobalStore().calculateAndSaveAssetsTotalHistoryToPrefs(db);
+        await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs(db);
+        //await GlobalStore().calculateAndSaveAssetsTotalHistoryToPrefs(db);
       } else {
         // 負債tab保存逻辑
         // ...

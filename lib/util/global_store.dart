@@ -107,6 +107,7 @@ class GlobalStore {
     );
   }
 
+  /*
   Future<void> calculateAndSaveAssetsTotalHistoryToPrefs(AppDatabase db) async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -307,5 +308,5 @@ class GlobalStore {
             .toList(),
       ),
     );
-  }
+  }*/
 }

@@ -30,8 +30,26 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   int _selectedTransitionIndex = 0; // 0:资产, 1:负債
   num totalAssets = 0;
   num totalCosts = 0;
+  DateTime startDate = DateTime.now().subtract(Duration(days: 30));
+  DateTime endDate = DateTime.now();
   List<(DateTime, double)> priceHistory = [];
   List<(DateTime, double)> costBasisHistory = [];
+
+  // 1. 在 AssetsTabPageState 里加区间选项和选中值
+  final List<String> _periodOptions = [
+    '1週間',
+    '1ヶ月',
+    '3ヶ月',
+    '6ヶ月',
+    '年初来',
+    '1年',
+    '2年',
+    '3年',
+    '5年',
+    '10年',
+    'すべて',
+  ];
+  String _selectedPeriod = '1ヶ月';
 
   @override
   void initState() {
@@ -43,13 +61,22 @@ class AssetsTabPageState extends State<AssetsTabPage> {
 
   // 刷新总资产和总成本
   Future<void> refreshTotalAssetsAndCosts() async {
+    // 计算总资产和总成本
     final totalMap = AppUtils().getTotalAssetsAndCostsValue();
-    priceHistory = GlobalStore().assetsTotalHistory ?? [];
-    costBasisHistory = GlobalStore().costBasisHistory ?? [];
     setState(() {
       totalAssets = totalMap['totalAssets'];
       totalCosts = totalMap['totalCosts'];
     });
+    // 计算历史数据
+    priceHistory = [];
+    costBasisHistory = [];
+    // 计算资产总额和成本的历史数据
+    for (var date in GlobalStore().historicalPortfolio.keys) {
+      if (date.isBefore(startDate) || date.isAfter(endDate)) continue;
+      final item = GlobalStore().historicalPortfolio[date]!;
+      priceHistory.add((date, item['assetsTotal'] as double? ?? 0.0));
+      costBasisHistory.add((date, item['costBasis'] as double? ?? 0.0));
+    }
   }
 
   List<Map<String, dynamic>> groupConsecutive(
@@ -930,10 +957,33 @@ class AssetsTabPageState extends State<AssetsTabPage> {
         ),
         const SizedBox(height: 12),
         if (datas.isNotEmpty)
-          _TransitionAssetChart(
-            datas: datas,
-            currencyCode: GlobalStore().selectedCurrencyCode ?? 'JPY',
+          // 区间选择 pulldown
+          DropdownButton<String>(
+            value: _selectedPeriod,
+            items: _periodOptions
+                .map(
+                  (e) => DropdownMenuItem(
+                    value: e,
+                    child: Text(e, style: const TextStyle(fontSize: 13)),
+                  ),
+                )
+                .toList(),
+            onChanged: (v) {
+              if (v != null) {
+                setState(() {
+                  _selectedPeriod = v;
+                  // 这里可以根据 _selectedPeriod 重新过滤 priceHistory/costBasisHistory
+                  // 例如调用 refreshTotalAssetsAndCosts(period: v)
+                });
+              }
+            },
+            underline: SizedBox(),
+            style: const TextStyle(color: Colors.black87),
           ),
+        _TransitionAssetChart(
+          datas: datas,
+          currencyCode: GlobalStore().selectedCurrencyCode ?? 'JPY',
+        ),
       ],
     );
   }

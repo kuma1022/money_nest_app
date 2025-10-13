@@ -39,12 +39,13 @@ void main() async {
   );
 
   // 判断是否同步服务器，如果没有同步，则进行同步
-  if (GlobalStore().lastSyncTime == null) {
-    // 每天第一次打开 App 时，同步服务器
+  // 每天只同步一次（判断 lastSyncTime 是否是今天）
+  if (GlobalStore().lastSyncTime == null ||
+      !AppUtils().isSameDate(GlobalStore().lastSyncTime!, DateTime.now())) {
     final String startDate = DateTime.now()
-        .subtract(Duration(days: 30))
+        .subtract(Duration(days: 35))
         .toIso8601String()
-        .substring(0, 10); // 过去 30 天的数据
+        .substring(0, 10); // 过去 35 天的数据
     final String endDate = DateTime.now().toIso8601String().substring(
       0,
       10,

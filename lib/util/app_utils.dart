@@ -333,6 +333,7 @@ class AppUtils {
         'name': stock.name,
         'nameUs': stock.nameUs,
         'exchange': stock.exchange,
+        'currency': stock.currency,
         'tradeDate': DateFormat('yyyy-MM-dd').format(buy.tradeDate),
         'quantity': remainQty,
         'buyPrice': buy.price,
@@ -424,30 +425,34 @@ class AppUtils {
   }
 
   dynamic getTotalAssetsAndCostsValue() {
-    num totalAssets = 0;
-    num totalCosts = 0;
-    final currencyCode = GlobalStore().selectedCurrencyCode ?? 'JPY';
+    num totalAssets = 0.0;
+    num totalCosts = 0.0;
+    final selectedCurrencyCode = GlobalStore().selectedCurrencyCode ?? 'JPY';
     // 计算总资产和总成本
-    final rate = GlobalStore().currentStockPrices['$currencyCode=X'] ?? 140.0;
-
     for (var item in GlobalStore().portfolio) {
       final qty = item['quantity'] as num? ?? 0;
       final buyPrice = item['buyPrice'] as num? ?? 0;
       final code = item['code'] as String? ?? '';
       final exchange = item['exchange'] as String? ?? 'JP';
-      final currency = exchange == 'JP' ? 'JPY' : 'USD';
+      final currency = item['currency'] as String? ?? 'JPY';
       final fee = item['fee'] as num? ?? 0;
-      final feeCurrency = item['feeCurrency'] as String? ?? currencyCode;
+      final feeCurrency = item['feeCurrency'] as String? ?? currency;
+      final rate =
+          GlobalStore()
+              .currentStockPrices['${currency == 'USD' ? '' : currency}$selectedCurrencyCode=X'] ??
+          1.0;
+      final feeRate =
+          GlobalStore()
+              .currentStockPrices['${feeCurrency == 'USD' ? '' : feeCurrency}$selectedCurrencyCode=X'] ??
+          1.0;
       final currentPrice =
           GlobalStore().currentStockPrices[exchange == 'JP'
               ? '$code.T'
               : code] ??
           buyPrice;
 
-      totalAssets += qty * currentPrice * (currency == 'USD' ? rate : 1.0);
-      totalCosts +=
-          qty * buyPrice * (currency == 'USD' ? rate : 1.0) +
-          fee * (feeCurrency == 'USD' ? rate : 1.0);
+      totalAssets += qty * currentPrice * rate;
+      totalCosts += qty * buyPrice * rate + fee * feeRate;
     }
     return {'totalAssets': totalAssets, 'totalCosts': totalCosts};
   }
@@ -474,6 +479,12 @@ class AppUtils {
       locale: currency.locale,
       symbol: currency.symbol,
     ).format(money);
+  }
+
+  bool isSameDate(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 
   Future<void> syncDataWithSupabase(
@@ -815,6 +826,8 @@ class AppUtils {
           }
         }
       }
+      // 计算当天的总资产
+      Map<String, double> dailyTotal = {};
       // 计算当天的成本基础
       Map<String, double> dailyCostBasis = {};
       historicalPortfolio[currentDate] ??= {
@@ -824,9 +837,19 @@ class AppUtils {
       };
       for (var entry in holdings.entries) {
         final stockId = entry.key;
+        // 从stock_prices中查找当前价格
+        final priceQuery = db.stockPrices.select()
+          ..where((tbl) => tbl.stockId.equals(stockId))
+          ..where((tbl) => tbl.priceAt.isSmallerOrEqualValue(currentDate))
+          ..orderBy([(tbl) => OrderingTerm.desc(tbl.priceAt)])
+          ..limit(1);
+        final currentPrice = await priceQuery.getSingleOrNull();
         historicalPortfolio[currentDate]['holdings'].add(holdings[stockId]);
         // 计算该股票的总价值
         for (var trade in (holdings[stockId]!['trades'] as List)) {
+          dailyTotal[holdings[stockId]!['stock'].currency] =
+              (dailyTotal[holdings[stockId]!['stock'].currency] ?? 0) +
+              trade.quantity * (currentPrice?.price ?? 0.0);
           dailyCostBasis[holdings[stockId]!['stock'].currency] =
               (dailyCostBasis[holdings[stockId]!['stock'].currency] ?? 0) +
               (trade.quantity * trade.price) +
@@ -836,12 +859,20 @@ class AppUtils {
                       1.0);
         }
       }
+      // 计算总资产
+      dailyTotal.forEach((currency, amount) {
+        // 转换为目标货币
+        String pair = currency + targetCurrency;
+        totalAsset += amount * (rates[pair] ?? 1.0);
+      });
       // 计算总成本基础
       dailyCostBasis.forEach((currency, amount) {
         // 转换为目标货币
         String pair = currency + targetCurrency;
         totalCostBasis += amount * (rates[pair] ?? 1.0);
       });
+      // 保存当天的总资产
+      historicalPortfolio[currentDate]['assetsTotal'] = totalAsset;
       // 保存当天的成本基础
       historicalPortfolio[currentDate]['costBasis'] = totalCostBasis;
       // 日期加1天
@@ -872,76 +903,54 @@ class AppUtils {
     return rates;
   }
 
+  /*
   Future<void> calculateAndSaveAssetsTotalHistoryToPrefs(
     AppDatabase db,
     String startDate,
     String endDate,
-  ) async {}
-
-  /*
-  Future<double> getCurrencyExchangeRatesByDate(
-    String fromCurrency,
-    String toCurrency,
-    DateTime date,
   ) async {
-    AppDatabase db = AppDatabase();
-    // 先检查数据库中是否已有该日期的汇率数据
-    final existingRate =
-        await (db.select(db.exchangeRates)..where(
-              (tbl) =>
-                  tbl.date.equals(date) &
-                  tbl.fromCurrency.equals(fromCurrency) &
-                  tbl.toCurrency.equals(toCurrency),
-            ))
-            .getSingleOrNull();
-    if (existingRate != null) {
-      // 已有数据，直接返回
-      return existingRate.rate;
-    }
-
-    final response = await http.get(
-      Uri.parse(
-        'https://openexchangerates.org/api/historical/${DateFormat('yyyy-MM-dd').format(date)}.json?app_id=0fb44797862744c798dfaf16db35a829',
-      ),
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final Map<String, double> rates = Map<String, double>.from(data['rates']);
-      // 处理汇率数据
-      if (rates.containsKey(fromCurrency) && rates.containsKey(toCurrency)) {
-        final fromRate = rates[fromCurrency]!;
-        final toRate = rates[toCurrency]!;
-        final exchangeRate = toRate / fromRate;
-
-        // 将新的汇率数据存入数据库
-        await db
-            .into(db.exchangeRates)
-            .insert(
-              ExchangeRatesCompanion(
-                date: Value(date),
-                fromCurrency: Value(
-                  Currency.values.firstWhere(
-                    (c) => c.code == fromCurrency,
-                    orElse: () => Currency.jpy,
-                  ),
-                ),
-                toCurrency: Value(
-                  Currency.values.firstWhere(
-                    (c) => c.code == toCurrency,
-                    orElse: () => Currency.jpy,
-                  ),
-                ),
-                rate: Value(exchangeRate),
-                updatedAt: Value(DateTime.now()),
-                remark: Value('Fetched from API'),
-              ),
-            );
-
-        return exchangeRate;
-      } else {
-        throw Exception('Currency not found in the response');
+    final Map<DateTime, dynamic> historicalPortfolio =
+        GlobalStore().historicalPortfolio;
+    if (historicalPortfolio.isEmpty) return;
+    historicalPortfolio.forEach((date, data) {
+      if (date.isBefore(DateTime.parse(startDate)) ||
+          date.isAfter(DateTime.parse(endDate))) {
+        return;
       }
-    }
-    throw Exception('Failed to fetch exchange rates');
+      double totalAssets = 0.0;
+      final String targetCurrency = GlobalStore().selectedCurrencyCode ?? 'JPY';
+      final Map<String, double> rates = {};
+      for (var holding in data['holdings']) {
+        final stock = holding['stock'] as Stock;
+        final trades = holding['trades'] as List<TradeRecord>;
+        // 计算该股票的总价值
+        for (var trade in trades) {
+          // 获取股票当前价格
+          final currentPrice =
+              GlobalStore().currentStockPrices[stock.exchange == 'JP'
+                  ? '${stock.ticker}.T'
+                  : stock.ticker] ??
+              trade.price;
+          // 汇率
+          if (rates[stock.currency + targetCurrency] == null) {
+            // 查询汇率
+            currencyExchangeRate(date, db).then((fetchedRates) {
+              rates.addAll(fetchedRates);
+            });
+          }
+          totalAssets +=
+              trade.quantity *
+              currentPrice *
+              (rates[stock.currency + targetCurrency] ?? 1.0);
+        }
+        totalAssets += (data['costBasis'] as double?) ?? 0.0; // 加上成本基础
+      }
+      historicalPortfolio[date]['assetsTotal'] = totalAssets;
+    });
+    // 3. 保存到 GlobalStore 并持久化
+    GlobalStore().historicalPortfolio = historicalPortfolio;
+    await GlobalStore().saveHistoricalPortfolioToPrefs();
+    await GlobalStore().saveAssetsTotalHistoryToPrefs();
+    print('Updated assets total history: ${GlobalStore().assetsTotalHistory}');
   }*/
 }
