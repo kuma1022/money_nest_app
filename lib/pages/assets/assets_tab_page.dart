@@ -1,8 +1,8 @@
 import 'dart:convert';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/services.dart';
 import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_line_chart.dart';
 import 'package:money_nest_app/components/glass_panel.dart';
@@ -34,22 +34,20 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   DateTime endDate = DateTime.now();
   List<(DateTime, double)> priceHistory = [];
   List<(DateTime, double)> costBasisHistory = [];
-
-  // 1. 在 AssetsTabPageState 里加区间选项和选中值
-  final List<String> _periodOptions = [
-    '1週間',
-    '1ヶ月',
-    '3ヶ月',
-    '6ヶ月',
-    '年初来',
-    '1年',
-    '2年',
-    '3年',
-    '5年',
-    '10年',
-    'すべて',
-  ];
-  String _selectedPeriod = '1ヶ月';
+  String _selectedRangeKey = '1ヶ月';
+  final Map<String, Duration?> _rangeMap = {
+    '1週間': const Duration(days: 7),
+    '1ヶ月': const Duration(days: 30),
+    '3ヶ月': const Duration(days: 90),
+    '6ヶ月': const Duration(days: 180),
+    '年初来': null, // 特殊处理
+    '1年': const Duration(days: 365),
+    '2年': const Duration(days: 365 * 2),
+    '3年': const Duration(days: 365 * 3),
+    '5年': const Duration(days: 365 * 5),
+    '10年': const Duration(days: 365 * 10),
+    'すべて': null,
+  };
 
   @override
   void initState() {
@@ -111,6 +109,23 @@ class AssetsTabPageState extends State<AssetsTabPage> {
     });
 
     return datas;
+  }
+
+  Future<void> _reloadByRange() async {
+    final now = DateTime.now();
+    final dur = _rangeMap[_selectedRangeKey];
+    final String? startDate = (dur == null)
+        ? null
+        : now.subtract(dur).toIso8601String().split('T').first;
+    final String? endDate = now.toIso8601String().split('T').first;
+    //await syncDataWithSupabase(
+    //  /* userId */ GlobalStore().userId!,
+    //  /* accountId */ GlobalStore().currentAccountId!,
+    //  /* db */ GlobalStore().db,
+    //   startDate: startDate,
+    //   endDate: endDate,
+    // );
+    setState(() {});
   }
 
   @override
@@ -261,7 +276,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
                                       show: true,
                                       color: const Color(
                                         0xFF1976D2,
-                                      ).withOpacity(0.08),
+                                      ).withValues(alpha: 0.08),
                                     ),
                                   ),
                                 ],
@@ -896,6 +911,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
     }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
@@ -957,28 +973,21 @@ class AssetsTabPageState extends State<AssetsTabPage> {
         ),
         const SizedBox(height: 12),
         if (datas.isNotEmpty)
-          // 区间选择 pulldown
-          DropdownButton<String>(
-            value: _selectedPeriod,
-            items: _periodOptions
-                .map(
-                  (e) => DropdownMenuItem(
-                    value: e,
-                    child: Text(e, style: const TextStyle(fontSize: 13)),
-                  ),
-                )
-                .toList(),
-            onChanged: (v) {
-              if (v != null) {
-                setState(() {
-                  _selectedPeriod = v;
-                  // 这里可以根据 _selectedPeriod 重新过滤 priceHistory/costBasisHistory
-                  // 例如调用 refreshTotalAssetsAndCosts(period: v)
-                });
-              }
-            },
-            underline: SizedBox(),
-            style: const TextStyle(color: Colors.black87),
+          // 区间选择 pulldown 靠右
+          Padding(
+            padding: const EdgeInsets.only(right: 12, top: 4, bottom: 4),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _PlatformRangeSelector(
+                value: _selectedRangeKey,
+                values: _rangeMap.keys.toList(),
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _selectedRangeKey = v);
+                  _reloadByRange();
+                },
+              ),
+            ),
           ),
         _TransitionAssetChart(
           datas: datas,
@@ -1341,6 +1350,142 @@ class _TransitionAssetChartState extends State<_TransitionAssetChart>
           animationValue: _animation.value, // 0.0~1.0
         );
       },
+    );
+  }
+}
+
+// 平台自适应的区间选择器
+class _PlatformRangeSelector extends StatelessWidget {
+  const _PlatformRangeSelector({
+    required this.value,
+    required this.values,
+    required this.onChanged,
+  });
+
+  final String value;
+  final List<String> values;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    // 使用 Theme.of(context).platform 或 defaultTargetPlatform 判断
+    final platform = Theme.of(context).platform;
+    if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
+      return _CupertinoRangeSelector(
+        value: value,
+        values: values,
+        onChanged: onChanged,
+      );
+    }
+    // Material (Android / Web / Windows / Linux)
+    return DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: value,
+        isDense: true,
+        style: const TextStyle(fontSize: 13),
+        borderRadius: BorderRadius.circular(10),
+        items: values
+            .map((v) => DropdownMenuItem<String>(value: v, child: Text(v)))
+            .toList(),
+        onChanged: onChanged,
+      ),
+    );
+  }
+}
+
+class _CupertinoRangeSelector extends StatelessWidget {
+  const _CupertinoRangeSelector({
+    required this.value,
+    required this.values,
+    required this.onChanged,
+  });
+
+  final String value;
+  final List<String> values;
+  final ValueChanged<String?> onChanged;
+
+  void _showPicker(BuildContext context) {
+    final FixedExtentScrollController controller = FixedExtentScrollController(
+      initialItem: values.indexOf(value),
+    );
+    showCupertinoModalPopup(
+      context: context,
+      builder: (_) => Container(
+        height: 260,
+        color: AppColors.appDarkGrey,
+        child: Column(
+          children: [
+            SizedBox(
+              height: 44,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('取消'),
+                  ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    onPressed: () {
+                      final picked = values[controller.selectedItem];
+                      onChanged(picked);
+                      Navigator.pop(context);
+                    },
+                    child: const Text('确定'),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 0),
+            Expanded(
+              child: CupertinoPicker(
+                scrollController: controller,
+                itemExtent: 32,
+                magnification: 1.1,
+                squeeze: 1.0,
+                onSelectedItemChanged: (_) {},
+                children: values
+                    .map(
+                      (v) => Center(
+                        child: Text(
+                          v,
+                          style: const TextStyle(color: Colors.black),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoButton(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      minSize: 32,
+      borderRadius: BorderRadius.circular(8),
+      color: CupertinoColors.systemGrey5.resolveFrom(context),
+      onPressed: () => _showPicker(context),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(fontSize: 13, color: Colors.black),
+          ),
+          const SizedBox(width: 4),
+          const Icon(
+            CupertinoIcons.chevron_down,
+            size: 14,
+            color: Colors.black,
+          ),
+        ],
+      ),
     );
   }
 }

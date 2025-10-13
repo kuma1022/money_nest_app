@@ -19,6 +19,7 @@ class GlobalStore {
   //List<(DateTime, double)>? assetsTotalHistory; // 资产总值历史
   //List<(DateTime, double)>? costBasisHistory; // 成本基础历史
   DateTime? lastSyncTime; // 最近与服务器同步时间
+  DateTime? earliestHistoricalDataTime; // 取得的最早的历史数据时间
   String textForDebug = '';
 
   Future<void> loadFromPrefs() async {
@@ -26,6 +27,9 @@ class GlobalStore {
     userId = prefs.getString('userId');
     accountId = prefs.getInt('accountId');
     lastSyncTime = DateTime.tryParse(prefs.getString('lastSyncTime') ?? '');
+    earliestHistoricalDataTime = DateTime.tryParse(
+      prefs.getString('earliestHistoricalDataTime') ?? '',
+    );
     selectedCurrencyCode = prefs.getString('selectedCurrencyCode') ?? 'JPY';
     portfolio = jsonDecode(prefs.getString('portfolio') ?? '[]');
     historicalPortfolio =
@@ -64,6 +68,16 @@ class GlobalStore {
   Future<void> saveLastSyncTimeToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     prefs.setString('lastSyncTime', DateTime.now().toIso8601String());
+  }
+
+  Future<void> saveEarliestHistoricalDataTimeToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (earliestHistoricalDataTime != null) {
+      prefs.setString(
+        'earliestHistoricalDataTime',
+        earliestHistoricalDataTime!.toIso8601String(),
+      );
+    }
   }
 
   Future<void> saveSelectedCurrencyCodeToPrefs() async {
