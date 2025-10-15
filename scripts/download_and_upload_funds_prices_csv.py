@@ -80,9 +80,9 @@ def upload_files_batch(file_list):
                 )
                 break  # 成功就跳出重试循环
             except Exception as e:
-                if (e.error =="Duplicate"):
+                if "Duplicate" in str(e):
                     print(f"[WARNING] Duplicate file {filename} already exists.")
-                    break # 文件已存在，跳出重试循环
+                    break  # 文件已存在，跳出重试循环
                 if attempt < 3:
                     wait_time = 1 * attempt  # 指数退避，例如 1s, 2s
                     #print(f"[INFO] Retrying in {wait_time}s...")
