@@ -924,16 +924,24 @@ async function handleGetUserSummary(userId, startDate, endDate) {
   // 2. 查最近一个月的 stock_prices
   const { data: stockPrices } = await supabase.rpc('get_user_stock_prices', {
     p_user_id: userId,
-    ...(startDate ? { p_start_date: startDate } : {}),
-    ...(endDate ? { p_end_date: endDate } : {})
+    ...startDate ? {
+      p_start_date: startDate
+    } : {},
+    ...endDate ? {
+      p_end_date: endDate
+    } : {}
   });
   const t_db3 = Date.now();
   console.log(`[PERF] get_user_stock_prices: ${t_db3 - t_db2} ms`);
   // 3. 查最近一个月的 fx_rates
   const { data: fxRates } = await supabase.rpc('get_user_fx_rates', {
     p_user_id: userId,
-    ...(startDate ? { p_start_date: startDate } : {}),
-    ...(endDate ? { p_end_date: endDate } : {})
+    ...startDate ? {
+      p_start_date: startDate
+    } : {},
+    ...endDate ? {
+      p_end_date: endDate
+    } : {}
   });
   const t_db4 = Date.now();
   console.log(`[PERF] get_user_fx_rates: ${t_db4 - t_db3} ms`);

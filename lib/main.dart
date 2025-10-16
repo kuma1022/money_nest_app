@@ -38,31 +38,51 @@ void main() async {
     'Init userId and accountId time: ${t2.difference(t1).inMilliseconds} ms',
   );
 
-  // 判断是否同步服务器，如果没有同步，则进行同步
-  // 每天只同步一次（判断 lastSyncTime 是否是今天）
-  if (GlobalStore().lastSyncTime == null ||
-      !AppUtils().isSameDate(GlobalStore().lastSyncTime!, DateTime.now())) {
-    final String startDate = DateTime.now()
-        .subtract(Duration(days: 35))
-        .toIso8601String()
-        .substring(0, 10); // 过去 35 天的数据
-    final String endDate = DateTime.now().toIso8601String().substring(
-      0,
-      10,
-    ); // 今天的日期
+  // ---------------------------
+  // 计算需要同步的历史数据范围
+  // ---------------------------
+  final today = DateTime.now();
+  final startDate = today.subtract(Duration(days: 35));
+  final endDate = today;
+
+  // 格式化为 yyyy-MM-dd 字符串
+  String formatDate(DateTime date) =>
+      "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
+  // ---------------------------
+  // 判断是否第一次同步
+  // ---------------------------
+  if (GlobalStore().lastSyncTime['1M'] == null) {
+    print('First time sync data from server');
     await AppUtils().syncDataWithSupabase(
       userId,
       accountId,
       db,
-      startDate,
-      endDate,
+      formatDate(startDate),
+      formatDate(endDate),
     );
-    final t3_1 = DateTime.now();
-    print('Sync data time: ${t3_1.difference(t2).inMilliseconds} ms');
+    GlobalStore().lastSyncTime['1M'] = DateTime.now();
     await GlobalStore().saveLastSyncTimeToPrefs();
-    final t3_2 = DateTime.now();
-    print('Save last sync time: ${t3_2.difference(t3_1).inMilliseconds} ms');
+  } else if (!AppUtils().isSameDate(
+    GlobalStore().lastSyncTime['1M']!,
+    DateTime.now(),
+  )) {
+    print('Sync data from server');
+    await AppUtils().syncDataWithSupabase(
+      userId,
+      accountId,
+      db,
+      formatDate(startDate),
+      formatDate(endDate),
+      isHistoricalOnly: true,
+    );
+
+    GlobalStore().lastSyncTime['1M'] = DateTime.now();
+    await GlobalStore().saveLastSyncTimeToPrefs();
+  } else {
+    print('No need to fetch historical data');
   }
+
   final t3 = DateTime.now();
   print('Sync data time: ${t3.difference(t2).inMilliseconds} ms');
 

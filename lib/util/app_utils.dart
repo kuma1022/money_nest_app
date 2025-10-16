@@ -492,8 +492,9 @@ class AppUtils {
     int accountId,
     AppDatabase db,
     String startDate,
-    String endDate,
-  ) async {
+    String endDate, {
+    bool isHistoricalOnly = false,
+  }) async {
     final t0 = DateTime.now();
     final url = Uri.parse(
       '${AppUtils().supabaseApiUrl}/users/$userId/summary',

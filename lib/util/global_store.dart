@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class GlobalStore {
@@ -14,18 +15,17 @@ class GlobalStore {
       {}; // 历史持仓，key 是日期，value 是{持仓列表，成本基础，总资产}
   Map<String, double> currentStockPrices = {}; // 股票价格
   DateTime? stockPricesLastUpdated;
-  DateTime? lastSyncTime; // 最近与服务器同步时间
-  DateTime? earliestHistoricalDataTime; // 取得的最早的历史数据时间
+  Map<String, DateTime> lastSyncTime = {}; // 最近与服务器同步时间
   String textForDebug = '';
 
   Future<void> loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     userId = prefs.getString('userId');
     accountId = prefs.getInt('accountId');
-    lastSyncTime = DateTime.tryParse(prefs.getString('lastSyncTime') ?? '');
-    earliestHistoricalDataTime = DateTime.tryParse(
-      prefs.getString('earliestHistoricalDataTime') ?? '',
-    );
+    lastSyncTime = jsonDecode(prefs.getString('lastSyncTime') ?? '{}')
+        .map<String, DateTime>(
+          (key, value) => MapEntry(key, DateTime.parse(value)),
+        );
     selectedCurrencyCode = prefs.getString('selectedCurrencyCode') ?? 'JPY';
     portfolio = jsonDecode(prefs.getString('portfolio') ?? '[]');
     historicalPortfolio =
@@ -58,17 +58,7 @@ class GlobalStore {
 
   Future<void> saveLastSyncTimeToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString('lastSyncTime', DateTime.now().toIso8601String());
-  }
-
-  Future<void> saveEarliestHistoricalDataTimeToPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (earliestHistoricalDataTime != null) {
-      prefs.setString(
-        'earliestHistoricalDataTime',
-        earliestHistoricalDataTime!.toIso8601String(),
-      );
-    }
+    prefs.setString('lastSyncTime', jsonEncode(lastSyncTime));
   }
 
   Future<void> saveSelectedCurrencyCodeToPrefs() async {
