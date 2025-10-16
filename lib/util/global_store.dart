@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class GlobalStore {
@@ -13,6 +12,8 @@ class GlobalStore {
   int? accountId;
   // 选中的货币代码
   String selectedCurrencyCode = 'JPY';
+  // 虚拟货币API密钥
+  Map<String, Map<String, String>> cryptoApiKeys = {};
   // 当前持仓
   List<dynamic> portfolio = [];
   // 历史持仓，key 是日期，value 是{持仓列表，成本基础，总资产}
@@ -36,6 +37,13 @@ class GlobalStore {
     userId = prefs.getString('userId');
     accountId = prefs.getInt('accountId');
     selectedCurrencyCode = prefs.getString('selectedCurrencyCode') ?? 'JPY';
+    cryptoApiKeys =
+        (jsonDecode(prefs.getString('cryptoApiKeys') ?? '{}')
+                as Map<String, dynamic>)
+            .map(
+              (key, value) =>
+                  MapEntry(key, Map<String, String>.from(value as Map)),
+            );
     portfolio = jsonDecode(prefs.getString('portfolio') ?? '[]');
     historicalPortfolio =
         jsonDecode(
@@ -80,6 +88,14 @@ class GlobalStore {
   Future<void> saveSelectedCurrencyCodeToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     prefs.setString('selectedCurrencyCode', selectedCurrencyCode);
+  }
+
+  // -------------------------------------------------
+  // 保存数据到 SharedPreferences cryptoApiKeys
+  // -------------------------------------------------
+  Future<void> saveCryptoApiKeysToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('cryptoApiKeys', jsonEncode(cryptoApiKeys));
   }
 
   // -------------------------------------------------

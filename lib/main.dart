@@ -30,9 +30,17 @@ void main() async {
   GlobalStore().userId = userId;
   GlobalStore().accountId = accountId;
   GlobalStore().selectedCurrencyCode = 'JPY'; // 默认日元
+  GlobalStore().cryptoApiKeys = {
+    'bitflyer': {
+      'apiKey': '3XQ54WjxVseYCK8q4MMwpx',
+      'apiSecret': 's/SeVD0jTuK6e5D2wsm7xqdg1pg9+pbCsNhcQARjb0I=',
+    },
+  };
   await GlobalStore().saveUserIdToPrefs();
   await GlobalStore().saveAccountIdToPrefs();
   await GlobalStore().saveSelectedCurrencyCodeToPrefs();
+  await GlobalStore().saveCryptoApiKeysToPrefs();
+
   final t2 = DateTime.now();
   print(
     'Init userId and accountId time: ${t2.difference(t1).inMilliseconds} ms',
@@ -67,11 +75,19 @@ void main() async {
   final t5 = DateTime.now();
   print('Load providers time: ${t5.difference(t4).inMilliseconds} ms');
 
-  final api = BitflyerApi(
-    '3XQ54WjxVseYCK8q4MMwpx',
-    's/SeVD0jTuK6e5D2wsm7xqdg1pg9+pbCsNhcQARjb0I=',
-  );
-  fetchOrders(api);
+  // 测试调用 Bitflyer API
+  try {
+    final api = BitflyerApi();
+    List<dynamic> balances = await api.getBalances();
+    print('Bitflyer Balances: $balances');
+    List<dynamic> balanceHistory = await api.getBalanceHistory(
+      currencyCode: 'JPY',
+      count: 10,
+    );
+    print('Bitflyer Balance History: $balanceHistory');
+  } catch (e) {
+    print('Error initializing BitflyerApi: $e');
+  }
 
   runApp(
     MultiProvider(
@@ -93,19 +109,6 @@ void main() async {
   final t6 = DateTime.now();
   print('[PERF] runApp: ${t6.difference(t5).inMilliseconds} ms');
   print('[PERF] main() total: ${t6.difference(t0).inMilliseconds} ms');
-}
-
-void fetchOrders(api) async {
-  try {
-    final orders = await api.getbalancehistory(count: 10);
-    //GlobalStore().textForDebug = orders.toString();
-    //await GlobalStore().saveTextForDebugToPrefs();
-    print('取得結果: $orders');
-  } catch (e) {
-    //GlobalStore().textForDebug = 'エラー: $e';
-    //await GlobalStore().saveTextForDebugToPrefs();
-    print('エラー: $e');
-  }
 }
 
 class MyApp extends StatelessWidget {
