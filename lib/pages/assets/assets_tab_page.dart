@@ -5,9 +5,9 @@ import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_line_chart.dart';
 import 'package:money_nest_app/components/custom_tab.dart';
 import 'package:money_nest_app/components/glass_panel.dart';
-import 'package:money_nest_app/components/glass_tab.dart';
 import 'package:money_nest_app/components/summary_category_card.dart';
 import 'package:money_nest_app/components/total_asset_analysis_card.dart';
+import 'package:money_nest_app/models/categories.dart';
 import 'package:money_nest_app/pages/assets/stock_detail_page.dart';
 import 'package:money_nest_app/pages/assets/other_asset_manage_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
@@ -182,592 +182,6 @@ class AssetsTabPageState extends State<AssetsTabPage> {
                         buildDividendWidget(),
                       ],
                     ),
-                    const SizedBox(height: 16),
-
-                    // 资产总览区块
-                    TotalAssetAnalysisCard(),
-                    CardSection(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            '資産推移',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            height: 140,
-                            child: LineChart(
-                              LineChartData(
-                                gridData: FlGridData(show: false),
-                                titlesData: FlTitlesData(
-                                  leftTitles: AxisTitles(
-                                    sideTitles: SideTitles(
-                                      showTitles: true,
-                                      reservedSize: 40,
-                                      getTitlesWidget: (value, meta) {
-                                        return Text(
-                                          '¥${(value ~/ 10000)}万',
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.black54,
-                                          ),
-                                        );
-                                      },
-                                      interval: 200000,
-                                    ),
-                                  ),
-                                  bottomTitles: AxisTitles(
-                                    sideTitles: SideTitles(
-                                      showTitles: true,
-                                      getTitlesWidget: (value, meta) {
-                                        final months = [
-                                          '1月',
-                                          '2月',
-                                          '3月',
-                                          '4月',
-                                          '5月',
-                                          '6月',
-                                        ];
-                                        if (value.toInt() >= 0 &&
-                                            value.toInt() < months.length) {
-                                          return Text(
-                                            months[value.toInt()],
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.black54,
-                                            ),
-                                          );
-                                        }
-                                        return const SizedBox.shrink();
-                                      },
-                                    ),
-                                  ),
-                                  rightTitles: AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false),
-                                  ),
-                                  topTitles: AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false),
-                                  ),
-                                ),
-                                borderData: FlBorderData(show: false),
-                                minX: 0,
-                                maxX: 5,
-                                minY: 900000,
-                                maxY: 1300000,
-                                lineBarsData: [
-                                  LineChartBarData(
-                                    spots: [
-                                      FlSpot(0, 1000000),
-                                      FlSpot(1, 1050000),
-                                      FlSpot(2, 980000),
-                                      FlSpot(3, 1120000),
-                                      FlSpot(4, 1180000),
-                                      FlSpot(5, 1250000),
-                                    ],
-                                    isCurved: true,
-                                    color: const Color(0xFF1976D2),
-                                    barWidth: 3,
-                                    dotData: FlDotData(show: true),
-                                    belowBarData: BarAreaData(
-                                      show: true,
-                                      color: const Color(
-                                        0xFF1976D2,
-                                      ).withValues(alpha: 0.08),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: Row(
-                        children: List.generate(4, (i) {
-                          final tabs = ['概要', '日本株', '米国株', 'その他'];
-                          return Expanded(
-                            child: GestureDetector(
-                              onTap: () => setState(() => _tabIndex = i),
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 2,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _tabIndex == i
-                                      ? AppColors.appBackground
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: _tabIndex == i
-                                        ? const Color(0xFF1976D2)
-                                        : const Color(0xFFE5E6EA),
-                                    width: 1.2,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    tabs[i],
-                                    style: TextStyle(
-                                      color: _tabIndex == i
-                                          ? const Color(0xFF1976D2)
-                                          : Colors.black87,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-                    ),
-                    // tab内容区块
-                    if (_tabIndex == 0) ...[
-                      // 概要tab
-                      _AssetCategoryCard(
-                        title: '日本株',
-                        amount: '¥750,000',
-                        profit: '+¥125,000 (20%)',
-                        profitColor: const Color(0xFF388E3C),
-                        profitBg: const Color(0xFFE6F9F0),
-                        items: const [
-                          _AssetItem(
-                            code: '7203',
-                            name: 'トヨタ自動車',
-                            amount: '¥250,000',
-                            profit: '+¥50,000',
-                            profitColor: Color(0xFF388E3C),
-                          ),
-                          _AssetItem(
-                            code: '6758',
-                            name: 'ソニー',
-                            amount: '¥400,000',
-                            profit: '+¥75,000',
-                            profitColor: Color(0xFF388E3C),
-                          ),
-                          _AssetItem(
-                            code: '9984',
-                            name: 'ソフトバンク',
-                            amount: '¥100,000',
-                            profit: '+¥0',
-                            profitColor: Color(0xFF757575),
-                          ),
-                        ],
-                      ),
-                      _AssetCategoryCard(
-                        title: '米国株',
-                        amount: '¥450,000',
-                        profit: '+¥75,000 (20%)',
-                        profitColor: const Color(0xFF388E3C),
-                        profitBg: const Color(0xFFE6F9F0),
-                        items: const [
-                          _AssetItem(
-                            code: 'AAPL',
-                            name: 'Apple Inc.',
-                            amount: '¥180,000',
-                            profit: '+¥30,000',
-                            profitColor: Color(0xFF388E3C),
-                          ),
-                          _AssetItem(
-                            code: 'MSFT',
-                            name: 'Microsoft',
-                            amount: '¥210,000',
-                            profit: '+¥35,000',
-                            profitColor: Color(0xFF388E3C),
-                          ),
-                          _AssetItem(
-                            code: 'GOOGL',
-                            name: 'Alphabet',
-                            amount: '¥60,000',
-                            profit: '+¥10,000',
-                            profitColor: Color(0xFF388E3C),
-                          ),
-                        ],
-                      ),
-                      _AssetCategoryCard(
-                        title: '現金',
-                        amount: '¥250,000',
-                        profit: '+¥0 (0%)',
-                        profitColor: const Color(0xFF757575),
-                        profitBg: AppColors.appBackground,
-                        items: const [],
-                      ),
-                      _CardSection(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Text(
-                                  'その他資産',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                const Spacer(),
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF1976D2),
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 4,
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  icon: const Icon(Icons.add, size: 18),
-                                  label: const Text('管理'),
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const OtherAssetManagePage(),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              '¥4,870,000',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _OtherAssetItem(
-                              label: '銀行預金',
-                              subLabel: '現金',
-                              amount: '¥250,000',
-                            ),
-                            _OtherAssetItem(
-                              label: '金 (GOLD)',
-                              subLabel: '貴金属',
-                              amount: '¥120,000',
-                            ),
-                            _OtherAssetItem(
-                              label: 'ドル預金',
-                              subLabel: '外貨',
-                              amount: '¥30,000',
-                              subAmount: '→¥4,500,000',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else if (_tabIndex == 1) ...[
-                      // 日本株tab
-                      _CardSection(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Text(
-                                  '日本株',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                const Spacer(),
-                                const Text(
-                                  '¥750,000',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE6F9F0),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: const Text(
-                                    '+¥125,000 (20%)',
-                                    style: TextStyle(
-                                      color: Color(0xFF388E3C),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            // 日本株tab按钮布局：购买按钮大，配当按钮小且右侧
-                            Row(
-                              children: [
-                                Expanded(
-                                  flex: 2,
-                                  child: OutlinedButton.icon(
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: const Color(0xFF1976D2),
-                                      side: const BorderSide(
-                                        color: Color(0xFF1976D2),
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                    ),
-                                    icon: const Icon(Icons.add),
-                                    label: const Text('購入'),
-                                    onPressed: () {},
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  flex: 1,
-                                  child: OutlinedButton.icon(
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: const Color(0xFF1976D2),
-                                      side: const BorderSide(
-                                        color: Color(0xFF1976D2),
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                    ),
-                                    icon: const Icon(
-                                      Icons.card_giftcard,
-                                      size: 18,
-                                    ),
-                                    label: const Text('配当'),
-                                    onPressed: () {},
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            _AssetItem(
-                              code: '7203',
-                              name: 'トヨタ自動車',
-                              amount: '¥250,000',
-                              profit: '+¥50,000',
-                              profitColor: const Color(0xFF388E3C),
-                            ),
-                            _AssetItem(
-                              code: '6758',
-                              name: 'ソニー',
-                              amount: '¥400,000',
-                              profit: '+¥75,000',
-                              profitColor: const Color(0xFF388E3C),
-                            ),
-                            _AssetItem(
-                              code: '9984',
-                              name: 'ソフトバンク',
-                              amount: '¥100,000',
-                              profit: '+¥0',
-                              profitColor: const Color(0xFF757575),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else if (_tabIndex == 2) ...[
-                      // 米国株tab
-                      _CardSection(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Text(
-                                  '米国株',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                const Spacer(),
-                                const Text(
-                                  '¥450,000',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE6F9F0),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: const Text(
-                                    '+¥75,000 (20%)',
-                                    style: TextStyle(
-                                      color: Color(0xFF388E3C),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            // 米国株tab按钮布局：两个按钮等宽
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: const Color(0xFF1976D2),
-                                      side: const BorderSide(
-                                        color: Color(0xFF1976D2),
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                    ),
-                                    icon: const Icon(Icons.add),
-                                    label: const Text('購入'),
-                                    onPressed: () {},
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    style: OutlinedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: const Color(0xFF1976D2),
-                                      side: const BorderSide(
-                                        color: Color(0xFF1976D2),
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                    ),
-                                    icon: const Icon(
-                                      Icons.card_giftcard,
-                                      size: 18,
-                                    ),
-                                    label: const Text('配当'),
-                                    onPressed: () {},
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            _AssetItem(
-                              code: 'AAPL',
-                              name: 'Apple Inc.',
-                              amount: '¥180,000',
-                              profit: '+¥30,000',
-                              profitColor: const Color(0xFF388E3C),
-                            ),
-                            _AssetItem(
-                              code: 'MSFT',
-                              name: 'Microsoft',
-                              amount: '¥210,000',
-                              profit: '+¥35,000',
-                              profitColor: const Color(0xFF388E3C),
-                            ),
-                            _AssetItem(
-                              code: 'GOOGL',
-                              name: 'Alphabet',
-                              amount: '¥60,000',
-                              profit: '+¥10,000',
-                              profitColor: const Color(0xFF388E3C),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else if (_tabIndex == 3) ...[
-                      // その他tab
-                      _CardSection(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Text(
-                                  'その他資産',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                const Spacer(),
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF1976D2),
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 4,
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  icon: const Icon(Icons.add, size: 18),
-                                  label: const Text('管理'),
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const OtherAssetManagePage(),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              '¥4,870,000',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _OtherAssetItem(
-                              label: '銀行預金',
-                              subLabel: '現金',
-                              amount: '¥250,000',
-                            ),
-                            _OtherAssetItem(
-                              label: '金 (GOLD)',
-                              subLabel: '貴金属',
-                              amount: '¥120,000',
-                            ),
-                            _OtherAssetItem(
-                              label: 'ドル預金',
-                              subLabel: '外貨',
-                              amount: '¥30,000',
-                              subAmount: '→¥4,500,000',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                     const SizedBox(height: 80),
                   ],
                 ),
@@ -881,81 +295,82 @@ class AssetsTabPageState extends State<AssetsTabPage> {
 
   Widget createAssetList() {
     final totalStocksMap = AppUtils().getTotalAssetsAndCostsValue();
-    final double totalStocksSum = totalStocksMap['totalAssets'];
-    final double totalStocksCostsSum = totalStocksMap['totalCosts'];
-    final double totalStocksNetSum = totalStocksSum - totalStocksCostsSum;
-    final String totalStocksNetRate = totalStocksCostsSum == 0
-        ? '0.0%'
-        : '${AppUtils().formatNumberByTwoDigits((totalStocksNetSum / totalStocksCostsSum) * 100)}%';
+    final double stockTotalValue = totalStocksMap['totalAssets'];
+    final double stockTotalCost = totalStocksMap['totalCosts'];
+    final double stockTotalProfit = stockTotalValue - stockTotalCost;
+    final double stockTotalNetRate = stockTotalCost == 0
+        ? 0.0
+        : (stockTotalProfit / stockTotalCost) * 100;
+    double total = 0.0;
 
-    final List categories = [
-      {
-        'label': '株式',
-        'dotColor': AppColors.appChartGreen,
-        'rateLabel': '100%',
-        'value': AppUtils().formatMoney(
-          totalStocksSum,
-          GlobalStore().selectedCurrencyCode!,
-        ),
-        'profitText': AppUtils().formatMoney(
-          totalStocksNetSum,
-          GlobalStore().selectedCurrencyCode!,
-        ),
-        'profitRateText': '($totalStocksNetRate)',
-        'profitColor': AppColors.appUpGreen,
-        'subCategories': [],
-      },
-      {
-        'label': '投資信託',
-        'dotColor': AppColors.appDarkGrey,
-        'rateLabel': '0%',
-        'value': '¥0',
-        'profitText': '¥0',
-        'profitRateText': '(0%)',
-        'profitColor': AppColors.appGrey,
-        'subCategories': [],
-      },
-      {
-        'label': 'FX（為替）',
-        'dotColor': AppColors.appChartBlue,
-        'rateLabel': '0%',
-        'value': '¥0',
-        'profitText': '¥0',
-        'profitRateText': '(0%)',
-        'profitColor': AppColors.appGrey,
-        'subCategories': [],
-      },
-      {
-        'label': '暗号資産',
-        'dotColor': AppColors.appChartPurple,
-        'rateLabel': '0%',
-        'value': '¥0',
-        'profitText': '¥0',
-        'profitRateText': '(+0%)',
-        'profitColor': AppColors.appGrey,
-        'subCategories': [],
-      },
-      {
-        'label': '貴金属',
-        'dotColor': AppColors.appChartOrange,
-        'rateLabel': '0%',
-        'value': '¥0',
-        'profitText': '¥0',
-        'profitRateText': '(0%)',
-        'profitColor': AppColors.appGrey,
-        'subCategories': [],
-      },
-      {
-        'label': 'その他資産',
-        'dotColor': AppColors.appChartLightBlue,
-        'rateLabel': '0%',
-        'value': '¥0',
-        'profitText': '¥0',
-        'profitRateText': '(+0%)',
-        'profitColor': AppColors.appGrey,
-        'subCategories': [],
-      },
-    ];
+    final List categories = Categories.values
+        .where((cat) => cat.type == 'asset')
+        .map((category) {
+          Color dotColor;
+          double value = 0.0;
+          double profit = 0.0;
+          double profitRate = 0.0;
+          switch (category.code) {
+            case 'stock':
+              dotColor = AppColors.appChartGreen;
+              value = stockTotalValue;
+              profit = stockTotalProfit;
+              profitRate = stockTotalNetRate;
+              break;
+            case 'fund':
+              dotColor = AppColors.appDarkGrey;
+              break;
+            case 'fx':
+              dotColor = AppColors.appChartBlue;
+              break;
+            case 'crypto':
+              dotColor = AppColors.appChartPurple;
+              break;
+            case 'metal':
+              dotColor = AppColors.appChartOrange;
+              break;
+            case 'other_asset':
+              dotColor = AppColors.appChartLightBlue;
+              break;
+            default:
+              dotColor = AppColors.appGrey;
+          }
+
+          total += value;
+
+          return {
+            'label': category.name,
+            'dotColor': dotColor,
+            'rateLabel': '0%',
+            'value': value,
+            'valueLabel': AppUtils().formatMoney(
+              value,
+              GlobalStore().selectedCurrencyCode!,
+            ),
+            'profitText': AppUtils().formatMoney(
+              profit,
+              GlobalStore().selectedCurrencyCode!,
+            ),
+            'profitRateText':
+                '(${AppUtils().formatNumberByTwoDigits(profitRate)}%)',
+            'profitColor': profit > 0
+                ? AppColors.appUpGreen
+                : profit < 0
+                ? AppColors.appDownRed
+                : AppColors.appGrey,
+            'subCategories': [],
+            'displayOrder': category.displayOrder,
+          };
+        })
+        .toList();
+
+    // 计算各个资产类别的占比
+    for (var category in categories) {
+      final rate = total == 0 ? 0.0 : (category['value'] / total) * 100;
+      category['rateLabel'] = '${AppUtils().formatNumberByTwoDigits(rate)}%';
+    }
+    // 按照 displayOrder 排序
+    categories.sort((a, b) => a['displayOrder'].compareTo(b['displayOrder']));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -964,7 +379,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
           label: category['label'],
           dotColor: category['dotColor'],
           rateLabel: category['rateLabel'],
-          value: category['value'],
+          value: category['valueLabel'],
           profitText: category['profitText'],
           profitRateText: category['profitRateText'],
           profitColor: category['profitColor'],
@@ -1520,7 +935,7 @@ class _CupertinoRangeSelector extends StatelessWidget {
       context: context,
       builder: (_) => Container(
         height: 260,
-        color: AppColors.appDarkGrey,
+        color: Colors.white,
         child: Column(
           children: [
             SizedBox(

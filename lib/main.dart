@@ -44,9 +44,10 @@ void main() async {
     final t3_1 = DateTime.now();
     print('Sync data time: ${t3_1.difference(t2).inMilliseconds} ms');
     await GlobalStore().saveLastSyncTimeToPrefs();
-    final t3_2 = DateTime.now();
-    print('Save last sync time: ${t3_2.difference(t3_1).inMilliseconds} ms');
+  } else {
+    print('No need to fetch historical data');
   }
+
   final t3 = DateTime.now();
   print('Sync data time: ${t3.difference(t2).inMilliseconds} ms');
 
