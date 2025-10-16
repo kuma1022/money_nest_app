@@ -13,13 +13,11 @@
 | 路径 | 方法 | RPC 名称 | 功能说明 |
 |------|------|----------|---------|
 | `/stock-search` | POST | `search_stocks` | 股票搜索，支持模糊查询 ticker，按交易所过滤 |
-| `/users/:userId/latest` | GET | `get_user_info_latest` | 获取指定用户的最新信息（如资产总额、最新持仓、最近交易等） |
-| `/users/:userId/stocks/trades` | POST | `insert_trade_with_mappings` | 新增股票交易，卖出时记录 `trade_sell_mappings` |
-| `/users/:userId/stocks/trades` | PUT | `update_trade_with_mappings` | 更新交易记录，不允许修改 `action`、`stock_id`、`account_id` |
-| `/users/:userId/stocks/trades` | DELETE | `delete_trade_with_mappings` | 删除交易记录，自动删除相关 `trade_sell_mappings` |
-| `/users/:userId/assets` | POST | `insert_asset` | 新增资产信息 |
-| `/users/:userId/assets` | PUT | `update_asset` | 更新资产信息 |
-| `/users/:userId/assets` | DELETE | `delete_asset` | 删除资产信息 |
+| `/users/:userId/summary` | GET | `get_user_account_info` | 获取指定用户的最新信息（如资产总额、最新持仓、最近交易等） |
+| `/users/:userId/assets` | POST | `insert_asset_with_mappings` | 新增交易记录，卖出时记录 `trade_sell_mappings` |
+| `/users/:userId/assets` | PUT | `update_asset_with_mappings` | 更新交易记录，不允许修改 `action`、`asset_id`、`account_id` |
+| `/stock-prices` | GET | `search-stock-prices` | 取得股票历史价格数据 |
+| `/users/:userId/assets` | DELETE | `delete_asset_with_mappings` | 删除交易记录，自动删除相关 `trade_sell_mappings` |
 | `/users/:userId/assets/values` | POST | `insert_asset_value` | 添加资产每日金额记录 |
 | `/users/:userId/assets/values` | DELETE | `delete_asset_value` | 删除资产每日金额记录 |
 | `/users/:userId/dividends` | POST | `insert_dividend` | 新增分红记录 |

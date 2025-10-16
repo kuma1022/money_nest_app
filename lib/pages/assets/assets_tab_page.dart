@@ -26,6 +26,7 @@ class AssetsTabPage extends StatefulWidget {
 }
 
 class AssetsTabPageState extends State<AssetsTabPage> {
+  bool isLoading = false;
   int _tabIndex = 0; // 0:概要 1:日本株 2:米国株 3:その他
   int _selectedTransitionIndex = 0; // 0:资产, 1:负債
   num totalAssets = 0;
@@ -59,6 +60,9 @@ class AssetsTabPageState extends State<AssetsTabPage> {
 
   // 刷新总资产和总成本
   Future<void> refreshTotalAssetsAndCosts() async {
+    setState(() {
+      isLoading = true;
+    });
     // 计算总资产和总成本
     final totalMap = AppUtils().getTotalAssetsAndCostsValue();
     setState(() {
@@ -75,6 +79,9 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       priceHistory.add((date, item['assetsTotal'] as double? ?? 0.0));
       costBasisHistory.add((date, item['costBasis'] as double? ?? 0.0));
     }
+    setState(() {
+      isLoading = false;
+    });
   }
 
   List<Map<String, dynamic>> groupConsecutive(
@@ -1080,10 +1087,18 @@ class AssetsTabPageState extends State<AssetsTabPage> {
               ),
             ),
           ),
-        _TransitionAssetChart(
-          datas: datas,
-          currencyCode: GlobalStore().selectedCurrencyCode ?? 'JPY',
-        ),
+        if (isLoading)
+          const SizedBox(
+            height: 200,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        if (!isLoading && datas.isNotEmpty)
+          _TransitionAssetChart(
+            datas: datas,
+            currencyCode: GlobalStore().selectedCurrencyCode ?? 'JPY',
+          ),
+        if (!isLoading && datas.isEmpty)
+          const SizedBox(height: 200, child: Center(child: Text('データがありません'))),
       ],
     );
   }

@@ -1780,9 +1780,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
           }
         }
         // 计算并保存资产总额历史到本地
-        final db = AppDatabase();
-        await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs(db);
-        //await GlobalStore().calculateAndSaveAssetsTotalHistoryToPrefs(db);
+        await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs();
       } else {
         // 負債tab保存逻辑
         // ...
@@ -1793,12 +1791,11 @@ class _TradeAddPageState extends State<TradeAddPage> {
       if (success) {
         final db = AppDatabase();
         // 刷新股票价格
-        await AppUtils().getStockPricesByYHFinanceAPI(db);
+        await AppUtils().getStockPricesByYHFinanceAPI();
         // 刷新全局数据
         await AppUtils().calculatePortfolioValue(
           GlobalStore().userId!,
           GlobalStore().accountId!,
-          db,
         );
         await _showSuccessDialog();
         widget.onClose != null

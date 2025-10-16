@@ -258,18 +258,19 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         icons: icons,
                         labels: titles,
                         onTap: (index) {
+                          setState(() {
+                            _currentIndex = index;
+                          });
                           // Home Tab刷新资产和成本
                           if (index == 0) {
                             homeTabPageKey.currentState
                                 ?.refreshTotalAssetsAndCosts();
                           } else if (index == 1) {
-                            // 资产tab刷新数据
-                            assetsTabPageKey.currentState
-                                ?.refreshTotalAssetsAndCosts();
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              assetsTabPageKey.currentState
+                                  ?.refreshTotalAssetsAndCosts();
+                            });
                           }
-                          setState(() {
-                            _currentIndex = index;
-                          });
                         },
                         isDark: isDark,
                       ),

@@ -13,7 +13,7 @@ Deno.serve(async (req)=>{
     const path = url.pathname;
     const method = req.method;
     console.log('Incoming request:', method, path);
-    // ------------------- /stock-search GET -------------------
+    // ------------------- GET /stock-search 股票搜索 -------------------
     if (path.endsWith('/stock-search') && method === 'GET') {
       const q = (url.searchParams.get('q') || '').trim();
       const exchange = (url.searchParams.get('exchange') || '').trim() || null;
@@ -51,17 +51,42 @@ Deno.serve(async (req)=>{
         }
       });
     }
+
+    // ------------------- POST /auth/register 注册用户 -------------------
     if (path.startsWith('/auth/register') && method === 'POST') {
       return handleRegister(await req.json());
     }
+
+    // ------------------- POST /auth/login 登录用户 -------------------
     if (path.startsWith('/auth/login') && method === 'POST') {
       return handleLogin(await req.json());
     }
+
+    // ------------------- 订阅相关 -------------------
     if (path.startsWith('/subscriptions')) {
+      // POST /subscriptions 购买/激活订阅
       if (method === 'POST') return handlePurchaseSubscription(await req.json());
+      // GET /subscriptions 查询订阅状态
       if (method === 'GET') return handleCheckSubscription(await req.json());
+      // DELETE /subscriptions 取消订阅
       if (method === 'DELETE') return handleCancelSubscription(await req.json());
     }
+
+    // ------------------- GET /stock-prices 股票历史价格数据 -------------------
+    if (path.endsWith('/stock-prices') && method === 'GET') {
+      const stockIds = (url.searchParams.get('stock_ids') || '').trim().split(',');
+      const startDate = url.searchParams.get('start_date') || null;
+      const endDate = url.searchParams.get('end_date') || null;
+      if (stockIds.length === 0 || startDate === null || endDate === null) {
+        return new Response(JSON.stringify({
+          error: 'Missing parameter: stock_ids or start_date or end_date'
+        }), {
+          status: 400
+        });
+      }
+      return handleGetStockPrices(stockIds, startDate, endDate);
+    }
+
     // ------------------- 用户相关 -------------------
     const userMatch = path.match(/\/users\/([^/]+)\/(.*)$/);
     if (!userMatch) return new Response(JSON.stringify({
@@ -71,41 +96,17 @@ Deno.serve(async (req)=>{
     });
     const userId = userMatch[1];
     const subPath = userMatch[2];
-    // ------------------- 获取指定用户的最新信息（如资产总额、最新持仓、最近交易等） -------------------
-    if (subPath === 'latest') {
-      if (method === 'GET') return handleGetUserInfoLatest(userId);
-    }
-    // ------------------- 股票交易 -------------------
-    if (subPath === 'stocks/trades') {
-      if (method === 'POST') return handleCreateTrade(userId, await req.json());
-      if (method === 'PUT') {
-        const body = await req.json();
-        const tradeId = body.trade_id;
-        if (!tradeId) return new Response(JSON.stringify({
-          error: 'Missing trade_id'
-        }), {
-          status: 400
-        });
-        return handleUpdateTrade(userId, tradeId, body);
-      }
-      if (method === 'DELETE') {
-        const body = await req.json();
-        const tradeId = body.trade_id;
-        if (!tradeId) return new Response(JSON.stringify({
-          error: 'Missing trade_id'
-        }), {
-          status: 400
-        });
-        return handleDeleteTrade(userId, tradeId);
-      }
-    }
-    // ------------------- 资产信息 -------------------
+    // ------------------- 资产交易信息 -------------------
     if (subPath === 'assets') {
       const body = await req.json();
+      // POST /users/:userId/assets 新增交易记录，卖出时记录 trade_sell_mappings
       if (method === 'POST') return handleCreateAsset(userId, body);
+      // PUT /users/:userId/assets 更新交易记录，不允许修改 action、asset_id、account_id
       if (method === 'PUT') return handleUpdateAsset(userId, body);
+      // DELETE /users/:userId/assets 删除交易记录，自动删除相关 trade_sell_mappings
       if (method === 'DELETE') return handleDeleteAsset(userId, body);
     }
+
     // ------------------- 资产金额记录 -------------------
     if (subPath === 'assets/values') {
       const body = await req.json();
@@ -125,9 +126,7 @@ Deno.serve(async (req)=>{
     }
     // ------------------- 用户摘要 -------------------
     if (subPath === 'summary' && method === 'GET') {
-      const startDate = url.searchParams.get('start_date');
-      const endDate = url.searchParams.get('end_date');
-      return handleGetUserSummary(userId, startDate, endDate);
+      return handleGetUserSummary(userId);
     }
     // ------------------- 用户历史记录 -------------------
     if (subPath === 'history' && method === 'GET') {
@@ -280,271 +279,148 @@ async function handleCancelSubscription(body) {
     status: 200
   });
 }
-// ------------------- 获取指定用户的最新信息（如资产总额、最新持仓、最近交易等） -------------------
-async function handleGetUserInfoLatest(userId) {
-  const t0 = Date.now();
-  // 1️⃣ 拉取账户相关信息
-  const t1 = Date.now();
-  const { data: accountData } = await supabase.rpc('get_user_account_info', {
-    p_user_id: userId
+
+// ------------------- GET /stock-prices 股票历史价格数据 -------------------
+async function handleGetStockPrices(stockIds, startDate, endDate) {
+  const { data: stockPrices, error } = await supabase.rpc('get_stock_prices', {
+    p_stock_ids: stockIds,
+    p_start_date: startDate,
+    p_end_date: endDate
   });
-  const t2 = Date.now();
-  console.log(`[PERF] get_user_account_info: ${t2 - t1} ms`);
-  // 2️⃣ 拉取 stock_prices（stock-level）
-  const { data: stockPrices } = await supabase.rpc('get_user_stock_prices', {
-    p_user_id: userId
+  if (error) return new Response(JSON.stringify({
+    error: error.message
+  }), {
+    status: 500
   });
-  const t3 = Date.now();
-  console.log(`[PERF] get_user_stock_prices: ${t3 - t2} ms`);
-  // 3️⃣ 拉取 fx_rates（account-level）
-  const { data: fxRates } = await supabase.rpc('get_user_fx_rates', {
-    p_user_id: userId
-  });
-  const t4 = Date.now();
-  console.log(`[PERF] get_user_fx_rates: ${t4 - t3} ms`);
-  // 4️⃣ 组装账户基本信息
-  const accountsMap = {};
-  accountData.forEach((row)=>{
-    const accId = row.account_id;
-    if (!accountsMap[accId]) {
-      accountsMap[accId] = {
-        account_id: accId,
-        account_name: row.account_name,
-        type: row.type || '',
-        trade_records: [],
-        stocks: [],
-        trade_sell_mapping: [],
-        fx_rates: []
+
+  const { oldest_date, error: oldestDateErr } = await supabase.rpc('get_oldest_stock_price_date');
+  if (oldestDateErr) {
+    return new Response(JSON.stringify({
+      error: oldestDateErr.message
+    }), {
+      status: 500
+    });
+  }
+
+  if (!oldest_date || !stockPrices?.length) {
+    return new Response(JSON.stringify({
+      error: 'No stock price data found'
+    }), {
+      status: 404
+    });
+  }
+
+  // 分配 stock_prices
+  let stocks = {};
+  stockPrices.forEach((sp)=>{
+    if (!stocks[sp.stock_id]) {
+      stocks[sp.stock_id] = {
+        stock_id: sp.stock_id,
+        exchange: sp.exchange,
+        ticker: sp.ticker,
+        stock_prices: [{price_at: sp.price_at, price: sp.price}]
       };
-    }
-    const acc = accountsMap[accId];
-    // 添加交易记录，去重
-    if (!acc.trade_record_ids) acc.trade_record_ids = new Set();
-    if (row.trade_id && !acc.trade_record_ids.has(row.trade_id)) {
-      acc.trade_record_ids.add(row.trade_id);
-      acc.trade_records.push(row.trade);
-    }
-    // 添加 trade_sell_mapping，去重
-    if (!acc.trade_sell_mapping_ids) acc.trade_sell_mapping_ids = new Set();
-    if (row.trade_sell_mapping_id && !acc.trade_sell_mapping_ids.has(row.trade_sell_mapping_id)) {
-      acc.trade_sell_mapping_ids.add(row.trade_sell_mapping_id);
-      acc.trade_sell_mapping.push(row.trade_sell_mapping);
-    }
-    // 添加股票，去重
-    if (!acc.stock_ids) acc.stock_ids = new Set();
-    if (row.stock_id && !acc.stock_ids.has(row.stock_id)) {
-      acc.stock_ids.add(row.stock_id);
-      // 初始化 stock 时附带空的 stock_prices
-      acc.stocks.push({
-        ...row.stock,
-        stock_prices: []
-      });
+    } else {
+      stocks[sp.stock_id]['stock_prices'].push({price_at: sp.price_at, price: sp.price});
     }
   });
-  const t5 = Date.now();
-  console.log(`[PERF] assemble accountData: ${t5 - t4} ms`);
-  // 🔹分配 fx_rates
-  if (fxRates) {
-    fxRates.forEach((fr)=>{
-      const acc = accountsMap[fr.account_id];
-      if (acc) {
-        if (!acc.fx_rate_ids) acc.fx_rate_ids = new Set();
-        if (!acc.fx_rate_ids.has(fr.fx_rate_id)) {
-          acc.fx_rate_ids.add(fr.fx_rate_id);
-          acc.fx_rates.push(fr.fx_rate);
-        }
-      }
-    });
-  }
-  const t6 = Date.now();
-  console.log(`[PERF] assign fxRates: ${t6 - t5} ms`);
-  // 🔹分配 stock_prices
-  if (stockPrices) {
-    stockPrices.forEach((sp)=>{
-      for (const acc of Object.values(accountsMap)){
-        const stock = acc.stocks.find((s)=>s.id === sp.stock_id);
-        if (stock) {
-          if (!stock._stock_price_ids) stock._stock_price_ids = new Set();
-          const key = `${sp.stock_price.price_at}_${sp.stock_price.price}`;
-          if (!stock._stock_price_ids.has(key)) {
-            stock._stock_price_ids.add(key);
-            stock.stock_prices.push({
-              price: sp.stock_price.price,
-              price_at: sp.stock_price.price_at
-            });
-          }
-        }
-      }
-    });
-  }
-  const t7 = Date.now();
-  console.log(`[PERF] assign stockPrices: ${t7 - t6} ms`);
-  // 🔹补充历史价格（并发+缓存优化）
-  const t8 = Date.now();
-  // 1. 构建缓存
-  const historyCache = new Map();
-  // 2. 并发限制
-  const limit = pLimit(8); // 最多8个并发
-  // 3. 收集所有需要补历史价格的 stock
-  const supplementTasks = [];
-  for (const acc of Object.values(accountsMap)){
-    for (const stock of acc.stocks){
+
+  if (new Date(oldest_date) > new Date(startDate)) {
+    // 请求的 startDate 早于数据库中最早的价格日期，从外部数据源补齐
+    const supplementTasks = [];
+    const historyCache = new Map();
+    const limit = pLimit(8); // 最多8个并发
+    for (const stock of Object.values(stocks)) {
       const priceList = stock.stock_prices || [];
-      // 找当前股票对应的 trade_records 的最早 trade_date
-      const tradeDates = acc.trade_records.filter((tr)=>tr.asset_id === stock.id).map((tr)=>new Date(tr.trade_date));
-      const earliestTradeDate = tradeDates.length ? new Date(Math.min(...tradeDates)) : null;
-      if (!earliestTradeDate) continue;
-      const thresholdDate = new Date(earliestTradeDate);
-      thresholdDate.setDate(thresholdDate.getDate() - 3);
-      const earliestPriceDate = priceList.length ? new Date(priceList[0].price_at) : null;
-      if (!earliestPriceDate || earliestPriceDate > thresholdDate) {
-        // 需要补历史价格
-        supplementTasks.push(limit(async ()=>{
-          const cacheKey = `${stock.exchange}_${stock.ticker}`;
-          let parsedRows = historyCache.get(cacheKey);
-          if (!parsedRows) {
-            try {
-              const bucket = 'money_grow_app';
-              const objectPath = `historical_prices_split/${stock.exchange}_github/${stock.exchange}/${stock.ticker}.csv`;
-              const { data: downloadData, error: dlErr } = await supabase.storage.from(bucket).download(objectPath);
-              if (dlErr || !downloadData) {
-                stock.warning = 'Could not download historical price CSV from storage';
-                return;
-              }
-              const text = await downloadData.text();
-              const lines = text.trim().split('\n');
-              parsedRows = [];
-              // 从尾部往前解析，取 price_at >= earliestTradeDate
-              const hasHeader = isNaN(Date.parse(lines[0].split(',')[0]));
-              const startIdx = hasHeader ? 1 : 0;
-              for(let i = lines.length - 1; i >= startIdx; i--){
-                const [priceAtStr, priceStr] = lines[i].split(',');
-                const priceAt = new Date(priceAtStr);
-                if (priceAt >= earliestTradeDate) {
-                  parsedRows.push({
-                    price_at: priceAtStr,
-                    price: parseFloat(priceStr)
-                  });
-                } else break;
-              }
-              parsedRows.reverse();
-              historyCache.set(cacheKey, parsedRows);
-            } catch (storageErr) {
-              stock.warning = 'Error while fetching/parsing historical prices';
+      // 需要补历史价格
+      supplementTasks.push(limit(async ()=>{
+        const cacheKey = `${stock.exchange}_${stock.ticker}`;
+        let parsedRows = historyCache.get(cacheKey);
+        if (!parsedRows) {
+          try {
+            const bucket = 'money_grow_app';
+            const objectPath = `historical_prices_split/${stock.exchange}_github/${stock.exchange}/${stock.ticker}.csv`;
+            const { data: downloadData, error: dlErr } = await supabase.storage.from(bucket).download(objectPath);
+            if (dlErr || !downloadData) {
+              stock.warning = 'Could not download historical price CSV from storage';
               return;
             }
-          }
-          // 合并已有 + 补充
-          const combined = [
-            ...parsedRows || [],
-            ...priceList
-          ];
-          combined.sort((a, b)=>new Date(a.price_at) - new Date(b.price_at));
-          // 去重
-          const unique = [];
-          const seen = new Set();
-          for (const r of combined){
-            const key = `${r.price_at}_${r.price}`;
-            if (!seen.has(key)) {
-              seen.add(key);
-              unique.push(r);
+            const text = await downloadData.text();
+            const lines = text.trim().split('\n');
+            parsedRows = [];
+            // 从尾部往前解析，取 price_at >= earliestTradeDate
+            const hasHeader = isNaN(Date.parse(lines[0].split(',')[0]));
+            const startIdx = hasHeader ? 1 : 0;
+            for(let i = lines.length - 1; i >= startIdx; i--){
+              const [priceAtStr, priceStr] = lines[i].split(',');
+              const priceAt = new Date(priceAtStr);
+              if (priceAt >= new Date(startDate)) {
+                parsedRows.push({
+                  price_at: priceAtStr,
+                  price: parseFloat(priceStr)
+                });
+              } else break;
             }
+            parsedRows.reverse();
+            historyCache.set(cacheKey, parsedRows);
+          } catch (storageErr) {
+            stock.warning = 'Error while fetching/parsing historical prices';
+            return;
           }
-          stock.stock_prices = unique;
-        }));
-      }
+        }
+        // 合并已有 + 补充
+        const combined = [
+          ...(parsedRows || []),
+          ...priceList
+        ];
+        combined.sort((a, b)=>new Date(a.price_at) - new Date(b.price_at));
+        // 去重
+        const unique = [];
+        const seen = new Set();
+        for (const r of combined){
+          const key = `${r.price_at}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(r);
+          }
+        }
+        stock.stock_prices = unique;
+      }));
     }
+    // 并发执行所有补历史价格任务
+    await Promise.all(supplementTasks);
   }
-  // 4. 并发执行所有补历史价格任务
-  await Promise.all(supplementTasks);
-  const t9 = Date.now();
-  console.log(`[PERF] supplement historical prices (concurrent): ${t9 - t8} ms`);
-  const result = Object.values(accountsMap).map((acc)=>{
-    const { trade_record_ids, trade_sell_mapping_ids, stock_ids, fx_rate_ids, ...rest } = acc;
-    return rest;
+
+  // 拉取 fx_rates
+  const { data: fxRates, error: fxRatesErr } = await supabase.rpc('get_fx_rates', {
+    p_start_date: startDate,
+    p_end_date: endDate
   });
-  const t10 = Date.now();
-  console.log(`[PERF] total handleGetUserInfoLatest: ${t10 - t0} ms`);
-  return new Response(JSON.stringify({
-    success: true,
-    user_id: userId,
-    account_info: result
-  }), {
-    status: 200
+  if (fxRatesErr) {
+    return new Response(JSON.stringify({
+      error: fxRatesErr.message
+    }), {
+      status: 500
+    });
+  }
+
+  // 转为数组
+  const json = JSON.stringify({
+    stocks: stocks || [],
+    fx_rates: fxRates || []
+  });
+  // Gzip 压缩
+  const gzipped = gzip(new TextEncoder().encode(json));
+  return new Response(gzipped, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Encoding': 'gzip'
+    }
   });
 }
+
 // ------------------- 股票交易处理 -------------------
-async function handleCreateTrade(userId, body) {
-  const tradeDate = new Date(body.trade_date + "T00:00:00Z");
-  const { data, error } = await supabase.rpc("insert_trade_with_mappings", {
-    p_user_id: userId,
-    p_trade_date: tradeDate.toISOString(),
-    p_action: body.action,
-    p_stock_id: body.stock_id,
-    p_trade_type: body.trade_type,
-    p_quantity: body.quantity,
-    p_price: body.price,
-    p_fee: body.fee,
-    p_fee_currency: body.fee_currency,
-    p_remark: body.remark ?? null,
-    p_account_id: body.account_id ?? null,
-    p_sell_mappings: body.sell_mappings ?? []
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true,
-    trade: data
-  }), {
-    status: 200
-  });
-}
-async function handleUpdateTrade(userId, tradeId, body) {
-  const tradeDate = new Date(body.trade_date + "T00:00:00Z");
-  const { data, error } = await supabase.rpc("update_trade_with_mappings", {
-    p_trade_id: tradeId,
-    p_user_id: userId,
-    p_trade_date: tradeDate.toISOString(),
-    p_trade_type: body.trade_type,
-    p_quantity: body.quantity,
-    p_price: body.price,
-    p_fee: body.fee,
-    p_fee_currency: body.fee_currency,
-    p_remark: body.remark ?? null,
-    p_sell_mappings: body.sell_mappings ?? []
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true,
-    trade: data
-  }), {
-    status: 200
-  });
-}
-async function handleDeleteTrade(userId, tradeId) {
-  const { error } = await supabase.rpc("delete_trade_with_mappings", {
-    p_trade_id: tradeId,
-    p_user_id: userId
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true
-  }), {
-    status: 200
-  });
-}
-// ------------------- 资产信息处理 -------------------
 async function handleCreateAsset(userId, body) {
   // Basic validation
   if (!userId) {
@@ -589,7 +465,7 @@ async function handleCreateAsset(userId, body) {
     }
   }
   try {
-    const { data, error } = await supabase.rpc('insert_asset', {
+    const { data, error } = await supabase.rpc('insert_asset_with_mappings', {
       p_user_id: userId,
       p_account_id: body.account_id ?? null,
       p_asset_type: body.asset_type,
@@ -606,7 +482,8 @@ async function handleCreateAsset(userId, body) {
       p_fee_amount: body.fee_amount ?? null,
       p_fee_currency: body.fee_currency ?? null,
       p_manual_rate_input: body.manual_rate_input ?? null,
-      p_remark: body.remark ?? null
+      p_remark: body.remark ?? null,
+      p_sell_mappings: body.sell_mappings ?? []
     });
     if (error) {
       // RPC error
@@ -638,115 +515,14 @@ async function handleCreateAsset(userId, body) {
           buy_id: m.buy_id,
           quantity: m.quantity
         }));
-      // Insert mappings in a single call
-      const { error: mapErr } = await supabase.from('trade_sell_mappings').insert(mappings);
-      if (mapErr) {
-        // Consider rolling back the created trade record in production; here we report error
-        return new Response(JSON.stringify({
-          error: 'Failed to insert sell mappings',
-          details: mapErr.message
-        }), {
-          status: 500
-        });
-      }
-    }
-    // After mappings inserted (or if not sell), fetch historical prices
-    // Query stock_prices where stock_id = body.asset_id and price_at >= body.trade_date
-    const { data: pricesData, error: pricesErr } = await supabase.from('stock_prices').select('price, price_at').eq('stock_id', body.asset_id).gte('price_at', body.trade_date).order('price_at', {
-      ascending: true
-    });
-    if (pricesErr) {
-      // Non-fatal? Return error to caller per original pattern
-      return new Response(JSON.stringify({
-        error: 'Failed to fetch stock prices',
-        details: pricesErr.message
-      }), {
-        status: 500
-      });
-    }
-    // Normalize to list of { price, price_at }
-    let priceList = Array.isArray(pricesData) ? pricesData.map((p)=>({
-        price: p.price,
-        price_at: p.price_at
-      })) : [];
-    // If earliest available price_at is greater than trade_date, fetch from Storage parquet
-    const earliestDate = priceList.length ? new Date(priceList[0].price_at) : null;
-    const tradeDate = new Date(body.trade_date);
-    if (!earliestDate || earliestDate > tradeDate) {
-      try {
-        const bucket = 'money_grow_app';
-        const objectPath = `historical_prices_split/${body.exchange}_github/${body.exchange}/${body.asset_code}.csv`;
-        const { data: downloadData, error: dlErr } = await supabase.storage.from(bucket).download(objectPath);
-        if (dlErr || !downloadData) {
-          return new Response(JSON.stringify({
-            success: true,
-            asset_id: data,
-            sell_mappings: mappings,
-            price_history: priceList,
-            warning: 'Could not download parquet from storage',
-            details: dlErr ? dlErr.message : undefined
-          }), {
-            status: 201
-          });
-        }
-        const text = await downloadData.text();
-        const lines = text.trim().split("\n");
-        // 表头是 "price_at,price"
-        const parsedRows = [];
-        // 2. 从尾部往前解析
-        for(let i = lines.length - 1; i > 0; i--){
-          const [priceAtStr, priceStr] = lines[i].split(",");
-          const priceAt = new Date(priceAtStr);
-          if (priceAt >= tradeDate) {
-            parsedRows.push({
-              price_at: priceAtStr,
-              price: parseFloat(priceStr)
-            });
-          } else {
-            break; // 已经小于目标日期，提前结束
-          }
-        }
-        // 3. 恢复升序输出
-        parsedRows.reverse();
-        // parquet file is ordered ascending by price_at; we only need rows with price_at >= trade_date
-        // Merge parsedRows with existing priceList, ensuring unique and sorted ascending by price_at
-        const combined = [
-          ...parsedRows,
-          ...priceList
-        ];
-        combined.sort((a, b)=>new Date(a.price_at) - new Date(b.price_at));
-        // Deduplicate by price_at (or price_at+price)
-        const unique = [];
-        const seen = new Set();
-        for (const r of combined){
-          const key = `${r.price_at}_${r.price}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            unique.push(r);
-          }
-        }
-        priceList = unique;
-      } catch (storageErr) {
-        // On any storage-related error, return existing priceList with warning        
-        return new Response(JSON.stringify({
-          success: true,
-          asset_id: data,
-          sell_mappings: mappings,
-          price_history: priceList,
-          warning: 'Error while fetching/parsing parquet',
-          details: storageErr && (storageErr.message || String(storageErr))
-        }), {
-          status: 201
-        });
-      }
     }
     // `data` format depends on supabase-js version and RPC. It may return the raw value or an array.
     // Return the raw data to the caller for convenience.
     return new Response(JSON.stringify({
       success: true,
       asset_id: data,
-      sell_mappings: mappings,
-      price_history: priceList
+      sell_mappings: mappings
+      //price_history: priceList
     }), {
       status: 201
     });
@@ -758,32 +534,56 @@ async function handleCreateAsset(userId, body) {
     });
   }
 }
+// 更新资产交易记录
 async function handleUpdateAsset(userId, body) {
-  const { data, error } = await supabase.rpc("update_asset", {
-    p_asset_id: body.asset_id,
+  const { data, error } = await supabase.rpc('update_asset_with_mappings', {
     p_user_id: userId,
-    p_name: body.name,
-    p_type: body.type ?? null
+    p_account_id: body.account_id ?? null,
+    p_id: body.id,
+    p_trade_date: body.trade_date,
+    p_trade_type: body.trade_type ?? null,
+    p_quantity: body.quantity,
+    p_price: body.price,
+    p_leverage: body.leverage ?? null,
+    p_swap_amount: body.swap_amount ?? null,
+    p_swap_currency: body.swap_currency ?? null,
+    p_fee_amount: body.fee_amount ?? null,
+    p_fee_currency: body.fee_currency ?? null,
+    p_manual_rate_input: body.manual_rate_input ?? null,
+    p_remark: body.remark ?? null,
+    p_sell_mappings: body.sell_mappings ?? []
   });
   if (error) return new Response(JSON.stringify({
     error: error.message
   }), {
     status: 500
   });
+  if (!data) return new Response(JSON.stringify({
+    error: 'No data returned from update'
+  }), {
+    status: 500
+  });
   return new Response(JSON.stringify({
-    success: true,
-    asset: data
+    success: true
   }), {
     status: 200
   });
 }
+
+// 删除资产交易记录
 async function handleDeleteAsset(userId, body) {
-  const { error } = await supabase.rpc("delete_asset", {
-    p_asset_id: body.asset_id,
-    p_user_id: userId
+  const { data, error } = await supabase.rpc('delete_asset_with_mappings', {
+    p_user_id: userId,
+    p_account_id: body.account_id ?? null,
+    p_id: body.id
   });
   if (error) return new Response(JSON.stringify({
     error: error.message
+  }), {
+    status: 500
+  });
+  if (!data) return new Response(JSON.stringify({
+    error: 'No data returned from delete'
   }), {
     status: 500
   });
@@ -912,8 +712,8 @@ async function handleGetAssetChart(userId, searchParams) {
   });
 }
 // ------------------- 用户摘要 -------------------
-// 只查DB，返回账户、持仓、最近一个月的fx_rates和stock_prices
-async function handleGetUserSummary(userId, startDate, endDate) {
+// 返回账户、持仓
+async function handleGetUserSummary(userId) {
   const t0 = Date.now();
   // 1. 查账户基本信息
   const { data: accountData } = await supabase.rpc('get_user_account_info', {
@@ -921,22 +721,6 @@ async function handleGetUserSummary(userId, startDate, endDate) {
   });
   const t_db2 = Date.now();
   console.log(`[PERF] get_user_account_info: ${t_db2 - t0} ms`);
-  // 2. 查最近一个月的 stock_prices
-  const { data: stockPrices } = await supabase.rpc('get_user_stock_prices', {
-    p_user_id: userId,
-    ...(startDate ? { p_start_date: startDate } : {}),
-    ...(endDate ? { p_end_date: endDate } : {})
-  });
-  const t_db3 = Date.now();
-  console.log(`[PERF] get_user_stock_prices: ${t_db3 - t_db2} ms`);
-  // 3. 查最近一个月的 fx_rates
-  const { data: fxRates } = await supabase.rpc('get_user_fx_rates', {
-    p_user_id: userId,
-    ...(startDate ? { p_start_date: startDate } : {}),
-    ...(endDate ? { p_end_date: endDate } : {})
-  });
-  const t_db4 = Date.now();
-  console.log(`[PERF] get_user_fx_rates: ${t_db4 - t_db3} ms`);
   // 4. 组装账户信息
   const accountsMap = {};
   accountData.forEach((row)=>{
@@ -949,7 +733,6 @@ async function handleGetUserSummary(userId, startDate, endDate) {
         trade_records: [],
         stocks: [],
         trade_sell_mapping: [],
-        fx_rates: []
       };
     }
     const acc = accountsMap[accId];
@@ -976,41 +759,9 @@ async function handleGetUserSummary(userId, startDate, endDate) {
       });
     }
   });
-  // 分配 fx_rates
-  if (fxRates) {
-    fxRates.forEach((fr)=>{
-      const acc = accountsMap[fr.account_id];
-      if (acc) {
-        if (!acc.fx_rate_ids) acc.fx_rate_ids = new Set();
-        if (!acc.fx_rate_ids.has(fr.fx_rate_id)) {
-          acc.fx_rate_ids.add(fr.fx_rate_id);
-          acc.fx_rates.push(fr.fx_rate);
-        }
-      }
-    });
-  }
-  // 分配 stock_prices
-  if (stockPrices) {
-    stockPrices.forEach((sp)=>{
-      for (const acc of Object.values(accountsMap)){
-        const stock = acc.stocks.find((s)=>s.id === sp.stock_id);
-        if (stock) {
-          if (!stock._stock_price_ids) stock._stock_price_ids = new Set();
-          const key = `${sp.stock_price.price_at}_${sp.stock_price.price}`;
-          if (!stock._stock_price_ids.has(key)) {
-            stock._stock_price_ids.add(key);
-            stock.stock_prices.push({
-              price: sp.stock_price.price,
-              price_at: sp.stock_price.price_at
-            });
-          }
-        }
-      }
-    });
-  }
   // 去除临时Set字段
   const result = Object.values(accountsMap).map((acc)=>{
-    const { trade_record_ids, trade_sell_mapping_ids, stock_ids, fx_rate_ids, ...rest } = acc;
+    const { trade_record_ids, trade_sell_mapping_ids, stock_ids, ...rest } = acc;
     return rest;
   });
   const t1 = Date.now();
