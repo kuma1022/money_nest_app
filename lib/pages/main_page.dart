@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:money_nest_app/components/bottom_bar.dart';
 import 'package:money_nest_app/components/custom_bottom_nav_bar.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
@@ -248,7 +250,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             )
                           : const SizedBox.shrink(),
                     ),
-                    // 底部浮动毛玻璃导航栏
+                    /*// 底部浮动毛玻璃导航栏
                     Positioned(
                       left: 0,
                       right: 0,
@@ -273,6 +275,73 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           }
                         },
                         isDark: isDark,
+                      ),
+                    ),*/
+                    SafeArea(
+                      bottom: false,
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: LiquidGlassBottomBar(
+                          extraButton: LiquidGlassBottomBarExtraButton(
+                            icon: CupertinoIcons.add_circled,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (context) => CupertinoPageScaffold(
+                                    child: SizedBox(),
+                                    navigationBar:
+                                        CupertinoNavigationBar.large(),
+                                  ),
+                                ),
+                              );
+                            },
+                            label: '',
+                          ),
+                          tabs: [
+                            LiquidGlassBottomBarTab(
+                              label: AppLocalizations.of(
+                                context,
+                              )!.mainPageTopTitle,
+                              icon: CupertinoIcons.home,
+                            ),
+                            LiquidGlassBottomBarTab(
+                              label: '資産',
+                              icon: CupertinoIcons.chart_pie,
+                            ),
+                            LiquidGlassBottomBarTab(
+                              label: AppLocalizations.of(
+                                context,
+                              )!.mainPageTradeTitle,
+                              icon: CupertinoIcons.list_bullet,
+                            ),
+                            LiquidGlassBottomBarTab(
+                              label: '資産分析',
+                              icon: CupertinoIcons.add,
+                            ),
+                            LiquidGlassBottomBarTab(
+                              label: AppLocalizations.of(
+                                context,
+                              )!.mainPageMoreTitle,
+                              icon: CupertinoIcons.settings,
+                            ),
+                          ],
+                          selectedIndex: _currentIndex,
+                          onTabSelected: (index) {
+                            setState(() {
+                              _currentIndex = index;
+                            });
+                            // Home Tab刷新资产和成本
+                            if (index == 0) {
+                              homeTabPageKey.currentState
+                                  ?.refreshTotalAssetsAndCosts();
+                            } else if (index == 1) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                assetsTabPageKey.currentState
+                                    ?.refreshTotalAssetsAndCosts();
+                              });
+                            }
+                          },
+                        ),
                       ),
                     ),
                   ],
