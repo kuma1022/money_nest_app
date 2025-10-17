@@ -250,97 +250,83 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             )
                           : const SizedBox.shrink(),
                     ),
-                    /*// 底部浮动毛玻璃导航栏
                     Positioned(
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      child: CustomBottomNavBar(
-                        currentIndex: _currentIndex,
-                        icons: icons,
-                        labels: titles,
-                        onTap: (index) {
-                          setState(() {
-                            _currentIndex = index;
-                          });
-                          // Home Tab刷新资产和成本
-                          if (index == 0) {
-                            homeTabPageKey.currentState
-                                ?.refreshTotalAssetsAndCosts();
-                          } else if (index == 1) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              assetsTabPageKey.currentState
-                                  ?.refreshTotalAssetsAndCosts();
-                            });
-                          }
-                        },
-                        isDark: isDark,
-                      ),
-                    ),*/
-                    SafeArea(
-                      bottom: false,
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: LiquidGlassBottomBar(
-                          extraButton: LiquidGlassBottomBarExtraButton(
-                            icon: CupertinoIcons.add_circled,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                CupertinoPageRoute(
-                                  builder: (context) => CupertinoPageScaffold(
-                                    child: SizedBox(),
-                                    navigationBar:
-                                        CupertinoNavigationBar.large(),
-                                  ),
-                                ),
-                              );
-                            },
-                            label: '',
+                      child: SafeArea(
+                        top: false,
+                        child: Container(
+                          // 临时背景用于排查是否被“看不见”
+                          color: Colors.white.withOpacity(
+                            0.01,
+                          ), // 0.01 不会明显影响外观，但能确认点击/可见性；调到 0.08 可更明显
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).padding.bottom,
                           ),
-                          tabs: [
-                            LiquidGlassBottomBarTab(
-                              label: AppLocalizations.of(
-                                context,
-                              )!.mainPageTopTitle,
-                              icon: CupertinoIcons.home,
+                          child: LiquidGlassBottomBar(
+                            extraButton: LiquidGlassBottomBarExtraButton(
+                              icon: CupertinoIcons.add_circled,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  CupertinoPageRoute(
+                                    builder: (context) => CupertinoPageScaffold(
+                                      child: SizedBox(),
+                                      navigationBar:
+                                          CupertinoNavigationBar.large(),
+                                    ),
+                                  ),
+                                );
+                              },
+                              label: '',
                             ),
-                            LiquidGlassBottomBarTab(
-                              label: '資産',
-                              icon: CupertinoIcons.chart_pie,
-                            ),
-                            LiquidGlassBottomBarTab(
-                              label: AppLocalizations.of(
-                                context,
-                              )!.mainPageTradeTitle,
-                              icon: CupertinoIcons.list_bullet,
-                            ),
-                            LiquidGlassBottomBarTab(
-                              label: '資産分析',
-                              icon: CupertinoIcons.add,
-                            ),
-                            LiquidGlassBottomBarTab(
-                              label: AppLocalizations.of(
-                                context,
-                              )!.mainPageMoreTitle,
-                              icon: CupertinoIcons.settings,
-                            ),
-                          ],
-                          selectedIndex: _currentIndex,
-                          onTabSelected: (index) {
-                            setState(() {
-                              _currentIndex = index;
-                            });
-                            // Home Tab刷新资产和成本
-                            if (index == 0) {
-                              homeTabPageKey.currentState
-                                  ?.refreshTotalAssetsAndCosts();
-                            } else if (index == 1) {
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                assetsTabPageKey.currentState
-                                    ?.refreshTotalAssetsAndCosts();
+                            tabs: [
+                              LiquidGlassBottomBarTab(
+                                label: AppLocalizations.of(
+                                  context,
+                                )!.mainPageTopTitle,
+                                icon: CupertinoIcons.home,
+                              ),
+                              LiquidGlassBottomBarTab(
+                                label: '資産',
+                                icon: CupertinoIcons.chart_pie,
+                              ),
+                              LiquidGlassBottomBarTab(
+                                label: AppLocalizations.of(
+                                  context,
+                                )!.mainPageTradeTitle,
+                                icon: CupertinoIcons.list_bullet,
+                              ),
+                              LiquidGlassBottomBarTab(
+                                label: '資産分析',
+                                icon: CupertinoIcons.add,
+                              ),
+                              LiquidGlassBottomBarTab(
+                                label: AppLocalizations.of(
+                                  context,
+                                )!.mainPageMoreTitle,
+                                icon: CupertinoIcons.settings,
+                              ),
+                            ],
+                            selectedIndex: _currentIndex,
+                            onTabSelected: (index) {
+                              setState(() {
+                                _currentIndex = index;
                               });
-                            }
-                          },
+                              // Home Tab刷新资产和成本
+                              if (index == 0) {
+                                homeTabPageKey.currentState
+                                    ?.refreshTotalAssetsAndCosts();
+                              } else if (index == 1) {
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  assetsTabPageKey.currentState
+                                      ?.refreshTotalAssetsAndCosts();
+                                });
+                              }
+                            },
+                          ),
                         ),
                       ),
                     ),
