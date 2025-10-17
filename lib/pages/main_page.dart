@@ -255,8 +255,8 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      child: _buildBottomBar(context),
-                      /*CustomBottomNavBar(
+                      child: //_buildBottomBar(context),
+                      CustomBottomNavBar(
                         currentIndex: _currentIndex,
                         icons: icons,
                         labels: titles,
@@ -276,7 +276,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           }
                         },
                         isDark: isDark,
-                      ),*/
+                      ),
                     ),
                   ],
                 ),
