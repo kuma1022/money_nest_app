@@ -1,7 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:money_nest_app/components/custom_bottom_nav_bar.dart';
+import 'package:money_nest_app/components/liquid_glass/bottom_bar.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/pages/assets/assets_tab_page.dart';
@@ -253,7 +255,8 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      child: CustomBottomNavBar(
+                      child: _buildBottomBar(context),
+                      /*CustomBottomNavBar(
                         currentIndex: _currentIndex,
                         icons: icons,
                         labels: titles,
@@ -273,7 +276,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           }
                         },
                         isDark: isDark,
-                      ),
+                      ),*/
                     ),
                   ],
                 ),
@@ -294,6 +297,51 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
           ),*/
         ),
       ),
+    );
+  }
+
+  Widget _buildBottomBar(BuildContext context) {
+    return LiquidGlassBottomBar(
+      extraButton: LiquidGlassBottomBarExtraButton(
+        icon: CupertinoIcons.add_circled,
+        onTap: () {
+          Navigator.of(context).push(
+            CupertinoPageRoute(
+              builder: (context) => const CupertinoPageScaffold(
+                child: SizedBox(),
+                navigationBar: CupertinoNavigationBar.large(),
+              ),
+            ),
+          );
+        },
+        label: '',
+      ),
+      tabs: [
+        LiquidGlassBottomBarTab(
+          label: AppLocalizations.of(context)!.mainPageTopTitle,
+          icon: CupertinoIcons.home,
+        ),
+        const LiquidGlassBottomBarTab(
+          label: '資産',
+          icon: CupertinoIcons.chart_pie,
+        ),
+        LiquidGlassBottomBarTab(
+          label: AppLocalizations.of(context)!.mainPageTradeTitle,
+          icon: CupertinoIcons.list_bullet,
+        ),
+        const LiquidGlassBottomBarTab(label: '資産分析', icon: CupertinoIcons.add),
+        LiquidGlassBottomBarTab(
+          label: AppLocalizations.of(context)!.mainPageMoreTitle,
+          icon: CupertinoIcons.settings,
+        ),
+      ],
+      selectedIndex: _currentIndex,
+      onTabSelected: (index) {
+        setState(() {
+          _currentIndex = index.clamp(0, _pages.length - 1);
+          _overlayPage = null;
+        });
+      },
     );
   }
 }
