@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
+import 'package:money_nest_app/presentation/resources/app_texts.dart';
 import 'package:motor/motor.dart';
 
 /// Creates a jelly transform matrix based on velocity for organic squash and stretch effect
@@ -281,8 +282,8 @@ class _BottomBarTab extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: iconColor,
-                  fontSize: 11,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: AppTexts.fontSizeMini,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w400,
                 ),
               ),
             ],

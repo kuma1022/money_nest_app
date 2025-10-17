@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:money_nest_app/presentation/resources/app_resources.dart';
 import 'package:money_nest_app/util/app_utils.dart';
@@ -16,6 +18,16 @@ import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // debug 模式下禁用基线绘制
+  if (kDebugMode) {
+    // 彻底关闭常见 debug 可视化（只在 debug 下生效）
+    debugPaintBaselinesEnabled = false;
+    debugPaintSizeEnabled = false;
+    debugPaintPointersEnabled = false;
+    debugPaintLayerBordersEnabled = false;
+    debugRepaintRainbowEnabled = false;
+  }
+
   final t0 = DateTime.now();
   final db = AppDatabase();
 
