@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
 import 'package:motor/motor.dart';
@@ -102,9 +103,10 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar> {
           lightIntensity: isDark ? .7 : 1,
           ambientStrength: isDark ? .2 : .5,
           lightAngle: math.pi / 4,
+          // 使用 withOpacity 保证与标准 Flutter Color API 兼容
           glassColor: CupertinoTheme.of(
             context,
-          ).barBackgroundColor.withValues(alpha: 0.6),
+          ).barBackgroundColor.withOpacity(0.6),
         );
 
     return LiquidGlassLayer(
@@ -203,10 +205,12 @@ class _BottomBarTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final baseColor = brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
     final theme = CupertinoTheme.of(context);
-    final iconColor = selected
-        ? theme.primaryColor
-        : theme.textTheme.textStyle.color;
+    final iconColor = selected ? theme.primaryColor : baseColor;
 
     return GestureDetector(
       onTap: onTap,
@@ -306,6 +310,10 @@ class _ExtraButtonState extends State<_ExtraButton> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final baseColor = brightness == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
     final theme = CupertinoTheme.of(context);
     return GestureDetector(
       onTap: widget.config.onTap,
@@ -325,11 +333,7 @@ class _ExtraButtonState extends State<_ExtraButton> {
                   height: widget.config.size,
                   width: widget.config.size,
                   child: Center(
-                    child: Icon(
-                      widget.config.icon,
-                      size: 24,
-                      color: theme.textTheme.textStyle.color,
-                    ),
+                    child: Icon(widget.config.icon, size: 24, color: baseColor),
                   ),
                 ),
               ),
@@ -580,12 +584,8 @@ class _TabIndicatorState extends State<_TabIndicator>
                       thickness: thickness,
                       child: LiquidGlass(
                         settings: LiquidGlassSettings(
-                          glassColor: Color.from(
-                            alpha: .1 * thickness,
-                            red: 1,
-                            green: 1,
-                            blue: 1,
-                          ),
+                          // 使用标准 Color API，避免 platform-specific Color 类差异
+                          glassColor: Colors.white.withOpacity(.1 * thickness),
                           saturation: 1 + .5 * thickness,
                           refractiveIndex: 1.15,
                           thickness: thickness * 20,
