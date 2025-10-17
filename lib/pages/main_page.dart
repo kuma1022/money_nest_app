@@ -1,8 +1,10 @@
 import 'dart:math';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 import 'package:money_nest_app/components/liquid_glass/bottom_bar.dart';
+import 'package:money_nest_app/components/liquid_glass/shared.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/pages/asset_analysis/asset_analysis_tab_page.dart';
@@ -11,7 +13,7 @@ import 'package:money_nest_app/pages/home/home_tab_page.dart';
 import 'package:money_nest_app/pages/setting/setting_tab_page.dart';
 import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
 import 'package:money_nest_app/pages/trade_history/trade_history_tab_page.dart';
-import 'package:motor/motor.dart';
+import 'package:rivership/rivership.dart';
 
 class MainPage extends StatefulWidget {
   final AppDatabase db;
@@ -34,23 +36,43 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       GlobalKey<AssetsTabPageState>();
   double _scrollPixels = 0.0;
 
+  // --- replace hook with local controller/animation ---
   late final AnimationController _lightController;
   late final Animation<double> _light;
+  // --- end replacement ---
 
   late final List<Widget> _pages = [
     HomeTabPage(
       key: homeTabPageKey,
       db: widget.db,
-      onPortfolioTap: () => setState(() => _currentIndex = 1),
-      onAssetAnalysisTap: () => setState(() => _currentIndex = 3),
-      onScroll: (pixels) => setState(() => _scrollPixels = pixels),
+      onPortfolioTap: () {
+        setState(() {
+          _currentIndex = 1;
+        });
+      },
+      onAssetAnalysisTap: () {
+        setState(() {
+          _currentIndex = 3;
+        });
+      },
+      onScroll: (pixels) {
+        setState(() {
+          _scrollPixels = pixels;
+        });
+      },
     ),
     AssetsTabPage(
       key: assetsTabPageKey,
-      onScroll: (pixels) => setState(() => _scrollPixels = pixels),
+      onScroll: (pixels) {
+        setState(() {
+          _scrollPixels = pixels;
+        });
+      },
       scrollController: ScrollController(),
     ),
-    TradeHistoryPage(onAddPressed: _showTradeAddPage),
+    TradeHistoryPage(
+      onAddPressed: _showTradeAddPage, // 传递回调
+    ),
     AssetAnalysisPage(),
     SettingsTabPage(),
   ];
@@ -60,7 +82,9 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       _overlayPage = TradeAddPage(
         onClose: () {
           _headerAnimController.reverse();
-          setState(() => _overlayPage = null);
+          setState(() {
+            _overlayPage = null;
+          });
         },
       );
     });
@@ -78,6 +102,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       parent: _headerAnimController,
       curve: Curves.easeInOut,
     );
+    // init local rotating animation (repeating)
     _lightController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 6),
@@ -111,11 +136,21 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    //final tab = useState(0);
+    // use local animation instead of hooks
+    final light = _light;
+
     return GestureDetector(
+      onTap: () {
+        SettingsSheet(
+          settingsNotifier: settingsNotifier,
+          lightAngleAnimation: light,
+        ).show(context);
+      },
       child: CupertinoPageScaffold(
-        backgroundColor: Colors.black, // ← iOS 背景必须非透明，否则 Metal 下 shader 不显示
         child: Stack(
           children: [
+            // Render pages directly. Do NOT put non-sliver widgets inside CustomScrollView.slivers.
             Positioned.fill(
               child: IndexedStack(
                 index: (_currentIndex < _pages.length) ? _currentIndex : 0,
@@ -131,65 +166,55 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                   child: _overlayPage,
                 ),
               ),
+
             SafeArea(
               bottom: false,
               child: Align(
                 alignment: Alignment.bottomCenter,
-                child: Material(
-                  // ✅ 修复 iOS 渲染丢失
-                  type: MaterialType.transparency,
-                  child: Container(
-                    color: Colors.transparent,
-                    child: LiquidGlassBottomBar(
-                      extraButton: LiquidGlassBottomBarExtraButton(
-                        icon: CupertinoIcons.add_circled,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            CupertinoPageRoute(
-                              builder: (context) => const CupertinoPageScaffold(
-                                child: SizedBox(),
-                                navigationBar: CupertinoNavigationBar.large(),
-                              ),
-                            ),
-                          );
-                        },
-                        label: '',
-                      ),
-                      tabs: [
-                        LiquidGlassBottomBarTab(
-                          label: AppLocalizations.of(context)!.mainPageTopTitle,
-                          icon: CupertinoIcons.home,
+                child: LiquidGlassBottomBar(
+                  extraButton: LiquidGlassBottomBarExtraButton(
+                    icon: CupertinoIcons.add_circled,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        CupertinoPageRoute(
+                          builder: (context) => CupertinoPageScaffold(
+                            child: SizedBox(),
+                            navigationBar: CupertinoNavigationBar.large(),
+                          ),
                         ),
-                        const LiquidGlassBottomBarTab(
-                          label: '資産',
-                          icon: CupertinoIcons.chart_pie,
-                        ),
-                        LiquidGlassBottomBarTab(
-                          label: AppLocalizations.of(
-                            context,
-                          )!.mainPageTradeTitle,
-                          icon: CupertinoIcons.list_bullet,
-                        ),
-                        const LiquidGlassBottomBarTab(
-                          label: '資産分析',
-                          icon: CupertinoIcons.add,
-                        ),
-                        LiquidGlassBottomBarTab(
-                          label: AppLocalizations.of(
-                            context,
-                          )!.mainPageMoreTitle,
-                          icon: CupertinoIcons.settings,
-                        ),
-                      ],
-                      selectedIndex: _currentIndex,
-                      onTabSelected: (index) {
-                        setState(() {
-                          _currentIndex = index.clamp(0, _pages.length - 1);
-                          _overlayPage = null;
-                        });
-                      },
-                    ),
+                      );
+                    },
+                    label: '',
                   ),
+                  tabs: [
+                    LiquidGlassBottomBarTab(
+                      label: AppLocalizations.of(context)!.mainPageTopTitle,
+                      icon: CupertinoIcons.home,
+                    ),
+                    LiquidGlassBottomBarTab(
+                      label: '資産',
+                      icon: CupertinoIcons.chart_pie,
+                    ),
+                    LiquidGlassBottomBarTab(
+                      label: AppLocalizations.of(context)!.mainPageTradeTitle,
+                      icon: CupertinoIcons.list_bullet,
+                    ),
+                    LiquidGlassBottomBarTab(
+                      label: '資産分析',
+                      icon: CupertinoIcons.add,
+                    ),
+                    LiquidGlassBottomBarTab(
+                      label: AppLocalizations.of(context)!.mainPageMoreTitle,
+                      icon: CupertinoIcons.settings,
+                    ),
+                  ],
+                  selectedIndex: _currentIndex,
+                  onTabSelected: (index) {
+                    setState(() {
+                      _currentIndex = index.clamp(0, _pages.length - 1);
+                      _overlayPage = null;
+                    });
+                  },
                 ),
               ),
             ),
@@ -202,6 +227,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
 class Blink extends StatelessWidget {
   const Blink({super.key, required this.child});
+
   final Widget child;
 
   @override
@@ -209,9 +235,9 @@ class Blink extends StatelessWidget {
     return SequenceMotionBuilder(
       converter: SingleMotionConverter(),
       sequence: StepSequence.withMotions([
-        (0.0, Motion.linear(const Duration(seconds: 1))),
-        (1.0, Motion.linear(const Duration(seconds: 1))),
-        (1.0, Motion.linear(const Duration(seconds: 1))),
+        (0.0, Motion.linear(Duration(seconds: 1))),
+        (1.0, Motion.linear(Duration(seconds: 1))),
+        (1.0, Motion.linear(Duration(seconds: 1))),
       ], loop: LoopMode.loop),
       builder: (context, value, phase, child) =>
           Opacity(opacity: value, child: child),
