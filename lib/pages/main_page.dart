@@ -301,47 +301,68 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
   }
 
   Widget _buildBottomBar(BuildContext context) {
-    return LiquidGlassBottomBar(
-      extraButton: LiquidGlassBottomBarExtraButton(
-        icon: CupertinoIcons.add_circled,
-        onTap: () {
-          Navigator.of(context).push(
-            CupertinoPageRoute(
-              builder: (context) => const CupertinoPageScaffold(
-                child: SizedBox(),
-                navigationBar: CupertinoNavigationBar.large(),
+    // 保证在 iOS 的 home indicator 之上显示
+    // 外层加一个半透明容器（或调试色），确保在 iOS 上会被绘制
+    return SafeArea(
+      top: false,
+      bottom: true,
+      child: Padding(
+        padding: EdgeInsets.only(left: 12, right: 12, bottom: 6),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            // debug: 用明显色确认位置（发布时可调整为更透明或移除）
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white.withOpacity(0.04)
+                : Colors.white.withOpacity(0.85),
+            child: LiquidGlassBottomBar(
+              extraButton: LiquidGlassBottomBarExtraButton(
+                icon: CupertinoIcons.add_circled,
+                onTap: () {
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) => const CupertinoPageScaffold(
+                        child: SizedBox(),
+                        navigationBar: CupertinoNavigationBar.large(),
+                      ),
+                    ),
+                  );
+                },
+                label: '',
               ),
+              tabs: [
+                LiquidGlassBottomBarTab(
+                  label: AppLocalizations.of(context)!.mainPageTopTitle,
+                  icon: CupertinoIcons.home,
+                ),
+                const LiquidGlassBottomBarTab(
+                  label: '資産',
+                  icon: CupertinoIcons.chart_pie,
+                ),
+                LiquidGlassBottomBarTab(
+                  label: AppLocalizations.of(context)!.mainPageTradeTitle,
+                  icon: CupertinoIcons.list_bullet,
+                ),
+                const LiquidGlassBottomBarTab(
+                  label: '資産分析',
+                  icon: CupertinoIcons.add,
+                ),
+                LiquidGlassBottomBarTab(
+                  label: AppLocalizations.of(context)!.mainPageMoreTitle,
+                  icon: CupertinoIcons.settings,
+                ),
+              ],
+              selectedIndex: _currentIndex,
+              onTabSelected: (index) {
+                setState(() {
+                  _currentIndex = index.clamp(0, _pages.length - 1);
+                  _overlayPage = null;
+                });
+              },
             ),
-          );
-        },
-        label: '',
+          ),
+        ),
       ),
-      tabs: [
-        LiquidGlassBottomBarTab(
-          label: AppLocalizations.of(context)!.mainPageTopTitle,
-          icon: CupertinoIcons.home,
-        ),
-        const LiquidGlassBottomBarTab(
-          label: '資産',
-          icon: CupertinoIcons.chart_pie,
-        ),
-        LiquidGlassBottomBarTab(
-          label: AppLocalizations.of(context)!.mainPageTradeTitle,
-          icon: CupertinoIcons.list_bullet,
-        ),
-        const LiquidGlassBottomBarTab(label: '資産分析', icon: CupertinoIcons.add),
-        LiquidGlassBottomBarTab(
-          label: AppLocalizations.of(context)!.mainPageMoreTitle,
-          icon: CupertinoIcons.settings,
-        ),
-      ],
-      selectedIndex: _currentIndex,
-      onTabSelected: (index) {
-        setState(() {
-          _currentIndex = index.clamp(0, _pages.length - 1);
-          _overlayPage = null;
-        });
-      },
     );
   }
 }
