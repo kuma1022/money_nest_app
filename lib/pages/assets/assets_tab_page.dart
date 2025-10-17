@@ -901,20 +901,16 @@ class _PlatformRangeSelector extends StatelessWidget {
       );
     }
     // 其它平台: Material Dropdown
-    // 确保 DropdownButton 有 Material 祖先（透明 Material 不影响样式）
-    return Material(
-      color: Colors.transparent,
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          isDense: true,
-          style: const TextStyle(fontSize: 13, color: Colors.black),
-          borderRadius: BorderRadius.circular(10),
-          items: values
-              .map((v) => DropdownMenuItem<String>(value: v, child: Text(v)))
-              .toList(),
-          onChanged: onChanged,
-        ),
+    return DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: value,
+        isDense: true,
+        style: const TextStyle(fontSize: 13, color: Colors.black),
+        borderRadius: BorderRadius.circular(10),
+        items: values
+            .map((v) => DropdownMenuItem<String>(value: v, child: Text(v)))
+            .toList(),
+        onChanged: onChanged,
       ),
     );
   }

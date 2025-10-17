@@ -1,19 +1,18 @@
-import 'dart:math';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
-import 'package:money_nest_app/components/liquid_glass/bottom_bar.dart';
-import 'package:money_nest_app/components/liquid_glass/shared.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:money_nest_app/components/bottom_bar.dart';
+import 'package:money_nest_app/components/custom_bottom_nav_bar.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
-import 'package:money_nest_app/pages/asset_analysis/asset_analysis_tab_page.dart';
 import 'package:money_nest_app/pages/assets/assets_tab_page.dart';
+import 'package:money_nest_app/pages/asset_analysis/asset_analysis_tab_page.dart';
 import 'package:money_nest_app/pages/home/home_tab_page.dart';
 import 'package:money_nest_app/pages/setting/setting_tab_page.dart';
 import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
 import 'package:money_nest_app/pages/trade_history/trade_history_tab_page.dart';
-import 'package:rivership/rivership.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 
 class MainPage extends StatefulWidget {
   final AppDatabase db;
@@ -35,11 +34,6 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
   final GlobalKey<AssetsTabPageState> assetsTabPageKey =
       GlobalKey<AssetsTabPageState>();
   double _scrollPixels = 0.0;
-
-  // --- replace hook with local controller/animation ---
-  late final AnimationController _lightController;
-  late final Animation<double> _light;
-  // --- end replacement ---
 
   late final List<Widget> _pages = [
     HomeTabPage(
@@ -102,146 +96,259 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       parent: _headerAnimController,
       curve: Curves.easeInOut,
     );
-    // init local rotating animation (repeating)
-    _lightController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 6),
-    )..repeat();
-    _light = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _lightController, curve: Curves.linear));
   }
-
-  @override
-  void dispose() {
-    _headerAnimController.dispose();
-    _lightController.dispose();
-    _searchController.dispose();
-    _searchFocusNode.dispose();
-    super.dispose();
-  }
-
-  final settingsNotifier = ValueNotifier(
-    LiquidGlassSettings(
-      thickness: 20,
-      blur: 10,
-      refractiveIndex: 1.2,
-      lightIntensity: .8,
-      saturation: 1.2,
-      lightAngle: pi / 4,
-      glassColor: Colors.white.withValues(alpha: 0.2),
-    ),
-  );
 
   @override
   Widget build(BuildContext context) {
-    //final tab = useState(0);
-    // use local animation instead of hooks
-    final light = _light;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mediaQuery = MediaQuery.of(context);
+    final double statusBarHeight = mediaQuery.padding.top;
 
-    return GestureDetector(
-      onTap: () {
-        SettingsSheet(
-          settingsNotifier: settingsNotifier,
-          lightAngleAnimation: light,
-        ).show(context);
-      },
-      child: CupertinoPageScaffold(
-        child: Stack(
-          children: [
-            // Render pages directly. Do NOT put non-sliver widgets inside CustomScrollView.slivers.
-            Positioned.fill(
-              child: IndexedStack(
-                index: (_currentIndex < _pages.length) ? _currentIndex : 0,
-                children: _pages,
-              ),
+    final titles = [
+      AppLocalizations.of(context)!.mainPageTopTitle,
+      '資産',
+      AppLocalizations.of(context)!.mainPageTradeTitle,
+      '資産分析',
+      AppLocalizations.of(context)!.mainPageMoreTitle,
+    ];
+    final icons = [
+      Icons.home_outlined,
+      Icons.pie_chart_outline,
+      Icons.list_alt_outlined,
+      Icons.monetization_on_outlined,
+      Icons.menu,
+    ];
+
+    // Header参数
+    final double minTitleSize = 18;
+    final double maxTitleSize = 26;
+    final double topPosition = statusBarHeight + 10.0;
+    final double maxHeaderHeight = statusBarHeight + 50.0;
+    final double minHeaderHeight = statusBarHeight + 40.0;
+    final double t = (_scrollPixels / 60).clamp(0, 1);
+    final double titleFontSize =
+        maxTitleSize - (maxTitleSize - minTitleSize) * t;
+    final double headerHeight =
+        maxHeaderHeight - (maxHeaderHeight - minHeaderHeight) * t;
+
+    final Color headerBgColor = isDark
+        ? const Color(0xFF23242A)
+        : AppColors.appBackground;
+
+    void onTabChanged(int index) {
+      setState(() {
+        _currentIndex = index;
+      });
+      // 切换到首页且首页当前是资产tab时，触发动画
+      if (index == 0) {
+        // 这里加一个延迟，确保页面已build
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          homeTabPageKey.currentState?.animatePieChartIfAssetTab();
+        });
+      }
+    }
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: isDark
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarColor: Colors.transparent,
+              systemNavigationBarColor: Colors.black,
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+              systemNavigationBarColor: Colors.white,
             ),
-            if (_overlayPage != null)
-              Positioned.fill(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  child: _overlayPage,
-                ),
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          splashFactory: NoSplash.splashFactory,
+          highlightColor: Colors.transparent,
+          splashColor: Colors.transparent,
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Column(
+            children: [
+              AnimatedBuilder(
+                animation: _headerAnim,
+                builder: (context, child) {
+                  // headerHeight: 动画期间从正常高度到0
+                  final double animatedHeight = (_overlayPage == null)
+                      ? headerHeight
+                      : headerHeight * (1 - _headerAnim.value);
+                  final double animatedOpacity = (_overlayPage == null)
+                      ? 1.0
+                      : 1.0 - _headerAnim.value;
+                  if (animatedHeight < 1) return const SizedBox.shrink();
+                  return Opacity(
+                    opacity: animatedOpacity,
+                    child: Container(
+                      height: animatedHeight,
+                      width: double.infinity,
+                      color: headerBgColor,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: Padding(
+                                padding: EdgeInsets.only(top: topPosition),
+                                child: AnimatedDefaultTextStyle(
+                                  duration: const Duration(milliseconds: 180),
+                                  style: TextStyle(
+                                    fontSize: titleFontSize,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black87,
+                                  ),
+                                  child: Text(titles[_currentIndex]),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-
-            SafeArea(
-              bottom: false,
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: LiquidGlassBottomBar(
-                  extraButton: LiquidGlassBottomBarExtraButton(
-                    icon: CupertinoIcons.add_circled,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        CupertinoPageRoute(
-                          builder: (context) => CupertinoPageScaffold(
-                            child: SizedBox(),
-                            navigationBar: CupertinoNavigationBar.large(),
+              // 页面内容
+              Expanded(
+                child: Stack(
+                  children: [
+                    IndexedStack(
+                      index: (_currentIndex < _pages.length)
+                          ? _currentIndex
+                          : 0,
+                      children: _pages,
+                    ),
+                    // 动画显示 overlayPage
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (child, animation) {
+                        final offsetAnimation =
+                            Tween<Offset>(
+                              begin: const Offset(1.0, 0.0),
+                              end: Offset.zero,
+                            ).animate(
+                              CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutCubic,
+                              ),
+                            );
+                        return SlideTransition(
+                          position: offsetAnimation,
+                          child: child,
+                        );
+                      },
+                      child: _overlayPage != null
+                          ? SizedBox(
+                              key: const ValueKey('trade_add_page'),
+                              width: double.infinity,
+                              height: double.infinity,
+                              child: _overlayPage!,
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: SafeArea(
+                        top: false,
+                        child: Container(
+                          // 临时背景用于排查是否被“看不见”
+                          color: Colors.white.withOpacity(
+                            0.01,
+                          ), // 0.01 不会明显影响外观，但能确认点击/可见性；调到 0.08 可更明显
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).padding.bottom,
+                          ),
+                          child: LiquidGlassBottomBar(
+                            extraButton: LiquidGlassBottomBarExtraButton(
+                              icon: CupertinoIcons.add_circled,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  CupertinoPageRoute(
+                                    builder: (context) => CupertinoPageScaffold(
+                                      child: SizedBox(),
+                                      navigationBar:
+                                          CupertinoNavigationBar.large(),
+                                    ),
+                                  ),
+                                );
+                              },
+                              label: '',
+                            ),
+                            tabs: [
+                              LiquidGlassBottomBarTab(
+                                label: AppLocalizations.of(
+                                  context,
+                                )!.mainPageTopTitle,
+                                icon: CupertinoIcons.home,
+                              ),
+                              LiquidGlassBottomBarTab(
+                                label: '資産',
+                                icon: CupertinoIcons.chart_pie,
+                              ),
+                              LiquidGlassBottomBarTab(
+                                label: AppLocalizations.of(
+                                  context,
+                                )!.mainPageTradeTitle,
+                                icon: CupertinoIcons.list_bullet,
+                              ),
+                              LiquidGlassBottomBarTab(
+                                label: '資産分析',
+                                icon: CupertinoIcons.add,
+                              ),
+                              LiquidGlassBottomBarTab(
+                                label: AppLocalizations.of(
+                                  context,
+                                )!.mainPageMoreTitle,
+                                icon: CupertinoIcons.settings,
+                              ),
+                            ],
+                            selectedIndex: _currentIndex,
+                            onTabSelected: (index) {
+                              setState(() {
+                                _currentIndex = index;
+                              });
+                              // Home Tab刷新资产和成本
+                              if (index == 0) {
+                                homeTabPageKey.currentState
+                                    ?.refreshTotalAssetsAndCosts();
+                              } else if (index == 1) {
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  assetsTabPageKey.currentState
+                                      ?.refreshTotalAssetsAndCosts();
+                                });
+                              }
+                            },
                           ),
                         ),
-                      );
-                    },
-                    label: '',
-                  ),
-                  tabs: [
-                    LiquidGlassBottomBarTab(
-                      label: AppLocalizations.of(context)!.mainPageTopTitle,
-                      icon: CupertinoIcons.home,
-                    ),
-                    LiquidGlassBottomBarTab(
-                      label: '資産',
-                      icon: CupertinoIcons.chart_pie,
-                    ),
-                    LiquidGlassBottomBarTab(
-                      label: AppLocalizations.of(context)!.mainPageTradeTitle,
-                      icon: CupertinoIcons.list_bullet,
-                    ),
-                    LiquidGlassBottomBarTab(
-                      label: '資産分析',
-                      icon: CupertinoIcons.add,
-                    ),
-                    LiquidGlassBottomBarTab(
-                      label: AppLocalizations.of(context)!.mainPageMoreTitle,
-                      icon: CupertinoIcons.settings,
+                      ),
                     ),
                   ],
-                  selectedIndex: _currentIndex,
-                  onTabSelected: (index) {
-                    setState(() {
-                      _currentIndex = index.clamp(0, _pages.length - 1);
-                      _overlayPage = null;
-                    });
-                  },
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
+          /*bottomNavigationBar: CustomBottomNavBar(
+            currentIndex: _currentIndex,
+            icons: icons,
+            labels: titles,
+            onTap: (index) {
+              setState(() {
+                _currentIndex = index.clamp(0, _pages.length - 1);
+                _overlayPage = null;
+              });
+            },
+            isDark: isDark,
+          ),*/
         ),
       ),
-    );
-  }
-}
-
-class Blink extends StatelessWidget {
-  const Blink({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return SequenceMotionBuilder(
-      converter: SingleMotionConverter(),
-      sequence: StepSequence.withMotions([
-        (0.0, Motion.linear(Duration(seconds: 1))),
-        (1.0, Motion.linear(Duration(seconds: 1))),
-        (1.0, Motion.linear(Duration(seconds: 1))),
-      ], loop: LoopMode.loop),
-      builder: (context, value, phase, child) =>
-          Opacity(opacity: value, child: child),
-      child: child,
     );
   }
 }

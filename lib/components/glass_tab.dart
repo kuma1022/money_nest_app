@@ -65,13 +65,13 @@ class _GlassTabState extends State<GlassTab>
   Widget build(BuildContext context) {
     return Center(
       child: CardSection(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // TabBar（需要 Material 祖先）
-            Material(
-              color: Colors.transparent,
-              child: Theme(
+        child: DefaultTabController(
+          length: 2,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // TabBar
+              Theme(
                 data: Theme.of(context).copyWith(
                   splashColor: Colors.transparent,
                   highlightColor: Colors.transparent,
@@ -85,7 +85,7 @@ class _GlassTabState extends State<GlassTab>
                   indicatorPadding: const EdgeInsets.symmetric(
                     horizontal: 2,
                     vertical: 6,
-                  ),
+                  ), // 横向padding加大
                   indicatorSize: TabBarIndicatorSize.tab,
                   labelColor: Colors.black87,
                   unselectedLabelColor: Colors.black87,
@@ -108,16 +108,16 @@ class _GlassTabState extends State<GlassTab>
                   overlayColor: WidgetStateProperty.all(Colors.transparent),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            // Tab内容动画
-            AnimatedSize(
-              duration: const Duration(milliseconds: 450),
-              curve: Curves.easeInOut,
-              alignment: Alignment.topCenter,
-              child: widget.tabBarContentList[_tabController.index],
-            ),
-          ],
+              const SizedBox(height: 8),
+              // Tab内容动画
+              AnimatedSize(
+                duration: const Duration(milliseconds: 450),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: widget.tabBarContentList[_tabController.index],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -294,14 +294,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_hooks:
-    dependency: "direct main"
-    description:
-      name: flutter_hooks
-      sha256: "8ae1f090e5f4ef5cfa6670ce1ab5dddadd33f3533a7f9ba19d9f958aa2a89f42"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.21.3+1"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:
@@ -323,14 +315,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_riverpod:
-    dependency: transitive
-    description:
-      name: flutter_riverpod
-      sha256: "9532ee6db4a943a1ed8383072a2e3eeda041db5657cdf6d2acecf3c21ecbe7e1"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.6.1"
   flutter_shaders:
     dependency: transitive
     description:
@@ -381,22 +365,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.2"
-  heroine:
-    dependency: transitive
-    description:
-      name: heroine
-      sha256: b54d9462a65fd299ccd2bc7dfea1bfda5952a1fd874fad77fea703c7eb7e914d
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.5.0+2"
-  hooks_riverpod:
-    dependency: transitive
-    description:
-      name: hooks_riverpod
-      sha256: "70bba33cfc5670c84b796e6929c54b8bc5be7d0fe15bb28c2560500b9ad06966"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.6.1"
   http:
     dependency: "direct main"
     description:
@@ -717,30 +685,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.0"
-  riverpod:
-    dependency: transitive
-    description:
-      name: riverpod
-      sha256: "59062512288d3056b2321804332a13ffdd1bf16df70dcc8e506e411280a72959"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.6.1"
-  rivership:
-    dependency: "direct main"
-    description:
-      name: rivership
-      sha256: "93fc4b9c12942db504026efa3d5a20638fbaa8c1c468447384734d3a2c88d45c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.0+1"
-  scroll_drag_detector:
-    dependency: transitive
-    description:
-      name: scroll_drag_detector
-      sha256: c52c8fa529c51891f735660dccb2216e715a91ac4bf5627c5f216ff3bdaf0cc1
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.4"
   shared_preferences:
     dependency: "direct main"
     description:
@@ -906,14 +850,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.12.1"
-  state_notifier:
-    dependency: transitive
-    description:
-      name: state_notifier
-      sha256: b8677376aa54f2d7c58280d5a007f9e8774f1968d1fb1c096adcb4792fba29bb
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.0"
   stream_channel:
     dependency: transitive
     description:
@@ -938,14 +874,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
-  stupid_simple_sheet:
-    dependency: "direct main"
-    description:
-      name: stupid_simple_sheet
-      sha256: e6d3987f89063443794d2345bd07f3cabd56f90721de1eeb31ccadf70d06e149
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.5.0"
   synchronized:
     dependency: transitive
     description:
