@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
-import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 
 class CustomBottomNavBar extends StatefulWidget {
   final int currentIndex;
@@ -220,10 +219,12 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                               (_moveAnim.value == 0 && !_isPressing)
                               ? defaultMagnifierX - indicatorWidth / 2
                               : _moveAnim.value - indicatorWidth / 2;
+                          // 修正：确保 clamp 的 max >= min
                           final double maxLeft = (barWidth - indicatorWidth)
                               .clamp(0.0, double.infinity);
                           magnifierLeft = magnifierLeft.clamp(0.0, maxLeft);
 
+                          // 动画参数
                           final bool pressing = _isPressing;
                           final double width = pressing
                               ? indicatorWidth + 15
@@ -234,6 +235,9 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                           final double radius = pressing
                               ? indicatorRadius + 6
                               : indicatorRadius;
+                          final double opacity = pressing ? 0.18 : 0.32;
+                          final double borderOpacity = pressing ? 0.22 : 0.38;
+                          final double blurSigma = pressing ? 10 : 4;
 
                           return Positioned(
                             left: magnifierLeft - (width - indicatorWidth) / 2,
@@ -243,38 +247,37 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                               curve: Curves.easeOutCubic,
                               width: width,
                               height: height,
-                              // 使用 LiquidGlass 基础用法（只传 shape & child），
-                              // 其余视觉通过 child 的 BoxDecoration 控制（避免调用不存在的参数）
-                              child: LiquidGlass(
-                                shape: LiquidRoundedSuperellipse(
-                                  borderRadius: Radius.circular(radius),
-                                ),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    // 轻微半透明背景以增强玻璃感
-                                    color: Colors.white.withOpacity(
-                                      pressing ? 0.12 : 0.10,
-                                    ),
-                                    borderRadius: BorderRadius.circular(radius),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(
-                                        pressing ? 0.28 : 0.38,
-                                      ),
-                                      width: 1.5,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.white.withOpacity(0.12),
-                                        blurRadius: 0,
-                                        spreadRadius: 2,
-                                      ),
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.10),
-                                        blurRadius: pressing ? 20 : 12,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(opacity),
+                                borderRadius: BorderRadius.circular(radius),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(
+                                    borderOpacity,
                                   ),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.18),
+                                    blurRadius: 0,
+                                    spreadRadius: 2,
+                                    offset: const Offset(0, 0),
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.10),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(radius),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: blurSigma,
+                                    sigmaY: blurSigma,
+                                  ),
+                                  child: Container(color: Colors.transparent),
                                 ),
                               ),
                             ),
