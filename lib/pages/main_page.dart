@@ -231,6 +231,43 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                         ),
                       ],
                     ),
+                    Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        spacing: 16,
+                        children: [
+                          LiquidStretch(
+                            child: LiquidGlass(
+                              shape: LiquidRoundedSuperellipse(
+                                borderRadius: Radius.circular(20),
+                              ),
+                              child: GlassGlow(
+                                child: SizedBox.square(
+                                  dimension: 100,
+                                  child: Center(child: Text('REAL')),
+                                ),
+                              ),
+                            ),
+                          ),
+                          LiquidStretch(
+                            child: FakeGlass(
+                              shape: LiquidRoundedSuperellipse(
+                                borderRadius: Radius.circular(20),
+                              ),
+                              child: GlassGlow(
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  child: SizedBox.square(
+                                    dimension: 100,
+                                    child: Center(child: Text('FAKE')),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     //IndexedStack(
                     //  index: (_currentIndex < _pages.length)
                     //      ? _currentIndex
