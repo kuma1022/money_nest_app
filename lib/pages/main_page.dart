@@ -217,12 +217,26 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
               Expanded(
                 child: Stack(
                   children: [
-                    IndexedStack(
-                      index: (_currentIndex < _pages.length)
-                          ? _currentIndex
-                          : 0,
-                      children: _pages,
+                    CustomScrollView(
+                      slivers: [
+                        SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => AspectRatio(
+                              aspectRatio: 2,
+                              child: Image.network(
+                                'https://picsum.photos/1000/500?random=$index',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                    //IndexedStack(
+                    //  index: (_currentIndex < _pages.length)
+                    //      ? _currentIndex
+                    //      : 0,
+                    //  children: _pages,
+                    //),
                     // 动画显示 overlayPage
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
