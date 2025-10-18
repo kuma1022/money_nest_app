@@ -1,9 +1,7 @@
 import 'dart:ui';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
-import 'package:motor/motor.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
+import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 
 class CustomBottomNavBar extends StatefulWidget {
   final int currentIndex;
@@ -171,23 +169,6 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
     const double indicatorHeight = 55;
     const double indicatorRadius = 32;
 
-    // Build a reusable LiquidGlassSettings for the bar/indicator
-    final brightness = Theme.of(context).brightness;
-    final isDark = brightness == Brightness.dark;
-    final glassSettings = LiquidGlassSettings(
-      refractiveIndex: 1.2,
-      thickness: 28,
-      blur: 8,
-      saturation: 1.2,
-      blend: 8,
-      lightIntensity: isDark ? .7 : 1,
-      ambientStrength: isDark ? .2 : .5,
-      lightAngle: math.pi / 4,
-      glassColor: (isDark ? Colors.black : Colors.white).withOpacity(
-        isDark ? 0.12 : 0.9,
-      ),
-    );
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 0, 8, 32),
       child: LayoutBuilder(
@@ -198,6 +179,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
           // 默认放大镜位置
           final defaultMagnifierX = _currentIndex * itemWidth + itemWidth / 2;
 
+          // 修正：始终用 _moveAnim.value 控制放大镜
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onPanDown: (details) => _onPanDown(details, barWidth),
@@ -206,17 +188,13 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
             onPanCancel: _onPanCancel,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(barRadius),
-              child: LiquidGlassLayer(
-                // API 版本差异：删除不存在的 named parameter `settings`.
-                // 若需自定义 settings，请把 glassSettings 传给内部的 LiquidGlass/LiquidGlass.inLayer。
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 520),
                   height: barHeight,
                   decoration: BoxDecoration(
-                    // keep translucent look but rely on LiquidGlass for glass effect
-                    color: (isDark ? Colors.black : Colors.white).withOpacity(
-                      0.06,
-                    ),
+                    color: Colors.white.withOpacity(0.10),
                     borderRadius: BorderRadius.circular(barRadius),
                     border: Border.all(
                       color: Colors.black.withOpacity(0.04),
@@ -234,7 +212,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                   child: Stack(
                     alignment: Alignment.centerLeft,
                     children: [
-                      // 放大镜 (indicator) 使用 LiquidGlass 以保证在 iOS 上也尝试渲染
+                      // 放大镜
                       AnimatedBuilder(
                         animation: _moveAnim,
                         builder: (context, child) {
@@ -256,9 +234,6 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                           final double radius = pressing
                               ? indicatorRadius + 6
                               : indicatorRadius;
-                          final double opacity = pressing ? 0.18 : 0.32;
-                          final double borderOpacity = pressing ? 0.22 : 0.38;
-                          final double blurSigma = pressing ? 10 : 4;
 
                           return Positioned(
                             left: magnifierLeft - (width - indicatorWidth) / 2,
@@ -268,45 +243,45 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                               curve: Curves.easeOutCubic,
                               width: width,
                               height: height,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(radius),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(
-                                    borderOpacity,
-                                  ),
-                                  width: 1.5,
+                              // 使用 LiquidGlass 基础用法（只传 shape & child），
+                              // 其余视觉通过 child 的 BoxDecoration 控制（避免调用不存在的参数）
+                              child: LiquidGlass(
+                                shape: LiquidRoundedSuperellipse(
+                                  borderRadius: Radius.circular(radius),
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.white.withOpacity(0.18),
-                                    blurRadius: 0,
-                                    spreadRadius: 2,
-                                    offset: const Offset(0, 0),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    // 轻微半透明背景以增强玻璃感
+                                    color: Colors.white.withOpacity(
+                                      pressing ? 0.12 : 0.10,
+                                    ),
+                                    borderRadius: BorderRadius.circular(radius),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(
+                                        pressing ? 0.28 : 0.38,
+                                      ),
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.white.withOpacity(0.12),
+                                        blurRadius: 0,
+                                        spreadRadius: 2,
+                                      ),
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.10),
+                                        blurRadius: pressing ? 20 : 12,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.10),
-                                    blurRadius: 18,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(radius),
-                                child: LiquidGlass.inLayer(
-                                  // a lightweight glass child for the indicator
-                                  // `settings` parameter removed to match package API;
-                                  // adjust visuals via parent decoration or package-supported parameters.
-                                  shape: const LiquidRoundedSuperellipse(
-                                    borderRadius: Radius.circular(64),
-                                  ),
-                                  child: Container(color: Colors.transparent),
                                 ),
                               ),
                             ),
                           );
                         },
                       ),
-                      // 菜单按钮（图标行）
+                      // 菜单按钮
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: List.generate(icons.length, (index) {
@@ -320,6 +295,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                                 mainAxisSize: MainAxisSize.min,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
+                                  //const SizedBox(height: 6),
                                   Icon(
                                     icons[index],
                                     color: selected
@@ -327,6 +303,7 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                                         : Colors.black87,
                                     size: 24,
                                   ),
+                                  //const SizedBox(height: 2),
                                   Text(
                                     labels[index],
                                     style: TextStyle(

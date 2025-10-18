@@ -1,7 +1,8 @@
+import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 import 'package:money_nest_app/components/custom_bottom_nav_bar.dart';
 import 'package:money_nest_app/components/liquid_glass/bottom_bar.dart';
 import 'package:money_nest_app/db/app_database.dart';
@@ -250,34 +251,45 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             )
                           : const SizedBox.shrink(),
                     ),
-                    // 底部浮动毛玻璃导航栏
                     Positioned(
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      child: //_buildBottomBar(context),
-                      CustomBottomNavBar(
-                        currentIndex: _currentIndex,
-                        icons: icons,
-                        labels: titles,
-                        onTap: (index) {
-                          setState(() {
-                            _currentIndex = index;
-                          });
-                          // Home Tab刷新资产和成本
-                          if (index == 0) {
-                            homeTabPageKey.currentState
-                                ?.refreshTotalAssetsAndCosts();
-                          } else if (index == 1) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              assetsTabPageKey.currentState
-                                  ?.refreshTotalAssetsAndCosts();
-                            });
-                          }
-                        },
-                        isDark: isDark,
+                      child: LiquidGlass(
+                        // The LiquidGlass widget sits on top
+                        shape: LiquidRoundedSuperellipse(
+                          borderRadius: Radius.circular(50),
+                        ),
+                        child: SizedBox(
+                          height: 80,
+                          child: CustomBottomNavBar(
+                            currentIndex: _currentIndex,
+                            icons: icons,
+                            labels: titles,
+                            onTap: (index) {
+                              setState(() {
+                                _currentIndex = index;
+                              });
+                              // Home Tab刷新资产和成本
+                              if (index == 0) {
+                                homeTabPageKey.currentState
+                                    ?.refreshTotalAssetsAndCosts();
+                              } else if (index == 1) {
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  assetsTabPageKey.currentState
+                                      ?.refreshTotalAssetsAndCosts();
+                                });
+                              }
+                            },
+                            isDark: isDark,
+                          ),
+                        ),
                       ),
                     ),
+
+                    // 底部浮动毛玻璃导航栏
                   ],
                 ),
               ),
