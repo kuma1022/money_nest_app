@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -104,6 +106,10 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final mediaQuery = MediaQuery.of(context);
     final double statusBarHeight = mediaQuery.padding.top;
+
+    print(
+      'ImageFilter.isShaderFilterSupported: ${ImageFilter.isShaderFilterSupported}',
+    );
 
     final titles = [
       AppLocalizations.of(context)!.mainPageTopTitle,
@@ -232,38 +238,72 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       ],
                     ),
                     Center(
-                      child: Row(
+                      child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        spacing: 16,
                         children: [
-                          LiquidStretch(
-                            child: LiquidGlass(
-                              shape: LiquidRoundedSuperellipse(
-                                borderRadius: Radius.circular(20),
-                              ),
-                              child: GlassGlow(
-                                child: SizedBox.square(
-                                  dimension: 100,
-                                  child: Center(child: Text('REAL')),
-                                ),
-                              ),
-                            ),
-                          ),
-                          LiquidStretch(
-                            child: FakeGlass(
-                              shape: LiquidRoundedSuperellipse(
-                                borderRadius: Radius.circular(20),
-                              ),
-                              child: GlassGlow(
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  child: SizedBox.square(
-                                    dimension: 100,
-                                    child: Center(child: Text('FAKE')),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 16,
+                            children: [
+                              LiquidStretch(
+                                child: LiquidGlass(
+                                  shape: LiquidRoundedSuperellipse(
+                                    borderRadius: Radius.circular(20),
+                                  ),
+                                  child: GlassGlow(
+                                    child: SizedBox.square(
+                                      dimension: 100,
+                                      child: Center(child: Text('REAL')),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
+                              LiquidStretch(
+                                child: FakeGlass(
+                                  shape: LiquidRoundedSuperellipse(
+                                    borderRadius: Radius.circular(20),
+                                  ),
+                                  child: GlassGlow(
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      child: SizedBox.square(
+                                        dimension: 100,
+                                        child: Center(child: Text('FAKE')),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 16,
+                            children: [
+                              LiquidStretch(
+                                child: _buildGlassEffect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  isDark: isDark,
+                                  child: GlassGlow(
+                                    child: SizedBox.square(
+                                      dimension: 100,
+                                      child: Center(child: Text('GLASS')),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              LiquidStretch(
+                                child: _buildSafeLiquidGlass(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: GlassGlow(
+                                    child: SizedBox.square(
+                                      dimension: 100,
+                                      child: Center(child: Text('GLASSNEW')),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -361,6 +401,84 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  Widget _buildSafeLiquidGlass({
+    required Widget child,
+    required BorderRadius borderRadius,
+  }) {
+    // 检查是否支持 shader filter
+    if (!ImageFilter.isShaderFilterSupported) {
+      print('Shader filters not supported, falling back to BackdropFilter');
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: borderRadius,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 1.0,
+              ),
+            ),
+            child: child,
+          ),
+        ),
+      );
+    }
+
+    return LiquidGlass(
+      shape: LiquidRoundedSuperellipse(borderRadius: borderRadius.topLeft),
+      child: child,
+    );
+  }
+
+  Widget _buildGlassEffect({
+    required Widget child,
+    required BorderRadius borderRadius,
+    bool isDark = false,
+  }) {
+    if (!Platform.isIOS) {
+      // Android 测试：简化版，只在 FakeGlass 基础上增加轻微的边框增强
+      return LiquidStretch(
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: borderRadius,
+            // 只加一个轻微的外边框
+            border: Border.all(
+              color: Colors.white.withOpacity(0.4),
+              width: 1.0,
+            ),
+            // 轻微的外阴影
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                spreadRadius: 1,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: borderRadius,
+            child: FakeGlass(
+              shape: LiquidRoundedSuperellipse(
+                borderRadius: borderRadius.topLeft,
+              ),
+              child: child,
+            ),
+          ),
+        ),
+      );
+    } else {
+      // iOS 使用 LiquidGlass
+      return LiquidGlass(
+        shape: LiquidRoundedSuperellipse(borderRadius: borderRadius.topLeft),
+        child: child,
+      );
+    }
   }
 
   Widget _buildBottomBar(BuildContext context) {
