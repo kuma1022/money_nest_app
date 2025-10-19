@@ -107,9 +107,9 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
     final mediaQuery = MediaQuery.of(context);
     final double statusBarHeight = mediaQuery.padding.top;
 
-    print(
-      'ImageFilter.isShaderFilterSupported: ${ImageFilter.isShaderFilterSupported}',
-    );
+    //print(
+    //  'ImageFilter.isShaderFilterSupported: ${ImageFilter.isShaderFilterSupported}',
+    //);
 
     final titles = [
       AppLocalizations.of(context)!.mainPageTopTitle,
@@ -223,7 +223,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
               Expanded(
                 child: Stack(
                   children: [
-                    CustomScrollView(
+                    /*CustomScrollView(
                       slivers: [
                         SliverList(
                           delegate: SliverChildBuilderDelegate(
@@ -307,13 +307,13 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           ),
                         ],
                       ),
+                    ),*/
+                    IndexedStack(
+                      index: (_currentIndex < _pages.length)
+                          ? _currentIndex
+                          : 0,
+                      children: _pages,
                     ),
-                    //IndexedStack(
-                    //  index: (_currentIndex < _pages.length)
-                    //      ? _currentIndex
-                    //      : 0,
-                    //  children: _pages,
-                    //),
                     // 动画显示 overlayPage
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
@@ -346,7 +346,29 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      child: LiquidGlass(
+                      child: CustomBottomNavBar(
+                        currentIndex: _currentIndex,
+                        icons: icons,
+                        labels: titles,
+                        onTap: (index) {
+                          setState(() {
+                            _currentIndex = index;
+                          });
+                          // Home Tab刷新资产和成本
+                          if (index == 0) {
+                            homeTabPageKey.currentState
+                                ?.refreshTotalAssetsAndCosts();
+                          } else if (index == 1) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              assetsTabPageKey.currentState
+                                  ?.refreshTotalAssetsAndCosts();
+                            });
+                          }
+                        },
+                        isDark: isDark,
+                      ),
+
+                      /*LiquidGlass(
                         // The LiquidGlass widget sits on top
                         shape: LiquidRoundedSuperellipse(
                           borderRadius: Radius.circular(50),
@@ -377,7 +399,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             isDark: isDark,
                           ),
                         ),
-                      ),
+                      ),*/
                     ),
 
                     // 底部浮动毛玻璃导航栏
@@ -409,7 +431,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
   }) {
     // 检查是否支持 shader filter
     if (!ImageFilter.isShaderFilterSupported) {
-      print('Shader filters not supported, falling back to BackdropFilter');
+      //print('Shader filters not supported, falling back to BackdropFilter');
       return ClipRRect(
         borderRadius: borderRadius,
         child: BackdropFilter(

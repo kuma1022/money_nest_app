@@ -75,20 +75,6 @@ void main() async {
   final t5 = DateTime.now();
   print('Load providers time: ${t5.difference(t4).inMilliseconds} ms');
 
-  // 测试调用 Bitflyer API
-  try {
-    final api = BitflyerApi();
-    List<dynamic> balances = await api.getBalances();
-    print('Bitflyer Balances: $balances');
-    List<dynamic> balanceHistory = await api.getBalanceHistory(
-      currencyCode: 'JPY',
-      count: 10,
-    );
-    print('Bitflyer Balance History: $balanceHistory');
-  } catch (e) {
-    print('Error initializing BitflyerApi: $e');
-  }
-
   runApp(
     MultiProvider(
       providers: [

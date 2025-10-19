@@ -8,6 +8,7 @@ import 'package:money_nest_app/components/glass_panel.dart';
 import 'package:money_nest_app/components/summary_category_card.dart';
 import 'package:money_nest_app/components/total_asset_analysis_card.dart';
 import 'package:money_nest_app/models/categories.dart';
+import 'package:money_nest_app/pages/assets/crypto_detail_page.dart';
 import 'package:money_nest_app/pages/assets/stock_detail_page.dart';
 import 'package:money_nest_app/pages/assets/other_asset_manage_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
@@ -360,6 +361,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
                 : AppColors.appGrey,
             'subCategories': [],
             'displayOrder': category.displayOrder,
+            'categoryCode': category.code, // 添加 category.code
           };
         })
         .toList();
@@ -375,15 +377,29 @@ class AssetsTabPageState extends State<AssetsTabPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: categories.map((category) {
-        return SummaryCategoryCard(
-          label: category['label'],
-          dotColor: category['dotColor'],
-          rateLabel: category['rateLabel'],
-          value: category['valueLabel'],
-          profitText: category['profitText'],
-          profitRateText: category['profitRateText'],
-          profitColor: category['profitColor'],
-          subCategories: [],
+        return InkWell(
+          borderRadius: BorderRadius.circular(16), // 配合卡片圆角
+          onTap: () {
+            // 如果是加密货币类别，跳转到 crypto_detail_page
+            if (category['categoryCode'] == 'crypto') {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const CryptoDetailPage(),
+                ),
+              );
+            }
+            // 其他类别可以在这里添加相应的跳转逻辑
+          },
+          child: SummaryCategoryCard(
+            label: category['label'],
+            dotColor: category['dotColor'],
+            rateLabel: category['rateLabel'],
+            value: category['valueLabel'],
+            profitText: category['profitText'],
+            profitRateText: category['profitRateText'],
+            profitColor: category['profitColor'],
+            subCategories: [],
+          ),
         );
       }).toList(),
     );

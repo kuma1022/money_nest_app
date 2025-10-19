@@ -28,6 +28,10 @@ class GlobalStore {
   DateTime? syncStartDate;
   // 同步区间的结束日期
   DateTime? syncEndDate;
+  // 最近与Bitflyer同步时间
+  DateTime? bitflyerLastSyncTime;
+  // Bigflyer的余额缓存
+  Map<String, double> bitflyerBalanceCache = {};
 
   // -------------------------------------------------
   // 从 SharedPreferences 加载数据
@@ -60,6 +64,12 @@ class GlobalStore {
     lastSyncTime = DateTime.tryParse(prefs.getString('lastSyncTime') ?? '');
     syncStartDate = DateTime.tryParse(prefs.getString('syncStartDate') ?? '');
     syncEndDate = DateTime.tryParse(prefs.getString('syncEndDate') ?? '');
+    bitflyerLastSyncTime = DateTime.tryParse(
+      prefs.getString('bitflyerLastSyncTime') ?? '',
+    );
+    bitflyerBalanceCache = Map<String, double>.from(
+      jsonDecode(prefs.getString('bitflyerBalanceCache') ?? '{}'),
+    );
   }
 
   // -------------------------------------------------
@@ -149,7 +159,8 @@ class GlobalStore {
   // -------------------------------------------------
   Future<void> saveLastSyncTimeToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString('lastSyncTime', DateTime.now().toIso8601String());
+    lastSyncTime = DateTime.now();
+    prefs.setString('lastSyncTime', lastSyncTime!.toIso8601String());
   }
 
   // -------------------------------------------------
@@ -163,5 +174,25 @@ class GlobalStore {
     if (syncEndDate != null) {
       prefs.setString('syncEndDate', syncEndDate!.toIso8601String());
     }
+  }
+
+  // -------------------------------------------------
+  // 保存数据到 SharedPreferences bitflyerLastSyncTime
+  // -------------------------------------------------
+  Future<void> saveBitflyerLastSyncTimeToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    bitflyerLastSyncTime = DateTime.now();
+    prefs.setString(
+      'bitflyerLastSyncTime',
+      bitflyerLastSyncTime!.toIso8601String(),
+    );
+  }
+
+  // -------------------------------------------------
+  // 保存数据到 SharedPreferences bitflyerBalanceCache
+  // -------------------------------------------------
+  Future<void> saveBitflyerBalanceCacheToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('bitflyerBalanceCache', jsonEncode(bitflyerBalanceCache));
   }
 }
