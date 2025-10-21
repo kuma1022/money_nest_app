@@ -862,7 +862,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
       ),
       child: isLinked
           ?
-            // 连携済み的情况
+            // 连携済み的情况 (保持原有代码)
             Column(
               children: [
                 Row(
@@ -987,7 +987,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
               ],
             )
           :
-            // 未连携的情况（保持原来的简单显示）
+            // 未连携的情况 - 显示连携按钮
             Row(
               children: [
                 // 交易所图标
@@ -998,31 +998,366 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                     color: color.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.circle,
-                    color: color.withOpacity(0.5),
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // 交易所名称
-                Expanded(
-                  child: Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  child: Center(
+                    child: Text(
+                      name.substring(0, 1).toUpperCase(),
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
-                // 链接状态
-                const Text(
-                  '未連携',
-                  style: TextStyle(fontSize: 14, color: Colors.red),
+                const SizedBox(width: 12),
+                // 交易所名称和状态
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        '未連携',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 连携按钮
+                ElevatedButton(
+                  onPressed: () {
+                    _showApiConnectionDialog(name, color);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.appUpGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.link, size: 16),
+                      SizedBox(width: 4),
+                      Text('連携', style: TextStyle(fontSize: 14)),
+                    ],
+                  ),
                 ),
               ],
             ),
     );
+  }
+
+  // 添加到 _CryptoDetailPageState 类中
+  void _showApiConnectionDialog(String exchangeName, Color color) {
+    final TextEditingController apiKeyController = TextEditingController();
+    final TextEditingController apiSecretController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 标题栏
+                  Row(
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '$exchangeName API連携',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '取引所のAPIキーとシークレットを入力してください',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 24),
+                  // API Key 输入框
+                  const Text(
+                    'APIキー',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: apiKeyController,
+                    decoration: InputDecoration(
+                      hintText: 'APIキーを入力',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE5E6EA)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE5E6EA)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: color),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FA),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // API Secret 输入框
+                  const Text(
+                    'APIシークレット',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: apiSecretController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      hintText: 'APIシークレットを入力',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE5E6EA)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE5E6EA)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: color),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FA),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // API获取方法说明
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info, color: Colors.blue, size: 16),
+                            SizedBox(width: 8),
+                            Text(
+                              'APIキーの取得方法',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '1. bitFlyerにログイン\n'
+                          '2. API管理ページにアクセス\n'
+                          '3. 読み取り専用のAPIキーを発行\n'
+                          '4. APIキーとシークレットをコピー',
+                          style: TextStyle(color: Colors.blue, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // 按钮
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.grey),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: const Text(
+                            'キャンセル',
+                            style: TextStyle(color: Colors.grey, fontSize: 16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final bool success = await _connectExchange(
+                              exchangeName.toLowerCase(),
+                              apiKeyController.text,
+                              apiSecretController.text,
+                            );
+                            if (mounted && success) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.appUpGreen,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            '連携する',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // 连接交易所的方法
+  Future<bool> _connectExchange(
+    String exchange,
+    String apiKey,
+    String apiSecret,
+  ) async {
+    if (apiKey.isEmpty || apiSecret.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('APIキーとシークレットを入力してください')));
+      }
+      return false; // 返回失败状态，不关闭对话框
+    }
+
+    try {
+      // 这里添加保存API信息到数据库的逻辑
+      final String? userId = GlobalStore().userId;
+      final int? accountId = GlobalStore().accountId;
+
+      if (userId == null || accountId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('ユーザー情報が見つかりません')));
+        }
+        return false; // 返回失败状态
+      }
+
+      // 判断输入的API信息是否有效
+      final BitflyerApi api = BitflyerApi(apiKey, apiSecret);
+      final bool isValid = await api.checkApiKeyAndSecret();
+      // 无效则提示错误
+      if (!isValid) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('無効なAPIキーまたはシークレットです')));
+        }
+        return false; // 返回失败状态，不关闭对话框
+      }
+
+      // 更新到SupabaseDB
+      await AppUtils().createOrUpdateCryptoInfo(
+        userId: userId,
+        cryptoData: {
+          'account_id': accountId,
+          'crypto_exchange': exchange,
+          'api_key': apiKey,
+          'api_secret': apiSecret,
+          'status': 'active',
+        },
+      );
+
+      // 保存到数据库
+      final cryptoInfo = CryptoInfoCompanion(
+        userId: Value(userId),
+        accountId: Value(accountId),
+        cryptoExchange: Value(exchange),
+        apiKey: Value(apiKey),
+        apiSecret: Value(apiSecret),
+        createdAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now()),
+      );
+
+      await widget.db.into(widget.db.cryptoInfo).insert(cryptoInfo);
+
+      // 重新获取数据
+      await getCryptoDataFromDB();
+      await syncCryptoDataFromServer();
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('${exchange}との連携が完了しました')));
+      }
+      return true; // 返回成功状态，关闭对话框
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('連携に失敗しました。もう一度お試しください。')));
+      }
+      return false; // 返回失败状态，不关闭对话框
+    }
   }
 }
 

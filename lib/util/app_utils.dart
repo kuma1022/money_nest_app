@@ -278,6 +278,32 @@ class AppUtils {
   }
 
   // -------------------------------------------------
+  // 创建或更新暗号资产Key
+  // -------------------------------------------------
+  Future<bool> createOrUpdateCryptoInfo({
+    required String userId,
+    required Map<String, dynamic> cryptoData,
+  }) async {
+    final url = Uri.parse(
+      '${AppUtils().supabaseApiUrl}/users/$userId/cryptoInfo',
+    );
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer ${AppUtils().supabaseApiKey}',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(cryptoData),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      // 操作成功
+      return true;
+    }
+    return false;
+  }
+
+  // -------------------------------------------------
   // 计算并保存当前持仓到 SharedPreferences
   // -------------------------------------------------
   Future<void> calculatePortfolioValue(String userId, int accountId) async {

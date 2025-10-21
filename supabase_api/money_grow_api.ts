@@ -101,6 +101,12 @@ Deno.serve(async (req)=>{
       // DELETE /users/:userId/assets 删除交易记录，自动删除相关 trade_sell_mappings
       if (method === 'DELETE') return handleDeleteAsset(userId, body);
     }
+    // ------------------- 暗号资产key值 -------------------
+    if (subPath === 'cryptoInfo') {
+      const body = await req.json();
+      if (method === 'POST') return handleCreateOrUpdateCryptoInfo(userId, body);
+      //if (method === 'DELETE') return handleDeleteAssetKey(userId, body);
+    }
     // ------------------- 资产金额记录 -------------------
     if (subPath === 'assets/values') {
       const body = await req.json();
@@ -791,3 +797,48 @@ async function handleGetUserHistory(userId, start, end) {
     status: 200
   });
 }
+// ------------------- 暗号资产key值处理 -------------------
+async function handleCreateOrUpdateCryptoInfo(userId, body) {
+  if (!userId || !body || !body.account_id || !body.crypto_exchange || !body.api_key || !body.api_secret) {
+    return new Response(JSON.stringify({
+      error: 'Missing body'
+    }), {
+      status: 400
+    });
+  }
+  const { data, error } = await supabase.rpc("upsert_crypto_info", {
+    p_user_id: userId,
+    p_account_id: body.account_id,
+    p_crypto_exchange: body.crypto_exchange,
+    p_api_key: body.api_key,
+    p_api_secret: body.api_secret,
+    P_status: body.status ?? 'active',
+  });
+  if (error) return new Response(JSON.stringify({
+    error: error.message
+  }), {
+    status: 500
+  });
+  return new Response(JSON.stringify({
+    success: true
+  }), {
+    status: 200
+  });
+}
+
+/*async function handleDeleteAssetKey(userId, body) {
+  const { error } = await supabase.rpc("delete_asset_key", {
+    p_user_id: userId,
+    p_key: body.key
+  });
+  if (error) return new Response(JSON.stringify({
+    error: error.message
+  }), {
+    status: 500
+  });
+  return new Response(JSON.stringify({
+    success: true
+  }), {
+    status: 200
+  });
+}*/
