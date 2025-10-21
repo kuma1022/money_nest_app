@@ -172,6 +172,48 @@ class FxRates extends Table {
   ];
 }
 
+// 加密货币信息表
+class CryptoInfo extends Table {
+  // ID
+  IntColumn get id => integer().autoIncrement()();
+
+  // ユーザーID（Supabase AuthのUUID）
+  TextColumn get userId => text()();
+
+  // アカウントID（int8）
+  IntColumn get accountId => integer()();
+
+  // 取引所（例：binance, bitflyerなど）
+  TextColumn get cryptoExchange => text()();
+
+  // APIキー
+  TextColumn get apiKey => text()();
+
+  // APIシークレット
+  TextColumn get apiSecret => text()();
+
+  // ステータス（active, inactiveなど）
+  TextColumn get status => text().withDefault(const Constant('active'))();
+
+  // 作成日時（UTC）
+  DateTimeColumn get createdAt => dateTime()();
+
+  // 更新日時（UTC）
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {
+      userId,
+      accountId,
+      cryptoExchange,
+    }, // unique (user_id, account_id, crypto_exchange)
+  ];
+}
+
 // ----------以下需要修改----------
 /*
 // 汇率表（可选，用于多货币转换）
@@ -252,6 +294,7 @@ class MarketData extends Table {
     Accounts,
     StockPrices,
     FxRates,
+    CryptoInfo,
   ],
 )
 class AppDatabase extends _$AppDatabase {

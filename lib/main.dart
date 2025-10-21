@@ -30,16 +30,16 @@ void main() async {
   GlobalStore().userId = userId;
   GlobalStore().accountId = accountId;
   GlobalStore().selectedCurrencyCode = 'JPY'; // 默认日元
-  GlobalStore().cryptoApiKeys = {
-    'bitflyer': {
-      'apiKey': '3XQ54WjxVseYCK8q4MMwpx',
-      'apiSecret': 's/SeVD0jTuK6e5D2wsm7xqdg1pg9+pbCsNhcQARjb0I=',
-    },
-  };
+  //GlobalStore().cryptoApiKeys = {
+  //  'bitflyer': {
+  //    'apiKey': '3XQ54WjxVseYCK8q4MMwpx',
+  //    'apiSecret': 's/SeVD0jTuK6e5D2wsm7xqdg1pg9+pbCsNhcQARjb0I=',
+  //  },
+  //};
   await GlobalStore().saveUserIdToPrefs();
   await GlobalStore().saveAccountIdToPrefs();
   await GlobalStore().saveSelectedCurrencyCodeToPrefs();
-  await GlobalStore().saveCryptoApiKeysToPrefs();
+  //await GlobalStore().saveCryptoApiKeysToPrefs();
 
   final t2 = DateTime.now();
   print(

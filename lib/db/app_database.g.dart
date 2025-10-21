@@ -3093,6 +3093,557 @@ class FxRatesCompanion extends UpdateCompanion<FxRate> {
   }
 }
 
+class $CryptoInfoTable extends CryptoInfo
+    with TableInfo<$CryptoInfoTable, CryptoInfoData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CryptoInfoTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cryptoExchangeMeta = const VerificationMeta(
+    'cryptoExchange',
+  );
+  @override
+  late final GeneratedColumn<String> cryptoExchange = GeneratedColumn<String>(
+    'crypto_exchange',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _apiKeyMeta = const VerificationMeta('apiKey');
+  @override
+  late final GeneratedColumn<String> apiKey = GeneratedColumn<String>(
+    'api_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _apiSecretMeta = const VerificationMeta(
+    'apiSecret',
+  );
+  @override
+  late final GeneratedColumn<String> apiSecret = GeneratedColumn<String>(
+    'api_secret',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('active'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    accountId,
+    cryptoExchange,
+    apiKey,
+    apiSecret,
+    status,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crypto_info';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CryptoInfoData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('crypto_exchange')) {
+      context.handle(
+        _cryptoExchangeMeta,
+        cryptoExchange.isAcceptableOrUnknown(
+          data['crypto_exchange']!,
+          _cryptoExchangeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_cryptoExchangeMeta);
+    }
+    if (data.containsKey('api_key')) {
+      context.handle(
+        _apiKeyMeta,
+        apiKey.isAcceptableOrUnknown(data['api_key']!, _apiKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_apiKeyMeta);
+    }
+    if (data.containsKey('api_secret')) {
+      context.handle(
+        _apiSecretMeta,
+        apiSecret.isAcceptableOrUnknown(data['api_secret']!, _apiSecretMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_apiSecretMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {userId, accountId, cryptoExchange},
+  ];
+  @override
+  CryptoInfoData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CryptoInfoData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      )!,
+      cryptoExchange: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}crypto_exchange'],
+      )!,
+      apiKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}api_key'],
+      )!,
+      apiSecret: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}api_secret'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CryptoInfoTable createAlias(String alias) {
+    return $CryptoInfoTable(attachedDatabase, alias);
+  }
+}
+
+class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
+  final int id;
+  final String userId;
+  final int accountId;
+  final String cryptoExchange;
+  final String apiKey;
+  final String apiSecret;
+  final String status;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const CryptoInfoData({
+    required this.id,
+    required this.userId,
+    required this.accountId,
+    required this.cryptoExchange,
+    required this.apiKey,
+    required this.apiSecret,
+    required this.status,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['account_id'] = Variable<int>(accountId);
+    map['crypto_exchange'] = Variable<String>(cryptoExchange);
+    map['api_key'] = Variable<String>(apiKey);
+    map['api_secret'] = Variable<String>(apiSecret);
+    map['status'] = Variable<String>(status);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CryptoInfoCompanion toCompanion(bool nullToAbsent) {
+    return CryptoInfoCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      accountId: Value(accountId),
+      cryptoExchange: Value(cryptoExchange),
+      apiKey: Value(apiKey),
+      apiSecret: Value(apiSecret),
+      status: Value(status),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CryptoInfoData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CryptoInfoData(
+      id: serializer.fromJson<int>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      accountId: serializer.fromJson<int>(json['accountId']),
+      cryptoExchange: serializer.fromJson<String>(json['cryptoExchange']),
+      apiKey: serializer.fromJson<String>(json['apiKey']),
+      apiSecret: serializer.fromJson<String>(json['apiSecret']),
+      status: serializer.fromJson<String>(json['status']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'userId': serializer.toJson<String>(userId),
+      'accountId': serializer.toJson<int>(accountId),
+      'cryptoExchange': serializer.toJson<String>(cryptoExchange),
+      'apiKey': serializer.toJson<String>(apiKey),
+      'apiSecret': serializer.toJson<String>(apiSecret),
+      'status': serializer.toJson<String>(status),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CryptoInfoData copyWith({
+    int? id,
+    String? userId,
+    int? accountId,
+    String? cryptoExchange,
+    String? apiKey,
+    String? apiSecret,
+    String? status,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => CryptoInfoData(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    accountId: accountId ?? this.accountId,
+    cryptoExchange: cryptoExchange ?? this.cryptoExchange,
+    apiKey: apiKey ?? this.apiKey,
+    apiSecret: apiSecret ?? this.apiSecret,
+    status: status ?? this.status,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CryptoInfoData copyWithCompanion(CryptoInfoCompanion data) {
+    return CryptoInfoData(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      cryptoExchange: data.cryptoExchange.present
+          ? data.cryptoExchange.value
+          : this.cryptoExchange,
+      apiKey: data.apiKey.present ? data.apiKey.value : this.apiKey,
+      apiSecret: data.apiSecret.present ? data.apiSecret.value : this.apiSecret,
+      status: data.status.present ? data.status.value : this.status,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CryptoInfoData(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('accountId: $accountId, ')
+          ..write('cryptoExchange: $cryptoExchange, ')
+          ..write('apiKey: $apiKey, ')
+          ..write('apiSecret: $apiSecret, ')
+          ..write('status: $status, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    accountId,
+    cryptoExchange,
+    apiKey,
+    apiSecret,
+    status,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CryptoInfoData &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.accountId == this.accountId &&
+          other.cryptoExchange == this.cryptoExchange &&
+          other.apiKey == this.apiKey &&
+          other.apiSecret == this.apiSecret &&
+          other.status == this.status &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
+  final Value<int> id;
+  final Value<String> userId;
+  final Value<int> accountId;
+  final Value<String> cryptoExchange;
+  final Value<String> apiKey;
+  final Value<String> apiSecret;
+  final Value<String> status;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const CryptoInfoCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.cryptoExchange = const Value.absent(),
+    this.apiKey = const Value.absent(),
+    this.apiSecret = const Value.absent(),
+    this.status = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  CryptoInfoCompanion.insert({
+    this.id = const Value.absent(),
+    required String userId,
+    required int accountId,
+    required String cryptoExchange,
+    required String apiKey,
+    required String apiSecret,
+    this.status = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) : userId = Value(userId),
+       accountId = Value(accountId),
+       cryptoExchange = Value(cryptoExchange),
+       apiKey = Value(apiKey),
+       apiSecret = Value(apiSecret),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<CryptoInfoData> custom({
+    Expression<int>? id,
+    Expression<String>? userId,
+    Expression<int>? accountId,
+    Expression<String>? cryptoExchange,
+    Expression<String>? apiKey,
+    Expression<String>? apiSecret,
+    Expression<String>? status,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (accountId != null) 'account_id': accountId,
+      if (cryptoExchange != null) 'crypto_exchange': cryptoExchange,
+      if (apiKey != null) 'api_key': apiKey,
+      if (apiSecret != null) 'api_secret': apiSecret,
+      if (status != null) 'status': status,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  CryptoInfoCompanion copyWith({
+    Value<int>? id,
+    Value<String>? userId,
+    Value<int>? accountId,
+    Value<String>? cryptoExchange,
+    Value<String>? apiKey,
+    Value<String>? apiSecret,
+    Value<String>? status,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return CryptoInfoCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      accountId: accountId ?? this.accountId,
+      cryptoExchange: cryptoExchange ?? this.cryptoExchange,
+      apiKey: apiKey ?? this.apiKey,
+      apiSecret: apiSecret ?? this.apiSecret,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (cryptoExchange.present) {
+      map['crypto_exchange'] = Variable<String>(cryptoExchange.value);
+    }
+    if (apiKey.present) {
+      map['api_key'] = Variable<String>(apiKey.value);
+    }
+    if (apiSecret.present) {
+      map['api_secret'] = Variable<String>(apiSecret.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CryptoInfoCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('accountId: $accountId, ')
+          ..write('cryptoExchange: $cryptoExchange, ')
+          ..write('apiKey: $apiKey, ')
+          ..write('apiSecret: $apiSecret, ')
+          ..write('status: $status, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3103,6 +3654,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $StockPricesTable stockPrices = $StockPricesTable(this);
   late final $FxRatesTable fxRates = $FxRatesTable(this);
+  late final $CryptoInfoTable cryptoInfo = $CryptoInfoTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3114,6 +3666,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     accounts,
     stockPrices,
     fxRates,
+    cryptoInfo,
   ];
 }
 
@@ -4670,6 +5223,278 @@ typedef $$FxRatesTableProcessedTableManager =
       FxRate,
       PrefetchHooks Function()
     >;
+typedef $$CryptoInfoTableCreateCompanionBuilder =
+    CryptoInfoCompanion Function({
+      Value<int> id,
+      required String userId,
+      required int accountId,
+      required String cryptoExchange,
+      required String apiKey,
+      required String apiSecret,
+      Value<String> status,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+    });
+typedef $$CryptoInfoTableUpdateCompanionBuilder =
+    CryptoInfoCompanion Function({
+      Value<int> id,
+      Value<String> userId,
+      Value<int> accountId,
+      Value<String> cryptoExchange,
+      Value<String> apiKey,
+      Value<String> apiSecret,
+      Value<String> status,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+class $$CryptoInfoTableFilterComposer
+    extends Composer<_$AppDatabase, $CryptoInfoTable> {
+  $$CryptoInfoTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cryptoExchange => $composableBuilder(
+    column: $table.cryptoExchange,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get apiKey => $composableBuilder(
+    column: $table.apiKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get apiSecret => $composableBuilder(
+    column: $table.apiSecret,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CryptoInfoTableOrderingComposer
+    extends Composer<_$AppDatabase, $CryptoInfoTable> {
+  $$CryptoInfoTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cryptoExchange => $composableBuilder(
+    column: $table.cryptoExchange,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get apiKey => $composableBuilder(
+    column: $table.apiKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get apiSecret => $composableBuilder(
+    column: $table.apiSecret,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CryptoInfoTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CryptoInfoTable> {
+  $$CryptoInfoTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get cryptoExchange => $composableBuilder(
+    column: $table.cryptoExchange,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get apiKey =>
+      $composableBuilder(column: $table.apiKey, builder: (column) => column);
+
+  GeneratedColumn<String> get apiSecret =>
+      $composableBuilder(column: $table.apiSecret, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CryptoInfoTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CryptoInfoTable,
+          CryptoInfoData,
+          $$CryptoInfoTableFilterComposer,
+          $$CryptoInfoTableOrderingComposer,
+          $$CryptoInfoTableAnnotationComposer,
+          $$CryptoInfoTableCreateCompanionBuilder,
+          $$CryptoInfoTableUpdateCompanionBuilder,
+          (
+            CryptoInfoData,
+            BaseReferences<_$AppDatabase, $CryptoInfoTable, CryptoInfoData>,
+          ),
+          CryptoInfoData,
+          PrefetchHooks Function()
+        > {
+  $$CryptoInfoTableTableManager(_$AppDatabase db, $CryptoInfoTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CryptoInfoTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CryptoInfoTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CryptoInfoTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> accountId = const Value.absent(),
+                Value<String> cryptoExchange = const Value.absent(),
+                Value<String> apiKey = const Value.absent(),
+                Value<String> apiSecret = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => CryptoInfoCompanion(
+                id: id,
+                userId: userId,
+                accountId: accountId,
+                cryptoExchange: cryptoExchange,
+                apiKey: apiKey,
+                apiSecret: apiSecret,
+                status: status,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String userId,
+                required int accountId,
+                required String cryptoExchange,
+                required String apiKey,
+                required String apiSecret,
+                Value<String> status = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+              }) => CryptoInfoCompanion.insert(
+                id: id,
+                userId: userId,
+                accountId: accountId,
+                cryptoExchange: cryptoExchange,
+                apiKey: apiKey,
+                apiSecret: apiSecret,
+                status: status,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CryptoInfoTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CryptoInfoTable,
+      CryptoInfoData,
+      $$CryptoInfoTableFilterComposer,
+      $$CryptoInfoTableOrderingComposer,
+      $$CryptoInfoTableAnnotationComposer,
+      $$CryptoInfoTableCreateCompanionBuilder,
+      $$CryptoInfoTableUpdateCompanionBuilder,
+      (
+        CryptoInfoData,
+        BaseReferences<_$AppDatabase, $CryptoInfoTable, CryptoInfoData>,
+      ),
+      CryptoInfoData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4686,4 +5511,6 @@ class $AppDatabaseManager {
       $$StockPricesTableTableManager(_db, _db.stockPrices);
   $$FxRatesTableTableManager get fxRates =>
       $$FxRatesTableTableManager(_db, _db.fxRates);
+  $$CryptoInfoTableTableManager get cryptoInfo =>
+      $$CryptoInfoTableTableManager(_db, _db.cryptoInfo);
 }

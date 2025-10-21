@@ -1,8 +1,9 @@
-import 'dart:ffi';
-
+import 'package:collection/collection.dart';
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_tab.dart';
+import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:intl/intl.dart';
@@ -10,9 +11,10 @@ import 'package:money_nest_app/util/bitflyer_api.dart';
 import 'package:money_nest_app/util/global_store.dart';
 
 class CryptoDetailPage extends StatefulWidget {
+  final AppDatabase db;
   final ScrollController? scrollController;
 
-  const CryptoDetailPage({super.key, this.scrollController});
+  const CryptoDetailPage({super.key, required this.db, this.scrollController});
 
   @override
   State<CryptoDetailPage> createState() => _CryptoDetailPageState();
@@ -23,47 +25,82 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
   List<dynamic> bitFlyerBalances = [];
   List<dynamic> bitFlyerBalanceHistory = [];
   List<String> availableCurrencies = [];
+  List<CryptoInfoData> cryptoInfos = [];
 
   @override
   void initState() {
     super.initState();
-    syncBitflyerData();
+    getCryptoDataFromDB();
+    syncCryptoDataFromServer();
   }
 
-  Future<void> syncBitflyerData() async {
+  Future<void> getCryptoDataFromDB() async {
+    // 从数据库获取加密资产数据（如果有的话）
+    // 从CryptoInfo表获取数据(USER_ID = 当前用户ID, Account_ID = 当前账户ID)
+    final String? userId = GlobalStore().userId;
+    final int? accountId = GlobalStore().accountId;
+    if (userId == null || accountId == null) {
+      print('No userId or accountId available.');
+      return;
+    }
+    final dbCryptoInfos =
+        await (widget.db.select(widget.db.cryptoInfo)..where(
+              (tbl) =>
+                  tbl.userId.equals(userId) & tbl.accountId.equals(accountId),
+            ))
+            .get();
+    print('Crypto Infos from DB: $dbCryptoInfos');
+    setState(() {
+      cryptoInfos = dbCryptoInfos;
+    });
+  }
+
+  Future<void> syncCryptoDataFromServer() async {
     // 调用 Bitflyer API
     try {
-      final api = BitflyerApi();
-      final List<dynamic> balances = await api.getBalances(false);
+      final List<CryptoInfoData> newCryptoInfos = [];
+      List<dynamic> balances = [];
+      List<dynamic> balanceHistory = [];
       final String firstCurrency = 'JPY';
-      print('Bitflyer Balances Success: $balances');
-      // 取各个货币的当前价格
-      for (var balance in balances) {
-        if (balance['amount'] as double == 0.0 ||
-            balance['currency_code'] == 'JPY') {
-          balance['current_price'] = 1.0;
-          continue;
-        }
-        final String symbol = balance['currency_code'] + '_JPY';
-        try {
-          final Map<String, dynamic> tickerData = await api.getTicker(
-            true,
-            symbol,
-          );
-          final double currentPrice = tickerData['ltp'] as double;
-          balance['current_price'] = currentPrice;
-        } catch (e) {
-          balance['current_price'] = 0.0;
+      for (var cryptoInfo in cryptoInfos) {
+        if (cryptoInfo.cryptoExchange == 'bitflyer') {
+          final api = BitflyerApi(cryptoInfo.apiKey, cryptoInfo.apiSecret);
+          if (await api.checkApiKeyAndSecret()) {
+            balances = await api.getBalances(false);
+            print('Bitflyer Balances Success: $balances');
+            // 取各个货币的当前价格
+            for (var balance in balances) {
+              if (balance['amount'] as double == 0.0 ||
+                  balance['currency_code'] == 'JPY') {
+                balance['current_price'] = 1.0;
+                continue;
+              }
+              final String symbol = balance['currency_code'] + '_JPY';
+              try {
+                final Map<String, dynamic> tickerData = await api.getTicker(
+                  true,
+                  symbol,
+                );
+                final double currentPrice = tickerData['ltp'] as double;
+                balance['current_price'] = currentPrice;
+              } catch (e) {
+                balance['current_price'] = 0.0;
+              }
+            }
+            balanceHistory = await api.getBalanceHistory(
+              true,
+              currencyCode: firstCurrency,
+              count: 100,
+            );
+            print(
+              'Bitflyer Balance History Success. Length: ${balanceHistory.length}',
+            );
+          } else {
+            print('Bitflyer API key or secret is missing, skipping API call.');
+          }
         }
       }
-      final List<dynamic> balanceHistory = await api.getBalanceHistory(
-        true,
-        currencyCode: firstCurrency,
-        count: 100,
-      );
-      print(
-        'Bitflyer Balance History Success. Length: ${balanceHistory.length}',
-      );
+
       // 检查 widget 是否仍然挂载
       if (mounted) {
         setState(() {
@@ -79,6 +116,17 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                     .toSet()
                     .toList()
               : [];
+          // 删除暗号资产如果不在newCryptoInfos中
+          // TODO: 删除supabase上的数据
+          // 本地数据库删除
+          for (var info in cryptoInfos) {
+            if (!newCryptoInfos.contains(info)) {
+              widget.db.cryptoInfo.delete().where(
+                (tbl) => tbl.id.equals(info.id),
+              );
+            }
+          }
+          cryptoInfos = newCryptoInfos;
         });
       }
     } catch (e) {
@@ -97,7 +145,16 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
   ) async {
     // 调用 Bitflyer API
     try {
-      final api = BitflyerApi();
+      final CryptoInfoData? cryptoInfo = cryptoInfos.firstWhereOrNull(
+        (info) => info.cryptoExchange == 'bitflyer',
+      );
+      if (cryptoInfo == null ||
+          cryptoInfo.apiKey.isEmpty ||
+          cryptoInfo.apiSecret.isEmpty) {
+        print('No crypto info for bitflyer found.');
+        return null;
+      }
+      final api = BitflyerApi(cryptoInfo.apiKey, cryptoInfo.apiSecret);
       final List<dynamic> balanceHistory = await api.getBalanceHistory(
         false,
         currencyCode: currencyCode,
@@ -155,7 +212,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
         ),
       ),
       body: Padding(
-        padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPadding),
+        padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
         child: SingleChildScrollView(
           controller: widget.scrollController,
           physics: const BouncingScrollPhysics(),
@@ -374,6 +431,70 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                   );
                 }).toList(),
               ),
+        const SizedBox(height: 24),
+        const Divider(color: Color(0xFFE5E6EA), thickness: 1),
+        const SizedBox(height: 16),
+        // 取引所连携标题
+        Row(
+          children: [
+            const Text(
+              '取引所連携',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'プレミアム',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '0 / 5 連携中',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // 取引所连携列表
+        Column(
+          children: [
+            _buildExchangeItem(
+              'Binance',
+              Colors.amber,
+              cryptoInfos.any((info) => info.cryptoExchange == 'binance'),
+            ),
+            _buildExchangeItem(
+              'Coinbase',
+              Colors.blue,
+              cryptoInfos.any((info) => info.cryptoExchange == 'coinbase'),
+            ),
+            _buildExchangeItem(
+              'bitFlyer',
+              Colors.red,
+              cryptoInfos.any((info) => info.cryptoExchange == 'bitflyer'),
+            ),
+            _buildExchangeItem(
+              'Kraken',
+              Colors.purple,
+              cryptoInfos.any((info) => info.cryptoExchange == 'kraken'),
+            ),
+            _buildExchangeItem(
+              'bitbank',
+              Colors.green,
+              cryptoInfos.any((info) => info.cryptoExchange == 'bitbank'),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -727,6 +848,180 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                 ),
         ],
       ),
+    );
+  }
+
+  Widget _buildExchangeItem(String name, Color color, bool isLinked) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
+      ),
+      child: isLinked
+          ?
+            // 连携済み的情况
+            Column(
+              children: [
+                Row(
+                  children: [
+                    // 交易所图标
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          name.substring(0, 1).toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // 交易所名称和连携状态
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: const BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '総資産: ¥0',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          Text(
+                            '最終同期: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(GlobalStore().bitflyerLastSyncTime ?? DateTime.now())}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // 设置和解除按钮
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          // 设置功能
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.grey),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.settings, size: 16, color: Colors.grey),
+                            SizedBox(width: 4),
+                            Text(
+                              '設定',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // 解除功能
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          elevation: 0,
+                        ),
+                        child: const Text('解除', style: TextStyle(fontSize: 14)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          :
+            // 未连携的情况（保持原来的简单显示）
+            Row(
+              children: [
+                // 交易所图标
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.circle,
+                    color: color.withOpacity(0.5),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // 交易所名称
+                Expanded(
+                  child: Text(
+                    name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                // 链接状态
+                const Text(
+                  '未連携',
+                  style: TextStyle(fontSize: 14, color: Colors.red),
+                ),
+              ],
+            ),
     );
   }
 }

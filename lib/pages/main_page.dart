@@ -59,6 +59,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       },
     ),
     AssetsTabPage(
+      db: widget.db,
       key: assetsTabPageKey,
       onScroll: (pixels) {
         setState(() {

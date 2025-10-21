@@ -8,12 +8,20 @@ class BitflyerApi {
   late final String apiSecret;
 
   // コンストラクタで GlobalStore から API キーとシークレットを取得
-  BitflyerApi() {
-    apiKey = GlobalStore().cryptoApiKeys['bitflyer']?['apiKey'] ?? '';
-    apiSecret = GlobalStore().cryptoApiKeys['bitflyer']?['apiSecret'] ?? '';
+  BitflyerApi(this.apiKey, this.apiSecret);
+
+  Future<bool> checkApiKeyAndSecret() async {
     if (apiKey.isEmpty || apiSecret.isEmpty) {
-      throw Exception('Bitflyer API key or secret is not set in GlobalStore');
+      print('Bitflyer API key or secret is missing.');
+      return false;
     }
+    List<String> permissions = await getpermissions();
+    if (permissions.isNotEmpty &&
+        !permissions.contains('/v1/me/getbalance') &&
+        !permissions.contains('/v1/me/getbalancehistory')) {
+      return true;
+    }
+    return false;
   }
 
   bool checkLastSyncTime() {
@@ -28,6 +36,22 @@ class BitflyerApi {
       return true;
     }
     return false;
+  }
+
+  Future<List<String>> getpermissions() async {
+    try {
+      // APIリクエスト
+      final List<dynamic> response = await getRequest(
+        '/v1/me/getpermissions',
+        {},
+      );
+
+      // レスポンスの処理
+      return response.map((e) => e.toString()).toList();
+    } catch (e) {
+      print('Error fetching permissions: $e');
+      return [];
+    }
   }
 
   Future<Map<String, dynamic>> getTicker(

@@ -1,26 +1,30 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_line_chart.dart';
 import 'package:money_nest_app/components/custom_tab.dart';
 import 'package:money_nest_app/components/glass_panel.dart';
 import 'package:money_nest_app/components/summary_category_card.dart';
-import 'package:money_nest_app/components/total_asset_analysis_card.dart';
+import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/categories.dart';
 import 'package:money_nest_app/pages/assets/crypto_detail_page.dart';
 import 'package:money_nest_app/pages/assets/stock_detail_page.dart';
-import 'package:money_nest_app/pages/assets/other_asset_manage_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
 
 class AssetsTabPage extends StatefulWidget {
+  final AppDatabase db;
   final ValueChanged<double>? onScroll;
   final ScrollController? scrollController;
 
-  const AssetsTabPage({super.key, this.onScroll, this.scrollController});
+  const AssetsTabPage({
+    super.key,
+    required this.db,
+    this.onScroll,
+    this.scrollController,
+  });
 
   @override
   State<AssetsTabPage> createState() => AssetsTabPageState();
@@ -384,7 +388,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
             if (category['categoryCode'] == 'crypto') {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const CryptoDetailPage(),
+                  builder: (context) => CryptoDetailPage(db: widget.db),
                 ),
               );
             }
