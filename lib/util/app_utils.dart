@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/currency.dart';
+import 'package:money_nest_app/util/bitflyer_api.dart';
 import 'package:money_nest_app/util/global_store.dart';
 
 class AppUtils {
@@ -301,6 +302,110 @@ class AppUtils {
       return true;
     }
     return false;
+  }
+
+  // -------------------------------------------------
+  // 创建或更新暗号资产Key
+  // -------------------------------------------------
+  Future<bool> deleteCryptoInfo({
+    required String userId,
+    required Map<String, dynamic> cryptoData,
+  }) async {
+    final url = Uri.parse(
+      '${AppUtils().supabaseApiUrl}/users/$userId/cryptoInfo',
+    );
+    final response = await http.delete(
+      url,
+      headers: {
+        'Authorization': 'Bearer ${AppUtils().supabaseApiKey}',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(cryptoData),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      // 操作成功
+      return true;
+    }
+    return false;
+  }
+
+  // -------------------------------------------------
+  // 从数据库获取加密资产数据
+  // -------------------------------------------------
+  Future<List<CryptoInfoData>> getCryptoDataFromDB(AppDatabase db) async {
+    // 从数据库获取加密资产数据（如果有的话）
+    // 从CryptoInfo表获取数据(USER_ID = 当前用户ID, Account_ID = 当前账户ID)
+    final int? accountId = GlobalStore().accountId;
+    if (accountId == null) {
+      print('No accountId available.');
+      return [];
+    }
+    final dbCryptoInfos = await (db.select(
+      db.cryptoInfo,
+    )..where((tbl) => tbl.accountId.equals(accountId))).get();
+    print('Crypto Infos from DB: $dbCryptoInfos');
+
+    return dbCryptoInfos;
+  }
+
+  // -------------------------------------------------
+  // 从服务器同步加密资产数据
+  // -------------------------------------------------
+  Future<Map<String, Map<String, List<dynamic>>>> syncCryptoDataFromServer(
+    List<CryptoInfoData> cryptoInfos,
+    String firstCurrency,
+  ) async {
+    // 调用 Bitflyer API
+    final List<CryptoInfoData> newCryptoInfos = [];
+    List<dynamic> balances = [];
+    List<dynamic> balanceHistory = [];
+    Map<String, Map<String, List<dynamic>>> cryptoDataMap = {};
+
+    for (var cryptoInfo in cryptoInfos) {
+      if (cryptoInfo.cryptoExchange.toLowerCase() == 'bitflyer') {
+        final api = BitflyerApi(cryptoInfo.apiKey, cryptoInfo.apiSecret);
+        if (await api.checkApiKeyAndSecret()) {
+          balances = await api.getBalances(false);
+          print('Bitflyer Balances Success: $balances');
+          // 取各个货币的当前价格
+          for (var balance in balances) {
+            if (balance['amount'] as double == 0.0 ||
+                balance['currency_code'] == 'JPY') {
+              balance['current_price'] = 1.0;
+              continue;
+            }
+            final String symbol = balance['currency_code'] + '_JPY';
+            try {
+              final Map<String, dynamic> tickerData = await api.getTicker(
+                true,
+                symbol,
+              );
+              final double currentPrice = tickerData['ltp'] as double;
+              balance['current_price'] = currentPrice;
+            } catch (e) {
+              balance['current_price'] = 0.0;
+            }
+          }
+          balanceHistory = await api.getBalanceHistory(
+            true,
+            currencyCode: firstCurrency,
+            count: 100,
+          );
+          newCryptoInfos.add(cryptoInfo);
+          cryptoDataMap[cryptoInfo.cryptoExchange.toLowerCase()] = {
+            'balances': balances,
+            'balanceHistory': balanceHistory,
+          };
+          print(
+            'Bitflyer Balance History Success. Length: ${balanceHistory.length}',
+          );
+        } else {
+          print('Bitflyer API key or secret is missing, skipping API call.');
+        }
+      }
+    }
+    cryptoDataMap['newCryptoInfos'] = {'infos': newCryptoInfos};
+    return cryptoDataMap;
   }
 
   // -------------------------------------------------
@@ -753,6 +858,39 @@ class AppUtils {
             final t4 = DateTime.now();
             print(
               'Sync sell mappings time: ${t4.difference(t3).inMilliseconds} ms',
+            );
+
+            // 4. 同步crypto info
+            final cryptoInfo = accountInfo['crypto_info'] as List;
+            final List<CryptoInfoCompanion> cryptoInfoInsert = [];
+            for (var crypto in cryptoInfo) {
+              final cryptoCompanion = CryptoInfoCompanion(
+                accountId: Value(accountId),
+                cryptoExchange: Value(crypto['crypto_exchange']),
+                apiKey: Value(crypto['api_key']),
+                apiSecret: Value(crypto['api_secret']),
+                status: Value(crypto['status']),
+                createdAt: Value(
+                  DateTime.tryParse(crypto['created_at']) ?? DateTime.now(),
+                ),
+                updatedAt: Value(
+                  DateTime.tryParse(crypto['updated_at']) ?? DateTime.now(),
+                ),
+              );
+              cryptoInfoInsert.add(cryptoCompanion);
+            }
+            // 清空本地该账户的crypto info
+            await (db.delete(
+              db.cryptoInfo,
+            )..where((tbl) => tbl.accountId.equals(accountId))).go();
+            // 插入最新的crypto info
+            await db.batch((batch) {
+              batch.insertAll(db.cryptoInfo, cryptoInfoInsert);
+            });
+
+            final t5 = DateTime.now();
+            print(
+              'Sync crypto info time: ${t5.difference(t4).inMilliseconds} ms',
             );
           }
         }

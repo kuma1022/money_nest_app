@@ -3112,15 +3112,6 @@ class $CryptoInfoTable extends CryptoInfo
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
-  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
-  @override
-  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
-    'user_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _accountIdMeta = const VerificationMeta(
     'accountId',
   );
@@ -3198,7 +3189,6 @@ class $CryptoInfoTable extends CryptoInfo
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    userId,
     accountId,
     cryptoExchange,
     apiKey,
@@ -3221,14 +3211,6 @@ class $CryptoInfoTable extends CryptoInfo
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('user_id')) {
-      context.handle(
-        _userIdMeta,
-        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_userIdMeta);
     }
     if (data.containsKey('account_id')) {
       context.handle(
@@ -3294,7 +3276,7 @@ class $CryptoInfoTable extends CryptoInfo
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
   List<Set<GeneratedColumn>> get uniqueKeys => [
-    {userId, accountId, cryptoExchange},
+    {accountId, cryptoExchange},
   ];
   @override
   CryptoInfoData map(Map<String, dynamic> data, {String? tablePrefix}) {
@@ -3303,10 +3285,6 @@ class $CryptoInfoTable extends CryptoInfo
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
-      )!,
-      userId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}user_id'],
       )!,
       accountId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -3347,7 +3325,6 @@ class $CryptoInfoTable extends CryptoInfo
 
 class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
   final int id;
-  final String userId;
   final int accountId;
   final String cryptoExchange;
   final String apiKey;
@@ -3357,7 +3334,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
   final DateTime updatedAt;
   const CryptoInfoData({
     required this.id,
-    required this.userId,
     required this.accountId,
     required this.cryptoExchange,
     required this.apiKey,
@@ -3370,7 +3346,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['user_id'] = Variable<String>(userId);
     map['account_id'] = Variable<int>(accountId);
     map['crypto_exchange'] = Variable<String>(cryptoExchange);
     map['api_key'] = Variable<String>(apiKey);
@@ -3384,7 +3359,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
   CryptoInfoCompanion toCompanion(bool nullToAbsent) {
     return CryptoInfoCompanion(
       id: Value(id),
-      userId: Value(userId),
       accountId: Value(accountId),
       cryptoExchange: Value(cryptoExchange),
       apiKey: Value(apiKey),
@@ -3402,7 +3376,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CryptoInfoData(
       id: serializer.fromJson<int>(json['id']),
-      userId: serializer.fromJson<String>(json['userId']),
       accountId: serializer.fromJson<int>(json['accountId']),
       cryptoExchange: serializer.fromJson<String>(json['cryptoExchange']),
       apiKey: serializer.fromJson<String>(json['apiKey']),
@@ -3417,7 +3390,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'userId': serializer.toJson<String>(userId),
       'accountId': serializer.toJson<int>(accountId),
       'cryptoExchange': serializer.toJson<String>(cryptoExchange),
       'apiKey': serializer.toJson<String>(apiKey),
@@ -3430,7 +3402,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
 
   CryptoInfoData copyWith({
     int? id,
-    String? userId,
     int? accountId,
     String? cryptoExchange,
     String? apiKey,
@@ -3440,7 +3411,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
     DateTime? updatedAt,
   }) => CryptoInfoData(
     id: id ?? this.id,
-    userId: userId ?? this.userId,
     accountId: accountId ?? this.accountId,
     cryptoExchange: cryptoExchange ?? this.cryptoExchange,
     apiKey: apiKey ?? this.apiKey,
@@ -3452,7 +3422,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
   CryptoInfoData copyWithCompanion(CryptoInfoCompanion data) {
     return CryptoInfoData(
       id: data.id.present ? data.id.value : this.id,
-      userId: data.userId.present ? data.userId.value : this.userId,
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
       cryptoExchange: data.cryptoExchange.present
           ? data.cryptoExchange.value
@@ -3469,7 +3438,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
   String toString() {
     return (StringBuffer('CryptoInfoData(')
           ..write('id: $id, ')
-          ..write('userId: $userId, ')
           ..write('accountId: $accountId, ')
           ..write('cryptoExchange: $cryptoExchange, ')
           ..write('apiKey: $apiKey, ')
@@ -3484,7 +3452,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
   @override
   int get hashCode => Object.hash(
     id,
-    userId,
     accountId,
     cryptoExchange,
     apiKey,
@@ -3498,7 +3465,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
       identical(this, other) ||
       (other is CryptoInfoData &&
           other.id == this.id &&
-          other.userId == this.userId &&
           other.accountId == this.accountId &&
           other.cryptoExchange == this.cryptoExchange &&
           other.apiKey == this.apiKey &&
@@ -3510,7 +3476,6 @@ class CryptoInfoData extends DataClass implements Insertable<CryptoInfoData> {
 
 class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
   final Value<int> id;
-  final Value<String> userId;
   final Value<int> accountId;
   final Value<String> cryptoExchange;
   final Value<String> apiKey;
@@ -3520,7 +3485,6 @@ class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
   final Value<DateTime> updatedAt;
   const CryptoInfoCompanion({
     this.id = const Value.absent(),
-    this.userId = const Value.absent(),
     this.accountId = const Value.absent(),
     this.cryptoExchange = const Value.absent(),
     this.apiKey = const Value.absent(),
@@ -3531,7 +3495,6 @@ class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
   });
   CryptoInfoCompanion.insert({
     this.id = const Value.absent(),
-    required String userId,
     required int accountId,
     required String cryptoExchange,
     required String apiKey,
@@ -3539,8 +3502,7 @@ class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
     this.status = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
-  }) : userId = Value(userId),
-       accountId = Value(accountId),
+  }) : accountId = Value(accountId),
        cryptoExchange = Value(cryptoExchange),
        apiKey = Value(apiKey),
        apiSecret = Value(apiSecret),
@@ -3548,7 +3510,6 @@ class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
        updatedAt = Value(updatedAt);
   static Insertable<CryptoInfoData> custom({
     Expression<int>? id,
-    Expression<String>? userId,
     Expression<int>? accountId,
     Expression<String>? cryptoExchange,
     Expression<String>? apiKey,
@@ -3559,7 +3520,6 @@ class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (userId != null) 'user_id': userId,
       if (accountId != null) 'account_id': accountId,
       if (cryptoExchange != null) 'crypto_exchange': cryptoExchange,
       if (apiKey != null) 'api_key': apiKey,
@@ -3572,7 +3532,6 @@ class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
 
   CryptoInfoCompanion copyWith({
     Value<int>? id,
-    Value<String>? userId,
     Value<int>? accountId,
     Value<String>? cryptoExchange,
     Value<String>? apiKey,
@@ -3583,7 +3542,6 @@ class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
   }) {
     return CryptoInfoCompanion(
       id: id ?? this.id,
-      userId: userId ?? this.userId,
       accountId: accountId ?? this.accountId,
       cryptoExchange: cryptoExchange ?? this.cryptoExchange,
       apiKey: apiKey ?? this.apiKey,
@@ -3599,9 +3557,6 @@ class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
-    }
-    if (userId.present) {
-      map['user_id'] = Variable<String>(userId.value);
     }
     if (accountId.present) {
       map['account_id'] = Variable<int>(accountId.value);
@@ -3631,7 +3586,6 @@ class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
   String toString() {
     return (StringBuffer('CryptoInfoCompanion(')
           ..write('id: $id, ')
-          ..write('userId: $userId, ')
           ..write('accountId: $accountId, ')
           ..write('cryptoExchange: $cryptoExchange, ')
           ..write('apiKey: $apiKey, ')
@@ -5226,7 +5180,6 @@ typedef $$FxRatesTableProcessedTableManager =
 typedef $$CryptoInfoTableCreateCompanionBuilder =
     CryptoInfoCompanion Function({
       Value<int> id,
-      required String userId,
       required int accountId,
       required String cryptoExchange,
       required String apiKey,
@@ -5238,7 +5191,6 @@ typedef $$CryptoInfoTableCreateCompanionBuilder =
 typedef $$CryptoInfoTableUpdateCompanionBuilder =
     CryptoInfoCompanion Function({
       Value<int> id,
-      Value<String> userId,
       Value<int> accountId,
       Value<String> cryptoExchange,
       Value<String> apiKey,
@@ -5259,11 +5211,6 @@ class $$CryptoInfoTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get userId => $composableBuilder(
-    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5317,11 +5264,6 @@ class $$CryptoInfoTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get userId => $composableBuilder(
-    column: $table.userId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<int> get accountId => $composableBuilder(
     column: $table.accountId,
     builder: (column) => ColumnOrderings(column),
@@ -5369,9 +5311,6 @@ class $$CryptoInfoTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get userId =>
-      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<int> get accountId =>
       $composableBuilder(column: $table.accountId, builder: (column) => column);
@@ -5429,7 +5368,6 @@ class $$CryptoInfoTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<String> userId = const Value.absent(),
                 Value<int> accountId = const Value.absent(),
                 Value<String> cryptoExchange = const Value.absent(),
                 Value<String> apiKey = const Value.absent(),
@@ -5439,7 +5377,6 @@ class $$CryptoInfoTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => CryptoInfoCompanion(
                 id: id,
-                userId: userId,
                 accountId: accountId,
                 cryptoExchange: cryptoExchange,
                 apiKey: apiKey,
@@ -5451,7 +5388,6 @@ class $$CryptoInfoTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required String userId,
                 required int accountId,
                 required String cryptoExchange,
                 required String apiKey,
@@ -5461,7 +5397,6 @@ class $$CryptoInfoTableTableManager
                 required DateTime updatedAt,
               }) => CryptoInfoCompanion.insert(
                 id: id,
-                userId: userId,
                 accountId: accountId,
                 cryptoExchange: cryptoExchange,
                 apiKey: apiKey,

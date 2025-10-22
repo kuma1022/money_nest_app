@@ -1,9 +1,6 @@
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:money_nest_app/models/trade_action.dart';
-import 'package:money_nest_app/models/trade_type.dart';
-import 'package:money_nest_app/models/currency.dart';
 import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
@@ -177,9 +174,6 @@ class CryptoInfo extends Table {
   // ID
   IntColumn get id => integer().autoIncrement()();
 
-  // ユーザーID（Supabase AuthのUUID）
-  TextColumn get userId => text()();
-
   // アカウントID（int8）
   IntColumn get accountId => integer()();
 
@@ -206,11 +200,7 @@ class CryptoInfo extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-    {
-      userId,
-      accountId,
-      cryptoExchange,
-    }, // unique (user_id, account_id, crypto_exchange)
+    {accountId, cryptoExchange}, // unique (account_id, crypto_exchange)
   ];
 }
 

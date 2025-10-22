@@ -300,12 +300,17 @@ class AssetsTabPageState extends State<AssetsTabPage> {
 
   Widget createAssetList() {
     final totalStocksMap = AppUtils().getTotalAssetsAndCostsValue();
+    //final bitflyerBalance = GlobalStore().bitflyerBalanceCache;
     final double stockTotalValue = totalStocksMap['totalAssets'];
     final double stockTotalCost = totalStocksMap['totalCosts'];
     final double stockTotalProfit = stockTotalValue - stockTotalCost;
     final double stockTotalNetRate = stockTotalCost == 0
         ? 0.0
         : (stockTotalProfit / stockTotalCost) * 100;
+    //final double cryptoTotalValue = bitflyerBalance.values.fold(
+    //  0.0,
+    //  (sum, amount) => sum + amount,
+    //);
     double total = 0.0;
 
     final List categories = Categories.values
@@ -330,6 +335,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
               break;
             case 'crypto':
               dotColor = AppColors.appChartPurple;
+              //value = cryptoTotalValue;
               break;
             case 'metal':
               dotColor = AppColors.appChartOrange;

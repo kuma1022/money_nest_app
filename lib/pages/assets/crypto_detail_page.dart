@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:drift/drift.dart' hide Column;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_tab.dart';
@@ -26,78 +27,101 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
   List<dynamic> bitFlyerBalanceHistory = [];
   List<String> availableCurrencies = [];
   List<CryptoInfoData> cryptoInfos = [];
+  List<Map<String, dynamic>> cryptoAssets = [];
+  bool _isInitializing = true; // 添加初始化loading状态
 
   @override
   void initState() {
     super.initState();
-    getCryptoDataFromDB();
-    syncCryptoDataFromServer();
+    _initializeData();
   }
 
-  Future<void> getCryptoDataFromDB() async {
-    // 从数据库获取加密资产数据（如果有的话）
-    // 从CryptoInfo表获取数据(USER_ID = 当前用户ID, Account_ID = 当前账户ID)
-    final String? userId = GlobalStore().userId;
-    final int? accountId = GlobalStore().accountId;
-    if (userId == null || accountId == null) {
-      print('No userId or accountId available.');
-      return;
-    }
-    final dbCryptoInfos =
-        await (widget.db.select(widget.db.cryptoInfo)..where(
-              (tbl) =>
-                  tbl.userId.equals(userId) & tbl.accountId.equals(accountId),
-            ))
-            .get();
-    print('Crypto Infos from DB: $dbCryptoInfos');
+  // 添加单独的初始化方法
+  Future<void> _initializeData() async {
     setState(() {
-      cryptoInfos = dbCryptoInfos;
+      _isInitializing = true;
     });
+
+    try {
+      //await getCryptoDataFromDB();
+      final dbCryptoInfos = await AppUtils().getCryptoDataFromDB(widget.db);
+      // 检查 widget 是否仍然挂载
+      if (mounted) {
+        setState(() {
+          cryptoInfos = dbCryptoInfos;
+        });
+      }
+      await syncCryptoDataFromServer();
+    } catch (e) {
+      print('Error in _initializeData: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('データの読み込みに失敗しました')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isInitializing = false;
+        });
+      }
+    }
   }
 
   Future<void> syncCryptoDataFromServer() async {
     // 调用 Bitflyer API
     try {
-      final List<CryptoInfoData> newCryptoInfos = [];
-      List<dynamic> balances = [];
-      List<dynamic> balanceHistory = [];
       final String firstCurrency = 'JPY';
-      for (var cryptoInfo in cryptoInfos) {
-        if (cryptoInfo.cryptoExchange == 'bitflyer') {
-          final api = BitflyerApi(cryptoInfo.apiKey, cryptoInfo.apiSecret);
-          if (await api.checkApiKeyAndSecret()) {
-            balances = await api.getBalances(false);
-            print('Bitflyer Balances Success: $balances');
-            // 取各个货币的当前价格
-            for (var balance in balances) {
-              if (balance['amount'] as double == 0.0 ||
-                  balance['currency_code'] == 'JPY') {
-                balance['current_price'] = 1.0;
-                continue;
-              }
-              final String symbol = balance['currency_code'] + '_JPY';
-              try {
-                final Map<String, dynamic> tickerData = await api.getTicker(
-                  true,
-                  symbol,
-                );
-                final double currentPrice = tickerData['ltp'] as double;
-                balance['current_price'] = currentPrice;
-              } catch (e) {
-                balance['current_price'] = 0.0;
-              }
-            }
-            balanceHistory = await api.getBalanceHistory(
-              true,
-              currencyCode: firstCurrency,
-              count: 100,
-            );
-            print(
-              'Bitflyer Balance History Success. Length: ${balanceHistory.length}',
-            );
-          } else {
-            print('Bitflyer API key or secret is missing, skipping API call.');
-          }
+      Map<String, Map<String, List<dynamic>>> syncData = await AppUtils()
+          .syncCryptoDataFromServer(cryptoInfos, firstCurrency);
+      if (syncData.isEmpty ||
+          !syncData.containsKey('bitflyer') &&
+              !syncData.containsKey('coincheck') &&
+              !syncData.containsKey('binance') &&
+              !syncData.containsKey('kucoin') &&
+              !syncData.containsKey('bybit') &&
+              !syncData.containsKey('newCryptoInfos')) {
+        print(
+          'No sync data for bitflyer, coincheck, binance, kucoin or bybit found.',
+        );
+        return;
+      }
+
+      // 将异步操作移到 setState 外面
+      List<String> deleteExchanges = [];
+      List<CryptoInfoData> newCryptoInfos = [];
+
+      // 安全地处理 newCryptoInfos 数据
+      if (syncData.containsKey('newCryptoInfos') &&
+          syncData['newCryptoInfos'] != null &&
+          syncData['newCryptoInfos']!.containsKey('infos') &&
+          syncData['newCryptoInfos']!['infos'] != null) {
+        final List? infos = syncData['newCryptoInfos']!['infos'];
+        if (infos != null) {
+          newCryptoInfos = infos as List<CryptoInfoData>;
+        }
+      }
+
+      for (var info in cryptoInfos) {
+        if (!newCryptoInfos.contains(info)) {
+          deleteExchanges.add(info.cryptoExchange);
+        }
+      }
+
+      // 执行删除操作
+      bool deleted = false;
+      if (deleteExchanges.isNotEmpty) {
+        deleted = await AppUtils().deleteCryptoInfo(
+          userId: GlobalStore().userId!,
+          cryptoData: {
+            'account_id': GlobalStore().accountId!,
+            'crypto_exchange': deleteExchanges,
+          },
+        );
+        if (!deleted) {
+          print('Failed to delete crypto info from server.');
+          // 处理删除失败的情况
+          return;
         }
       }
 
@@ -105,8 +129,16 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
       if (mounted) {
         setState(() {
           _selectedCurrency = firstCurrency;
-          bitFlyerBalances = balances;
-          bitFlyerBalanceHistory = balanceHistory;
+
+          // 安全地处理 bitflyer 数据
+          if (syncData.containsKey('bitflyer')) {
+            final bitflyerData = syncData['bitflyer'];
+            if (bitflyerData != null) {
+              bitFlyerBalances = bitflyerData['balances'] ?? [];
+              bitFlyerBalanceHistory = bitflyerData['balanceHistory'] ?? [];
+            }
+          }
+
           // 获取所有可用的货币代码
           availableCurrencies = bitFlyerBalances.isNotEmpty
               ? bitFlyerBalances
@@ -116,22 +148,78 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                     .toSet()
                     .toList()
               : [];
-          // 删除暗号资产如果不在newCryptoInfos中
-          // TODO: 删除supabase上的数据
+          // 过滤出所有可用的货币资产
+          cryptoAssets = bitFlyerBalances.isNotEmpty
+              ? bitFlyerBalances
+                    .where((balance) {
+                      return (balance['currency_code'] != 'JPY' &&
+                          balance['amount'] != 0);
+                    })
+                    .map((balance) {
+                      final String name = balance['currency_code'];
+                      final String symbol = balance['currency_code'];
+                      final String amount =
+                          '${balance['amount']} ${balance['currency_code']}';
+                      final String unitPrice =
+                          '${AppUtils().formatMoney(balance['current_price'], 'JPY')}/$symbol';
+                      final double totalValue =
+                          (balance['amount'] as double) *
+                          (balance['current_price'] as double);
+                      final String value = AppUtils().formatMoney(
+                        totalValue,
+                        'JPY',
+                      );
+
+                      return {
+                        'exchange': 'bitflyer',
+                        'name': name,
+                        'symbol': symbol,
+                        'amount': amount,
+                        'totalValue': totalValue,
+                        'value': value,
+                        'unitPrice': unitPrice,
+                      };
+                    })
+                    .toList()
+              : [];
+
           // 本地数据库删除
-          for (var info in cryptoInfos) {
-            if (!newCryptoInfos.contains(info)) {
-              widget.db.cryptoInfo.delete().where(
-                (tbl) => tbl.id.equals(info.id),
-              );
+          // 安全地处理 deletedExchanges
+          if (syncData.containsKey('deletedExchanges') &&
+              syncData['deletedExchanges'] != null) {
+            final deletedExchangesList =
+                syncData['deletedExchanges'] as List<dynamic>?;
+            if (deletedExchangesList != null) {
+              for (var exchange in deletedExchangesList) {
+                widget.db.cryptoInfo.delete().where(
+                  (tbl) =>
+                      tbl.accountId.equals(GlobalStore().accountId!) &
+                      tbl.cryptoExchange.equals(exchange.toString()),
+                );
+              }
             }
           }
           cryptoInfos = newCryptoInfos;
         });
+        // 在 setState 外面执行数据库删除操作
+        for (var exchange in deleteExchanges) {
+          try {
+            await (widget.db.delete(widget.db.cryptoInfo)..where(
+                  (tbl) =>
+                      tbl.accountId.equals(GlobalStore().accountId!) &
+                      tbl.cryptoExchange.equals(exchange),
+                ))
+                .go();
+          } catch (e) {
+            print('Error deleting exchange $exchange from local DB: $e');
+          }
+        }
       }
     } catch (e) {
       // 提示用户待会儿再试
       // 检查 widget 是否仍然挂载
+      print('Error fetching crypto data: $e');
+      print('Stack trace: ${StackTrace.current}'); // 添加堆栈跟踪以便调试
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -145,9 +233,11 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
   ) async {
     // 调用 Bitflyer API
     try {
+      print('Fetching Bitflyer balance history...$cryptoInfos');
       final CryptoInfoData? cryptoInfo = cryptoInfos.firstWhereOrNull(
-        (info) => info.cryptoExchange == 'bitflyer',
+        (info) => info.cryptoExchange.toLowerCase() == 'bitflyer',
       );
+      print('Crypto Info for Bitflyer: $cryptoInfo');
       if (cryptoInfo == null ||
           cryptoInfo.apiKey.isEmpty ||
           cryptoInfo.apiSecret.isEmpty) {
@@ -211,24 +301,65 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
           ],
         ),
       ),
-      body: Padding(
-        padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
-        child: SingleChildScrollView(
-          controller: widget.scrollController,
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 16),
-              CustomTab(
-                tabs: ['概要', '入出金', '注文履歴'],
-                tabViews: [
-                  _buildOverviewTab(),
-                  _buildDepositWithdrawTab(),
-                  _buildOrderHistoryTab(),
+      body: Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
+            child: SingleChildScrollView(
+              controller: widget.scrollController,
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 16),
+                  CustomTab(
+                    tabs: ['概要', '入出金', '注文履歴'],
+                    tabViews: [
+                      _buildOverviewTab(),
+                      _buildDepositWithdrawTab(),
+                      _buildOrderHistoryTab(),
+                    ],
+                  ),
+                  const SizedBox(height: 80),
                 ],
               ),
-              const SizedBox(height: 80),
+            ),
+          ),
+          // Loading 遮罩
+          if (_isInitializing) _buildLoadingOverlay(),
+        ],
+      ),
+    );
+  }
+
+  // 修改loading界面为遮罩形式
+  Widget _buildLoadingOverlay() {
+    return Container(
+      color: Colors.black.withOpacity(0.3), // 半透明黑色遮罩
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3), // 模糊效果
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.appUpGreen),
+                strokeWidth: 3,
+              ),
+              SizedBox(height: 24),
+              Text(
+                '暗号資産データを読み込み中...',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '取引所からの情報を取得しています',
+                style: TextStyle(fontSize: 14, color: Colors.white70),
+              ),
             ],
           ),
         ),
@@ -238,37 +369,6 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
 
   // 概要タブ
   Widget _buildOverviewTab() {
-    // 过滤出所有可用的货币资产
-    List<Map<String, dynamic>> cryptoAssets = bitFlyerBalances.isNotEmpty
-        ? bitFlyerBalances
-              .where((balance) {
-                return (balance['currency_code'] != 'JPY' &&
-                    balance['amount'] != 0);
-              })
-              .map((balance) {
-                final String name = balance['currency_code'];
-                final String symbol = balance['currency_code'];
-                final String amount =
-                    '${balance['amount']} ${balance['currency_code']}';
-                final String unitPrice =
-                    '${AppUtils().formatMoney(balance['current_price'], 'JPY')}/$symbol';
-                final double totalValue =
-                    (balance['amount'] as double) *
-                    (balance['current_price'] as double);
-                final String value = AppUtils().formatMoney(totalValue, 'JPY');
-
-                return {
-                  'name': name,
-                  'symbol': symbol,
-                  'amount': amount,
-                  'totalValue': totalValue,
-                  'value': value,
-                  'unitPrice': unitPrice,
-                };
-              })
-              .toList()
-        : [];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -471,27 +571,37 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
             _buildExchangeItem(
               'Binance',
               Colors.amber,
-              cryptoInfos.any((info) => info.cryptoExchange == 'binance'),
+              cryptoInfos.any(
+                (info) => info.cryptoExchange.toLowerCase() == 'binance',
+              ),
             ),
             _buildExchangeItem(
               'Coinbase',
               Colors.blue,
-              cryptoInfos.any((info) => info.cryptoExchange == 'coinbase'),
+              cryptoInfos.any(
+                (info) => info.cryptoExchange.toLowerCase() == 'coinbase',
+              ),
             ),
             _buildExchangeItem(
               'bitFlyer',
               Colors.red,
-              cryptoInfos.any((info) => info.cryptoExchange == 'bitflyer'),
+              cryptoInfos.any(
+                (info) => info.cryptoExchange.toLowerCase() == 'bitflyer',
+              ),
             ),
             _buildExchangeItem(
               'Kraken',
               Colors.purple,
-              cryptoInfos.any((info) => info.cryptoExchange == 'kraken'),
+              cryptoInfos.any(
+                (info) => info.cryptoExchange.toLowerCase() == 'kraken',
+              ),
             ),
             _buildExchangeItem(
               'bitbank',
               Colors.green,
-              cryptoInfos.any((info) => info.cryptoExchange == 'bitbank'),
+              cryptoInfos.any(
+                (info) => info.cryptoExchange.toLowerCase() == 'bitbank',
+              ),
             ),
           ],
         ),
@@ -914,14 +1024,14 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '総資産: ¥0',
+                            '総資産: ${cryptoAssets.where((asset) => asset['exchange'] == name.toLowerCase()).isNotEmpty ? AppUtils().formatMoney(cryptoAssets.where((asset) => asset['exchange'] == name.toLowerCase()).fold(0, (sum, asset) => sum + (asset['totalValue'] as double)), 'JPY') : '¥0'}',
                             style: const TextStyle(
                               fontSize: 14,
                               color: Colors.grey,
                             ),
                           ),
                           Text(
-                            '最終同期: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(GlobalStore().bitflyerLastSyncTime ?? DateTime.now())}',
+                            '最終同期: ${name.toLowerCase() == 'bitflyer' ? DateFormat('yyyy/MM/dd HH:mm:ss').format(GlobalStore().bitflyerLastSyncTime ?? DateTime.now()) : DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.now())}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.grey,
@@ -939,7 +1049,20 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {
-                          // 设置功能
+                          // 获取当前交易所的API信息
+                          final CryptoInfoData? currentInfo = cryptoInfos
+                              .firstWhereOrNull(
+                                (info) =>
+                                    info.cryptoExchange.toLowerCase() ==
+                                    name.toLowerCase(),
+                              );
+                          if (currentInfo != null) {
+                            _showApiDialog(
+                              name,
+                              color,
+                              currentInfo: currentInfo,
+                            );
+                          }
                         },
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.grey),
@@ -968,7 +1091,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          // 解除功能
+                          _showApiClearDialog(name, color);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
@@ -1036,7 +1159,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                 // 连携按钮
                 ElevatedButton(
                   onPressed: () {
-                    _showApiConnectionDialog(name, color);
+                    _showApiDialog(name, color);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.appUpGreen,
@@ -1064,10 +1187,109 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
     );
   }
 
-  // 添加到 _CryptoDetailPageState 类中
-  void _showApiConnectionDialog(String exchangeName, Color color) {
-    final TextEditingController apiKeyController = TextEditingController();
-    final TextEditingController apiSecretController = TextEditingController();
+  void _showApiClearDialog(String name, Color color) {
+    final ValueNotifier<bool> isLoading = ValueNotifier(false);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return ValueListenableBuilder<bool>(
+          valueListenable: isLoading,
+          builder: (context, loading, child) {
+            return AlertDialog(
+              title: const Text('連携解除の確認'),
+              content: loading
+                  ? const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('連携を解除しています...'),
+                      ],
+                    )
+                  : Text('$name との連携を解除してもよろしいですか？'),
+              actions: loading
+                  ? []
+                  : [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('キャンセル'),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          isLoading.value = true;
+                          try {
+                            final bool deleted = await AppUtils()
+                                .deleteCryptoInfo(
+                                  userId: GlobalStore().userId!,
+                                  cryptoData: {
+                                    'account_id': GlobalStore().accountId!,
+                                    'crypto_exchange': name.toLowerCase(),
+                                  },
+                                );
+                            if (deleted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('$name との連携を解除しました。')),
+                              );
+                              await (widget.db.delete(widget.db.cryptoInfo)
+                                    ..where(
+                                      (tbl) =>
+                                          tbl.accountId.equals(
+                                            GlobalStore().accountId!,
+                                          ) &
+                                          tbl.cryptoExchange.equals(
+                                            name.toLowerCase(),
+                                          ),
+                                    ))
+                                  .go();
+                              // 重新获取数据
+                              final dbCryptoInfos = await AppUtils()
+                                  .getCryptoDataFromDB(widget.db);
+                              // 检查 widget 是否仍然挂载
+                              if (mounted) {
+                                setState(() {
+                                  cryptoInfos = dbCryptoInfos;
+                                });
+                              }
+                              await syncCryptoDataFromServer();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('$name との連携解除に失敗しました。')),
+                              );
+                            }
+                          } finally {
+                            isLoading.value = false;
+                            if (mounted) {
+                              Navigator.of(context).pop();
+                            }
+                          }
+                        },
+                        child: const Text('解除'),
+                      ),
+                    ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // 合并后的API连接/更新对话框
+  void _showApiDialog(
+    String exchangeName,
+    Color color, {
+    CryptoInfoData? currentInfo,
+  }) {
+    final bool isUpdate = currentInfo != null;
+    final ValueNotifier<bool> isLoading = ValueNotifier(false);
+    final TextEditingController apiKeyController = TextEditingController(
+      text: isUpdate ? currentInfo!.apiKey : '',
+    );
+    final TextEditingController apiSecretController = TextEditingController(
+      text: isUpdate ? currentInfo!.apiSecret : '',
+    );
 
     showDialog(
       context: context,
@@ -1100,7 +1322,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        '$exchangeName API連携',
+                        '$exchangeName API${isUpdate ? '設定' : '連携'}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -1116,9 +1338,9 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    '取引所のAPIキーとシークレットを入力してください',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  Text(
+                    '取引所のAPIキーとシークレットを${isUpdate ? '更新' : '入力'}してください',
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   const SizedBox(height: 24),
                   // API Key 输入框
@@ -1212,54 +1434,113 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  // 按钮
+                  // 按钮 - 添加loading状态
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.grey),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: const Text(
-                            'キャンセル',
-                            style: TextStyle(color: Colors.grey, fontSize: 16),
-                          ),
+                        child: ValueListenableBuilder<bool>(
+                          valueListenable: isLoading,
+                          builder: (context, loading, child) {
+                            return OutlinedButton(
+                              onPressed: loading
+                                  ? null
+                                  : () => Navigator.of(context).pop(),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.grey),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                              child: const Text(
+                                'キャンセル',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final bool success = await _connectExchange(
-                              exchangeName.toLowerCase(),
-                              apiKeyController.text,
-                              apiSecretController.text,
+                        child: ValueListenableBuilder<bool>(
+                          valueListenable: isLoading,
+                          builder: (context, loading, child) {
+                            return ElevatedButton(
+                              onPressed: loading
+                                  ? null
+                                  : () async {
+                                      isLoading.value = true;
+                                      try {
+                                        final bool success =
+                                            await _handleApiAction(
+                                              exchangeName.toLowerCase(),
+                                              apiKeyController.text,
+                                              apiSecretController.text,
+                                              isUpdate: isUpdate,
+                                              cryptoInfoId: isUpdate
+                                                  ? currentInfo!.id
+                                                  : null,
+                                            );
+                                        if (mounted && success) {
+                                          Navigator.of(context).pop();
+                                        }
+                                      } finally {
+                                        isLoading.value = false;
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: loading
+                                    ? Colors.grey
+                                    : AppColors.appUpGreen,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                elevation: 0,
+                              ),
+                              child: loading
+                                  ? const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          '処理中...',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Text(
+                                      isUpdate ? '更新する' : '連携する',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             );
-                            if (mounted && success) {
-                              Navigator.of(context).pop();
-                            }
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.appUpGreen,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            '連携する',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                         ),
                       ),
                     ],
@@ -1273,23 +1554,24 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
     );
   }
 
-  // 连接交易所的方法
-  Future<bool> _connectExchange(
+  // 合并后的API处理方法
+  Future<bool> _handleApiAction(
     String exchange,
     String apiKey,
-    String apiSecret,
-  ) async {
+    String apiSecret, {
+    required bool isUpdate,
+    int? cryptoInfoId,
+  }) async {
     if (apiKey.isEmpty || apiSecret.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('APIキーとシークレットを入力してください')));
       }
-      return false; // 返回失败状态，不关闭对话框
+      return false;
     }
 
     try {
-      // 这里添加保存API信息到数据库的逻辑
       final String? userId = GlobalStore().userId;
       final int? accountId = GlobalStore().accountId;
 
@@ -1299,24 +1581,23 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
             context,
           ).showSnackBar(const SnackBar(content: Text('ユーザー情報が見つかりません')));
         }
-        return false; // 返回失败状态
+        return false;
       }
 
-      // 判断输入的API信息是否有效
+      // 验证API信息是否有效
       final BitflyerApi api = BitflyerApi(apiKey, apiSecret);
       final bool isValid = await api.checkApiKeyAndSecret();
-      // 无效则提示错误
       if (!isValid) {
         if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('無効なAPIキーまたはシークレットです')));
         }
-        return false; // 返回失败状态，不关闭对话框
+        return false;
       }
 
       // 更新到SupabaseDB
-      await AppUtils().createOrUpdateCryptoInfo(
+      final bool success = await AppUtils().createOrUpdateCryptoInfo(
         userId: userId,
         cryptoData: {
           'account_id': accountId,
@@ -1327,36 +1608,79 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
         },
       );
 
-      // 保存到数据库
-      final cryptoInfo = CryptoInfoCompanion(
-        userId: Value(userId),
-        accountId: Value(accountId),
-        cryptoExchange: Value(exchange),
-        apiKey: Value(apiKey),
-        apiSecret: Value(apiSecret),
-        createdAt: Value(DateTime.now()),
-        updatedAt: Value(DateTime.now()),
-      );
+      if (!success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${isUpdate ? 'API情報の更新' : '連携情報の保存'}に失敗しました'),
+            ),
+          );
+        }
+        return false;
+      }
 
-      await widget.db.into(widget.db.cryptoInfo).insert(cryptoInfo);
+      // 更新/插入本地数据库
+      if (isUpdate && cryptoInfoId != null) {
+        // 更新模式
+        final cryptoInfo = CryptoInfoCompanion(
+          id: Value(cryptoInfoId),
+          apiKey: Value(apiKey),
+          apiSecret: Value(apiSecret),
+          updatedAt: Value(DateTime.now()),
+        );
+
+        await (widget.db.update(
+          widget.db.cryptoInfo,
+        )..where((tbl) => tbl.id.equals(cryptoInfoId))).write(cryptoInfo);
+      } else {
+        // 连携模式
+        final cryptoInfo = CryptoInfoCompanion(
+          accountId: Value(accountId),
+          cryptoExchange: Value(exchange),
+          apiKey: Value(apiKey),
+          apiSecret: Value(apiSecret),
+          createdAt: Value(DateTime.now()),
+          updatedAt: Value(DateTime.now()),
+        );
+
+        await widget.db
+            .into(widget.db.cryptoInfo)
+            .insertOnConflictUpdate(cryptoInfo);
+      }
 
       // 重新获取数据
-      await getCryptoDataFromDB();
+      final dbCryptoInfos = await AppUtils().getCryptoDataFromDB(widget.db);
+      // 检查 widget 是否仍然挂载
+      if (mounted) {
+        setState(() {
+          cryptoInfos = dbCryptoInfos;
+        });
+      }
       await syncCryptoDataFromServer();
 
       if (mounted) {
+        setState(() {
+          cryptoInfos = dbCryptoInfos;
+        });
+        final String message = isUpdate
+            ? '${exchange}のAPI情報を更新しました'
+            : '${exchange}との連携が完了しました';
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('${exchange}との連携が完了しました')));
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
-      return true; // 返回成功状态，关闭对话框
+      return true;
     } catch (e) {
+      print('Error in _handleApiAction: $e');
       if (mounted) {
+        final String message = isUpdate
+            ? '更新に失敗しました。もう一度お試しください。'
+            : '連携に失敗しました。もう一度お試しください。';
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('連携に失敗しました。もう一度お試しください。')));
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
-      return false; // 返回失败状态，不关闭对话框
+      return false;
     }
   }
 }

@@ -105,7 +105,7 @@ Deno.serve(async (req)=>{
     if (subPath === 'cryptoInfo') {
       const body = await req.json();
       if (method === 'POST') return handleCreateOrUpdateCryptoInfo(userId, body);
-      //if (method === 'DELETE') return handleDeleteAssetKey(userId, body);
+      if (method === 'DELETE') return handleDeleteCryptoInfo(userId, body);
     }
     // ------------------- 资产金额记录 -------------------
     if (subPath === 'assets/values') {
@@ -714,14 +714,38 @@ async function handleGetAssetChart(userId, searchParams) {
 async function handleGetUserSummary(userId) {
   const t0 = Date.now();
   // 1. 查账户基本信息
-  const { data: accountData } = await supabase.rpc('get_user_account_info', {
+  const { data: accountData, error: accountError } = await supabase.rpc('get_user_account_info', {
     p_user_id: userId
+  });
+  if (accountError) return new Response(JSON.stringify({
+    error: accountError.message
+  }), {
+    status: 500
   });
   const t_db2 = Date.now();
   console.log(`[PERF] get_user_account_info: ${t_db2 - t0} ms`);
-  // 4. 组装账户信息
+  // 3. 查询crypto_info
+  const accIds = Array.from(new Set(accountData.map((row)=>row.account_id)));
+  const { data: cryptoData, error: cryptoError } = await supabase.from('crypto_info').select('*').in('account_id', accIds);
+  if (cryptoError) return new Response(JSON.stringify({
+    error: cryptoError.message
+  }), {
+    status: 500
+  });
+  const cryptoMap = {};
+  if (cryptoData) {
+    cryptoData.forEach((ci)=>{
+      if (!cryptoMap[ci.account_id]) {
+        cryptoMap[ci.account_id] = [];
+      }
+      cryptoMap[ci.account_id].push(ci);
+    });
+  }
+  const t_db3 = Date.now();
+  console.log(`[PERF] get_crypto_info: ${t_db3 - t_db2} ms`);
+  // 2. 组装账户信息
   const accountsMap = {};
-  accountData.forEach((row)=>{
+  accountData.forEach((row)=> {
     const accId = row.account_id;
     if (!accountsMap[accId]) {
       accountsMap[accId] = {
@@ -730,7 +754,8 @@ async function handleGetUserSummary(userId) {
         type: row.type || '',
         trade_records: [],
         stocks: [],
-        trade_sell_mapping: []
+        trade_sell_mapping: [],
+        crypto_info: cryptoMap[accId] || [],
       };
     }
     const acc = accountsMap[accId];
@@ -806,14 +831,17 @@ async function handleCreateOrUpdateCryptoInfo(userId, body) {
       status: 400
     });
   }
+  console.log("Upserting crypto info for user:", userId);
+  console.log("Crypto info:", body);
   const { data, error } = await supabase.rpc("upsert_crypto_info", {
     p_user_id: userId,
     p_account_id: body.account_id,
     p_crypto_exchange: body.crypto_exchange,
     p_api_key: body.api_key,
     p_api_secret: body.api_secret,
-    P_status: body.status ?? 'active',
+    p_status: body.status ?? 'active',
   });
+  console.log("Upsert result:", data, error);
   if (error) return new Response(JSON.stringify({
     error: error.message
   }), {
@@ -826,11 +854,18 @@ async function handleCreateOrUpdateCryptoInfo(userId, body) {
   });
 }
 
-/*async function handleDeleteAssetKey(userId, body) {
-  const { error } = await supabase.rpc("delete_asset_key", {
+async function handleDeleteCryptoInfo(userId, body) {
+  // 支持单个或多个 crypto_exchange 删除
+  const exchanges = Array.isArray(body.crypto_exchange) 
+    ? body.crypto_exchange 
+    : [body.crypto_exchange];
+  
+  const { error } = await supabase.rpc("delete_crypto_info_batch", {
     p_user_id: userId,
-    p_key: body.key
+    p_account_id: body.account_id,
+    p_crypto_exchanges: exchanges
   });
+ 
   if (error) return new Response(JSON.stringify({
     error: error.message
   }), {
@@ -841,4 +876,4 @@ async function handleCreateOrUpdateCryptoInfo(userId, body) {
   }), {
     status: 200
   });
-}*/
+}

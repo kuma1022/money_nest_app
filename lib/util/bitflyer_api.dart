@@ -17,8 +17,8 @@ class BitflyerApi {
     }
     List<String> permissions = await getpermissions();
     if (permissions.isNotEmpty &&
-        !permissions.contains('/v1/me/getbalance') &&
-        !permissions.contains('/v1/me/getbalancehistory')) {
+        permissions.contains('/v1/me/getbalance') &&
+        permissions.contains('/v1/me/getbalancehistory')) {
       return true;
     }
     return false;
