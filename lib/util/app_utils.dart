@@ -472,6 +472,30 @@ class AppUtils {
   // -------------------------------------------------
   Future<void> getStockPricesByYHFinanceAPI() async {
     final stocksList = await db.select(db.stocks).get();
+    if (GlobalStore().cryptoBalanceCache.isNotEmpty) {
+      for (var exchange in GlobalStore().cryptoBalanceCache.keys) {
+        final balances = GlobalStore().cryptoBalanceCache[exchange];
+        if (balances != null) {
+          for (var currencyCode in balances.keys) {
+            if (currencyCode != 'JPY' &&
+                balances[currencyCode]! > 0.0 &&
+                !stocksList.any((s) => s.ticker == '$currencyCode-JPY')) {
+              stocksList.add(
+                Stock(
+                  id: -1,
+                  ticker: '$currencyCode-JPY',
+                  exchange: 'CRYPTO',
+                  name: '$currencyCode-JPY',
+                  currency: 'JPY',
+                  country: 'US',
+                  status: 'active',
+                ),
+              );
+            }
+          }
+        }
+      }
+    }
     stocksList.add(
       Stock(
         id: -1,
@@ -480,9 +504,7 @@ class AppUtils {
         name: '',
         currency: 'USD',
         country: 'US',
-        sectorIndustryId: null,
-        logo: '',
-        status: '',
+        status: 'active',
       ),
     );
     stocksList.add(
@@ -493,9 +515,7 @@ class AppUtils {
         name: '',
         currency: 'JPY',
         country: 'JP',
-        sectorIndustryId: null,
-        logo: '',
-        status: '',
+        status: 'active',
       ),
     );
     final stockPrices = GlobalStore().currentStockPrices;
@@ -547,11 +567,13 @@ class AppUtils {
   // -------------------------------------------------
   // 计算最新的总资产和总成本
   // -------------------------------------------------
-  dynamic getTotalAssetsAndCostsValue() {
-    num totalAssets = 0.0;
-    num totalCosts = 0.0;
+  Map<String, Map<String, double>> getTotalAssetsAndCostsValue(
+    List<CryptoInfoData> dbCryptoInfos,
+  ) {
+    double stockTotalAssets = 0.0;
+    double stockTotalCosts = 0.0;
     final selectedCurrencyCode = GlobalStore().selectedCurrencyCode;
-    // 计算总资产和总成本
+    // 计算股票总资产和总成本
     for (var item in GlobalStore().portfolio) {
       final qty = item['quantity'] as num? ?? 0;
       final buyPrice = item['buyPrice'] as num? ?? 0;
@@ -574,10 +596,129 @@ class AppUtils {
               : code] ??
           buyPrice;
 
-      totalAssets += qty * currentPrice * rate;
-      totalCosts += qty * buyPrice * rate + fee * feeRate;
+      stockTotalAssets += qty * currentPrice * rate;
+      stockTotalCosts += qty * buyPrice * rate + fee * feeRate;
     }
-    return {'totalAssets': totalAssets, 'totalCosts': totalCosts};
+
+    // 计算加密资产总资产和总成本
+    double cryptoTotalAssets = 0.0;
+    double cryptoTotalCosts = 0.0;
+    final cryptoBalanceCache = GlobalStore().cryptoBalanceCache;
+    cryptoBalanceCache.forEach((exchange, balances) {
+      if (exchange == 'bitflyer') {
+        CryptoInfoData? cryptoInfo;
+        try {
+          cryptoInfo = dbCryptoInfos.firstWhere(
+            (info) => info.cryptoExchange.toLowerCase() == exchange,
+          );
+        } catch (_) {
+          cryptoInfo = null;
+        }
+        balances.forEach((currencyCode, amount) {
+          if (currencyCode == 'JPY' || amount <= 0.0) {
+            return;
+          }
+          final rate =
+              GlobalStore()
+                  .currentStockPrices['${currencyCode == 'USD' ? '' : currencyCode}$selectedCurrencyCode=X'] ??
+              1.0;
+          final currentPrice =
+              GlobalStore().currentStockPrices['$currencyCode-JPY'] ?? 0.0;
+          cryptoTotalAssets += amount * currentPrice * rate;
+          if (cryptoInfo == null) {
+            cryptoTotalCosts += amount * currentPrice * rate;
+            return;
+          }
+          calculateCryptoCost(cryptoInfo, currencyCode, amount).then((
+            costAndReceived,
+          ) {
+            final cost = costAndReceived.$1;
+            final received = costAndReceived.$2;
+            cryptoTotalCosts += cost * rate + (received * currentPrice * rate);
+          });
+        });
+      }
+    });
+
+    return {
+      'stock': {'totalAssets': stockTotalAssets, 'totalCosts': stockTotalCosts},
+      'crypto': {
+        'totalAssets': cryptoTotalAssets,
+        'totalCosts': cryptoTotalCosts,
+      },
+    };
+  }
+
+  // -------------------------------------------------
+  // 计算加密资产的成本
+  // -------------------------------------------------
+  Future<(double, double)> calculateCryptoCost(
+    CryptoInfoData cryptoInfo,
+    String currencyCode,
+    double totalAmount,
+  ) async {
+    if (cryptoInfo.cryptoExchange.isEmpty || currencyCode.isEmpty) {
+      return (0.0, 0.0);
+    }
+
+    double totalCost = 0.0;
+    double totalReceived = 0.0;
+
+    if (cryptoInfo.cryptoExchange.toLowerCase() == 'bitflyer') {
+      // 获取余额历史数据
+      final bitflyerbalanceHistory = await BitflyerApi(
+        cryptoInfo.apiKey,
+        cryptoInfo.apiSecret,
+      ).getBalanceHistory(true, currencyCode: currencyCode, count: 100);
+
+      if (bitflyerbalanceHistory.isEmpty) {
+        return (totalCost, totalReceived);
+      }
+
+      double totalBuyAmount = 0.0;
+      double totalSellAmount = 0.0;
+
+      for (var historyData in bitflyerbalanceHistory) {
+        final tradeType = historyData['trade_type']?.toString();
+        final amount = (historyData['amount'] as num?)?.toDouble() ?? 0.0;
+        final price = (historyData['price'] as num?)?.toDouble() ?? 0.0;
+
+        if (tradeType == 'BUY') {
+          // 检查当前累计买入和卖出量加上这次买入量是否超过当前持仓
+          if (totalBuyAmount + totalReceived + totalSellAmount + amount >=
+              totalAmount) {
+            // 只需要部分数量就能达到当前持仓
+            final remainingAmount =
+                totalAmount - totalBuyAmount - totalReceived - totalSellAmount;
+            totalCost += remainingAmount * price;
+            break; // 达到当前持仓量，结束循环
+          } else {
+            // 全部数量都需要
+            totalCost += amount * price;
+            totalBuyAmount += amount;
+          }
+        } else if (tradeType == 'SELL') {
+          // 记录卖出量
+          totalSellAmount += amount;
+        } else if (tradeType == 'RECEIVE') {
+          // 处理收到的加密货币，这里假设成本为当前市场价格
+          // 检查当前累计买入和卖出量加上这次买入量是否超过当前持仓
+          if (totalBuyAmount + totalReceived + totalSellAmount + amount >=
+              totalAmount) {
+            // 只需要部分数量就能达到当前持仓
+            final remainingAmount =
+                totalAmount - totalBuyAmount - totalReceived - totalSellAmount;
+            totalReceived += remainingAmount;
+            break; // 达到当前持仓量，结束循环
+          } else {
+            // 全部数量都需要
+            totalReceived += amount;
+          }
+        }
+      }
+    }
+
+    return (totalCost, totalReceived);
   }
 
   // -------------------------------------------------

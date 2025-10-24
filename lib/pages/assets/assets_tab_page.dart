@@ -34,8 +34,8 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   bool isLoading = false;
   int _tabIndex = 0; // 0:概要 1:日本株 2:米国株 3:その他
   int _selectedTransitionIndex = 0; // 0:资产, 1:负債
-  num totalAssets = 0;
-  num totalCosts = 0;
+  double totalAssets = 0;
+  double totalCosts = 0;
   DateTime startDate = DateTime.now().subtract(Duration(days: 30));
   DateTime endDate = DateTime.now();
   List<(DateTime, double)> priceHistory = [];
@@ -69,11 +69,26 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       isLoading = true;
     });
     // 计算总资产和总成本
-    final totalMap = AppUtils().getTotalAssetsAndCostsValue();
+    //final totalMap = AppUtils().getTotalAssetsAndCostsValue();
     setState(() {
-      totalAssets = totalMap['totalAssets'];
-      totalCosts = totalMap['totalCosts'];
+      // 安全地计算总资产
+      totalAssets = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(0, (
+        prev,
+        key,
+      ) {
+        final data = GlobalStore().totalAssetsAndCostsMap[key];
+        return prev + (data?['totalAssets']?.toDouble() ?? 0.0);
+      });
+      // 安全地计算总成本
+      totalCosts = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(0, (
+        prev,
+        key,
+      ) {
+        final data = GlobalStore().totalAssetsAndCostsMap[key];
+        return prev + (data?['totalCosts']?.toDouble() ?? 0.0);
+      });
     });
+
     // 计算历史数据
     priceHistory = [];
     costBasisHistory = [];
@@ -299,19 +314,26 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   }
 
   Widget createAssetList() {
-    final totalStocksMap = AppUtils().getTotalAssetsAndCostsValue();
-    //final bitflyerBalance = GlobalStore().bitflyerBalanceCache;
-    final double stockTotalValue = totalStocksMap['totalAssets'];
-    final double stockTotalCost = totalStocksMap['totalCosts'];
+    final stockData = GlobalStore().totalAssetsAndCostsMap['stock'];
+    final cryptoData = GlobalStore().totalAssetsAndCostsMap['crypto'];
+
+    final double stockTotalValue = stockData?['totalAssets']?.toDouble() ?? 0.0;
+    final double stockTotalCost = stockData?['totalCosts']?.toDouble() ?? 0.0;
     final double stockTotalProfit = stockTotalValue - stockTotalCost;
     final double stockTotalNetRate = stockTotalCost == 0
         ? 0.0
         : (stockTotalProfit / stockTotalCost) * 100;
-    //final double cryptoTotalValue = bitflyerBalance.values.fold(
-    //  0.0,
-    //  (sum, amount) => sum + amount,
-    //);
+
+    final double cryptoTotalValue =
+        cryptoData?['totalAssets']?.toDouble() ?? 0.0;
+    final double cryptoTotalCost = cryptoData?['totalCosts']?.toDouble() ?? 0.0;
+    final double cryptoTotalProfit = cryptoTotalValue - cryptoTotalCost;
+    final double cryptoTotalNetRate = cryptoTotalCost == 0
+        ? 0.0
+        : (cryptoTotalProfit / cryptoTotalCost) * 100;
     double total = 0.0;
+
+    print('cryptoData: $cryptoData');
 
     final List categories = Categories.values
         .where((cat) => cat.type == 'asset')
@@ -335,7 +357,9 @@ class AssetsTabPageState extends State<AssetsTabPage> {
               break;
             case 'crypto':
               dotColor = AppColors.appChartPurple;
-              //value = cryptoTotalValue;
+              value = cryptoTotalValue;
+              profit = cryptoTotalProfit;
+              profitRate = cryptoTotalNetRate;
               break;
             case 'metal':
               dotColor = AppColors.appChartOrange;
@@ -356,11 +380,11 @@ class AssetsTabPageState extends State<AssetsTabPage> {
             'value': value,
             'valueLabel': AppUtils().formatMoney(
               value,
-              GlobalStore().selectedCurrencyCode!,
+              GlobalStore().selectedCurrencyCode,
             ),
             'profitText': AppUtils().formatMoney(
               profit,
-              GlobalStore().selectedCurrencyCode!,
+              GlobalStore().selectedCurrencyCode,
             ),
             'profitRateText':
                 '(${AppUtils().formatNumberByTwoDigits(profitRate)}%)',

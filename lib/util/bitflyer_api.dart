@@ -26,13 +26,13 @@ class BitflyerApi {
 
   bool checkLastSyncTime() {
     final DateTime lastSyncTime =
-        GlobalStore().bitflyerLastSyncTime ??
+        GlobalStore().cryptoLastSyncTime['bitflyer'] ??
         DateTime.fromMillisecondsSinceEpoch(0);
     // 如果上次同步时间距现在超过0.5秒，则进行同步
     if (DateTime.now().difference(lastSyncTime) >
         const Duration(milliseconds: 500)) {
       // 更新最后同步时间
-      GlobalStore().saveBitflyerLastSyncTimeToPrefs();
+      GlobalStore().saveCryptoLastSyncTimeToPrefs('bitflyer');
       return true;
     }
     return false;
@@ -90,11 +90,11 @@ class BitflyerApi {
       final List<dynamic> response = await getRequest('/v1/me/getbalance', {});
 
       // レスポンスの処理
-      GlobalStore().bitflyerBalanceCache = response.asMap().map(
+      GlobalStore().cryptoBalanceCache['bitflyer'] = response.asMap().map(
         (index, value) =>
             MapEntry(value['currency_code'], value['amount'] as double),
       );
-      await GlobalStore().saveBitflyerBalanceCacheToPrefs();
+      await GlobalStore().saveCryptoBalanceCacheToPrefs();
       return response;
     } catch (e) {
       print('Error fetching balances: $e');

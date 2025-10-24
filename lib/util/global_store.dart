@@ -26,10 +26,12 @@ class GlobalStore {
   DateTime? syncStartDate;
   // 同步区间的结束日期
   DateTime? syncEndDate;
-  // 最近与Bitflyer同步时间
-  DateTime? bitflyerLastSyncTime;
-  // Bigflyer的余额缓存
-  Map<String, double> bitflyerBalanceCache = {};
+  // 最近与交易所同步时间
+  Map<String, DateTime> cryptoLastSyncTime = {};
+  // 交易所的余额缓存
+  Map<String, Map<String, double>> cryptoBalanceCache = {};
+  // 最新的总资产和总成本，key 是 'stock' 或 'crypto'，value 是 {'totalAssets': num, 'totalCosts': num}
+  Map<String, Map<String, double>> totalAssetsAndCostsMap = {};
 
   // -------------------------------------------------
   // 从 SharedPreferences 加载数据
@@ -55,12 +57,60 @@ class GlobalStore {
     lastSyncTime = DateTime.tryParse(prefs.getString('lastSyncTime') ?? '');
     syncStartDate = DateTime.tryParse(prefs.getString('syncStartDate') ?? '');
     syncEndDate = DateTime.tryParse(prefs.getString('syncEndDate') ?? '');
-    bitflyerLastSyncTime = DateTime.tryParse(
-      prefs.getString('bitflyerLastSyncTime') ?? '',
+
+    // 安全地加载 cryptoLastSyncTime
+    final cryptoLastSyncTimeJson = jsonDecode(
+      prefs.getString('cryptoLastSyncTime') ?? '{}',
     );
-    bitflyerBalanceCache = Map<String, double>.from(
-      jsonDecode(prefs.getString('bitflyerBalanceCache') ?? '{}'),
+    cryptoLastSyncTime = {};
+    if (cryptoLastSyncTimeJson is Map) {
+      cryptoLastSyncTimeJson.forEach((key, value) {
+        if (key is String && value is String) {
+          final dateTime = DateTime.tryParse(value);
+          if (dateTime != null) {
+            cryptoLastSyncTime[key] = dateTime;
+          }
+        }
+      });
+    }
+
+    // 安全地加载 cryptoBalanceCache
+    final cryptoBalanceCacheJson = jsonDecode(
+      prefs.getString('cryptoBalanceCache') ?? '{}',
     );
+    cryptoBalanceCache = {};
+    if (cryptoBalanceCacheJson is Map) {
+      cryptoBalanceCacheJson.forEach((key, value) {
+        if (key is String && value is Map) {
+          final Map<String, double> balanceMap = {};
+          value.forEach((subKey, subValue) {
+            if (subKey is String && subValue is num) {
+              balanceMap[subKey] = subValue.toDouble();
+            }
+          });
+          cryptoBalanceCache[key] = balanceMap;
+        }
+      });
+    }
+
+    // 安全地加载 totalAssetsAndCostsMap
+    final totalAssetsAndCostsMapJson = jsonDecode(
+      prefs.getString('totalAssetsAndCostsMap') ?? '{}',
+    );
+    totalAssetsAndCostsMap = {};
+    if (totalAssetsAndCostsMapJson is Map) {
+      totalAssetsAndCostsMapJson.forEach((key, value) {
+        if (key is String && value is Map) {
+          final Map<String, double> assetMap = {};
+          value.forEach((subKey, subValue) {
+            if (subKey is String && subValue is num) {
+              assetMap[subKey] = subValue.toDouble();
+            }
+          });
+          totalAssetsAndCostsMap[key] = assetMap;
+        }
+      });
+    }
   }
 
   // -------------------------------------------------
@@ -160,22 +210,35 @@ class GlobalStore {
   }
 
   // -------------------------------------------------
-  // 保存数据到 SharedPreferences bitflyerLastSyncTime
+  // 保存数据到 SharedPreferences cryptoLastSyncTime
   // -------------------------------------------------
-  Future<void> saveBitflyerLastSyncTimeToPrefs() async {
+  Future<void> saveCryptoLastSyncTimeToPrefs(String exchange) async {
     final prefs = await SharedPreferences.getInstance();
-    bitflyerLastSyncTime = DateTime.now();
-    prefs.setString(
-      'bitflyerLastSyncTime',
-      bitflyerLastSyncTime!.toIso8601String(),
-    );
+    cryptoLastSyncTime[exchange] = DateTime.now();
+    // 将 DateTime 转换为 ISO8601 字符串格式保存
+    final Map<String, String> timeMap = {};
+    cryptoLastSyncTime.forEach((key, value) {
+      timeMap[key] = value.toIso8601String();
+    });
+    prefs.setString('cryptoLastSyncTime', jsonEncode(timeMap));
   }
 
   // -------------------------------------------------
-  // 保存数据到 SharedPreferences bitflyerBalanceCache
+  // 保存数据到 SharedPreferences cryptoBalanceCache
   // -------------------------------------------------
-  Future<void> saveBitflyerBalanceCacheToPrefs() async {
+  Future<void> saveCryptoBalanceCacheToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString('bitflyerBalanceCache', jsonEncode(bitflyerBalanceCache));
+    prefs.setString('cryptoBalanceCache', jsonEncode(cryptoBalanceCache));
+  }
+
+  // -------------------------------------------------
+  // 保存数据到 SharedPreferences totalAssetsAndCostsMap
+  // -------------------------------------------------
+  Future<void> saveTotalAssetsAndCostsMapToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString(
+      'totalAssetsAndCostsMap',
+      jsonEncode(totalAssetsAndCostsMap),
+    );
   }
 }

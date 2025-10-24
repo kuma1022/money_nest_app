@@ -387,7 +387,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                   ),
                   const Spacer(),
                   Text(
-                    '最終更新: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(GlobalStore().bitflyerLastSyncTime ?? DateTime.now())}',
+                    '最終更新: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(GlobalStore().cryptoLastSyncTime.values.isNotEmpty ? GlobalStore().cryptoLastSyncTime.values.reduce((a, b) => a.isAfter(b) ? a : b) : DateTime.now())}',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -1031,7 +1031,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                             ),
                           ),
                           Text(
-                            '最終同期: ${name.toLowerCase() == 'bitflyer' ? DateFormat('yyyy/MM/dd HH:mm:ss').format(GlobalStore().bitflyerLastSyncTime ?? DateTime.now()) : DateFormat('yyyy/MM/dd HH:mm:ss').format(DateTime.now())}',
+                            '最終同期: ${DateFormat('yyyy/MM/dd HH:mm:ss').format(GlobalStore().cryptoLastSyncTime[name.toLowerCase()] ?? DateTime.now())}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.grey,

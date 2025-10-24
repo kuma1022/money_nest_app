@@ -46,8 +46,8 @@ class HomeTabPageState extends State<HomeTabPage> {
   // 资产tab的索引
   static const int assetTabIndex = 0;
   int _tabIndex = 0; // 当前tab索引（资产/负债）
-  num totalAssets = 0;
-  num totalCosts = 0;
+  double totalAssets = 0;
+  double totalCosts = 0;
 
   @override
   void initState() {
@@ -58,11 +58,26 @@ class HomeTabPageState extends State<HomeTabPage> {
   }
 
   // 刷新总资产和总成本
-  void refreshTotalAssetsAndCosts() {
-    final totalMap = AppUtils().getTotalAssetsAndCostsValue();
+  void refreshTotalAssetsAndCosts() async {
+    // 同步加密货币数据
+    final dbCryptoInfos = await AppUtils().getCryptoDataFromDB(widget.db);
+    // 取得总资产和总成本
+    GlobalStore().totalAssetsAndCostsMap = AppUtils()
+        .getTotalAssetsAndCostsValue(dbCryptoInfos);
+    GlobalStore().saveTotalAssetsAndCostsMapToPrefs();
     setState(() {
-      totalAssets = totalMap['totalAssets'];
-      totalCosts = totalMap['totalCosts'];
+      totalAssets = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
+        0,
+        (prev, key) =>
+            prev +
+            ((GlobalStore().totalAssetsAndCostsMap[key]?['totalAssets'] ?? 0)),
+      );
+      totalCosts = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
+        0,
+        (prev, key) =>
+            prev +
+            ((GlobalStore().totalAssetsAndCostsMap[key]?['totalCosts'] ?? 0)),
+      );
     });
   }
 
