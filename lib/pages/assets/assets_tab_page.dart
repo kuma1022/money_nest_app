@@ -7,7 +7,8 @@ import 'package:money_nest_app/components/glass_panel.dart';
 import 'package:money_nest_app/components/summary_category_card.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/categories.dart';
-import 'package:money_nest_app/pages/assets/crypto_detail_page.dart';
+import 'package:money_nest_app/pages/assets/crypto/crypto_detail_page.dart';
+import 'package:money_nest_app/pages/assets/fund/fund_detail_page.dart';
 import 'package:money_nest_app/pages/assets/stock_detail_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
@@ -36,7 +37,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   int _selectedTransitionIndex = 0; // 0:资产, 1:负債
   double totalAssets = 0;
   double totalCosts = 0;
-  DateTime startDate = DateTime.now().subtract(Duration(days: 30));
+  DateTime startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime endDate = DateTime.now();
   List<(DateTime, double)> priceHistory = [];
   List<(DateTime, double)> costBasisHistory = [];
@@ -58,36 +59,57 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   @override
   void initState() {
     super.initState();
-    // 页面初次进入时，触发动画
-    //_animatePieChart();
-    refreshTotalAssetsAndCosts();
+    // 异步初始化数据，不阻塞initState
+    _initializeData();
+  }
+
+  // 异步初始化数据的方法
+  void _initializeData() async {
+    try {
+      await refreshTotalAssetsAndCosts();
+    } catch (e) {
+      print('Error initializing assets data: $e');
+      // 发生错误时设置默认值
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          totalAssets = 0;
+          totalCosts = 0;
+        });
+      }
+    }
   }
 
   // 刷新总资产和总成本
   Future<void> refreshTotalAssetsAndCosts() async {
-    setState(() {
-      isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        isLoading = true;
+      });
+    }
+
     // 计算总资产和总成本
     //final totalMap = AppUtils().getTotalAssetsAndCostsValue();
-    setState(() {
-      // 安全地计算总资产
-      totalAssets = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(0, (
-        prev,
-        key,
-      ) {
-        final data = GlobalStore().totalAssetsAndCostsMap[key];
-        return prev + (data?['totalAssets']?.toDouble() ?? 0.0);
+    if (mounted) {
+      setState(() {
+        // 安全地计算总资产
+        totalAssets = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
+          0,
+          (prev, key) {
+            final data = GlobalStore().totalAssetsAndCostsMap[key];
+            return prev + (data?['totalAssets']?.toDouble() ?? 0.0);
+          },
+        );
+        // 安全地计算总成本
+        totalCosts = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(0, (
+          prev,
+          key,
+        ) {
+          final data = GlobalStore().totalAssetsAndCostsMap[key];
+          return prev + (data?['totalCosts']?.toDouble() ?? 0.0);
+        });
       });
-      // 安全地计算总成本
-      totalCosts = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(0, (
-        prev,
-        key,
-      ) {
-        final data = GlobalStore().totalAssetsAndCostsMap[key];
-        return prev + (data?['totalCosts']?.toDouble() ?? 0.0);
-      });
-    });
+    }
 
     // 计算历史数据
     priceHistory = [];
@@ -99,9 +121,11 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       priceHistory.add((date, item['assetsTotal'] as double? ?? 0.0));
       costBasisHistory.add((date, item['costBasis'] as double? ?? 0.0));
     }
-    setState(() {
-      isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   List<Map<String, dynamic>> groupConsecutive(
@@ -139,20 +163,48 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   }
 
   Future<void> _reloadByRange() async {
-    final now = DateTime.now();
-    final dur = _rangeMap[_selectedRangeKey];
-    final String? startDate = (dur == null)
-        ? null
-        : now.subtract(dur).toIso8601String().split('T').first;
-    final String? endDate = now.toIso8601String().split('T').first;
-    //await syncDataWithSupabase(
-    //  /* userId */ GlobalStore().userId!,
-    //  /* accountId */ GlobalStore().currentAccountId!,
-    //  /* db */ GlobalStore().db,
-    //   startDate: startDate,
-    //   endDate: endDate,
-    // );
-    setState(() {});
+    try {
+      final now = DateTime.now();
+      final dur = _rangeMap[_selectedRangeKey];
+      final String? startDateStr = (dur == null)
+          ? null
+          : now.subtract(dur).toIso8601String().split('T').first;
+      final String? endDateStr = now.toIso8601String().split('T').first;
+
+      // 更新日期范围
+      if (dur != null) {
+        startDate = now.subtract(dur);
+        endDate = now;
+      } else if (_selectedRangeKey == '年初来') {
+        startDate = DateTime(now.year, 1, 1);
+        endDate = now;
+      } else if (_selectedRangeKey == 'すべて') {
+        // 使用历史数据的最早日期
+        if (GlobalStore().historicalPortfolio.isNotEmpty) {
+          final dates = GlobalStore().historicalPortfolio.keys.toList()..sort();
+          startDate = dates.first;
+          endDate = now;
+        }
+      }
+
+      //await syncDataWithSupabase(
+      //  /* userId */ GlobalStore().userId!,
+      //  /* accountId */ GlobalStore().currentAccountId!,
+      //  /* db */ GlobalStore().db,
+      //   startDate: startDateStr,
+      //   endDate: endDateStr,
+      // );
+
+      // 重新计算历史数据
+      await refreshTotalAssetsAndCosts();
+    } catch (e) {
+      print('Error reloading by range: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
@@ -194,7 +246,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
                   children: [
                     const SizedBox(height: 16),
                     CustomTab(
-                      tabs: ['推移', '内訳', 'ポートフォリオ', '配当'],
+                      tabs: const ['推移', '内訳', 'ポートフォリオ', '配当'],
                       tabViews: [
                         buildTransitionWidget(),
                         buildBreakdownWidget(),
@@ -216,8 +268,8 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   Widget buildTransitionWidget() {
     return StatefulBuilder(
       builder: (context, setState) {
-        final double tabBtnHeight = 32;
-        final double tabBtnRadius = tabBtnHeight / 2;
+        const double tabBtnHeight = 32;
+        const double tabBtnRadius = tabBtnHeight / 2;
 
         return Column(
           children: [
@@ -380,11 +432,11 @@ class AssetsTabPageState extends State<AssetsTabPage> {
             'value': value,
             'valueLabel': AppUtils().formatMoney(
               value,
-              GlobalStore().selectedCurrencyCode,
+              GlobalStore().selectedCurrencyCode ?? 'JPY',
             ),
             'profitText': AppUtils().formatMoney(
               profit,
-              GlobalStore().selectedCurrencyCode,
+              GlobalStore().selectedCurrencyCode ?? 'JPY',
             ),
             'profitRateText':
                 '(${AppUtils().formatNumberByTwoDigits(profitRate)}%)',
@@ -422,6 +474,14 @@ class AssetsTabPageState extends State<AssetsTabPage> {
                 ),
               );
             }
+            // 如果是投资信托类别，跳转到 fund_detail_page
+            else if (category['categoryCode'] == 'fund') {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => FundDetailPage(db: widget.db),
+                ),
+              );
+            }
             // 其他类别可以在这里添加相应的跳转逻辑
           },
           child: SummaryCategoryCard(
@@ -432,7 +492,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
             profitText: category['profitText'],
             profitRateText: category['profitRateText'],
             profitColor: category['profitColor'],
-            subCategories: [],
+            subCategories: const [],
           ),
         );
       }).toList(),
@@ -478,21 +538,21 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       children: [
         Row(
           children: [
-            Text(
+            const Text(
               '資産総額',
               style: TextStyle(
                 fontSize: AppTexts.fontSizeMedium,
                 color: Colors.black87,
               ),
             ),
-            Spacer(),
+            const Spacer(),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   AppUtils().formatMoney(
                     totalAssets.toDouble(),
-                    GlobalStore().selectedCurrencyCode!,
+                    GlobalStore().selectedCurrencyCode ?? 'JPY',
                   ),
                   style: const TextStyle(
                     fontSize: AppTexts.fontSizeHuge,
@@ -518,7 +578,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${AppUtils().formatMoney((totalAssets - totalCosts).toDouble(), GlobalStore().selectedCurrencyCode!)} (${AppUtils().formatNumberByTwoDigits(totalCosts == 0 ? 0 : ((totalAssets - totalCosts) / totalCosts * 100))}%)',
+                      '${AppUtils().formatMoney((totalAssets - totalCosts).toDouble(), GlobalStore().selectedCurrencyCode ?? 'JPY')} (${AppUtils().formatNumberByTwoDigits(totalCosts == 0 ? 0 : ((totalAssets - totalCosts) / totalCosts * 100))}%)',
                       style: TextStyle(
                         color: totalAssets > totalCosts
                             ? AppColors.appUpGreen
@@ -546,8 +606,10 @@ class AssetsTabPageState extends State<AssetsTabPage> {
                 values: _rangeMap.keys.toList(),
                 onChanged: (v) {
                   if (v == null) return;
-                  setState(() => _selectedRangeKey = v);
-                  _reloadByRange();
+                  if (mounted) {
+                    setState(() => _selectedRangeKey = v);
+                    _reloadByRange();
+                  }
                 },
               ),
             ),

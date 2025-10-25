@@ -567,9 +567,9 @@ class AppUtils {
   // -------------------------------------------------
   // 计算最新的总资产和总成本
   // -------------------------------------------------
-  Map<String, Map<String, double>> getTotalAssetsAndCostsValue(
+  Future<Map<String, Map<String, double>>> getTotalAssetsAndCostsValue(
     List<CryptoInfoData> dbCryptoInfos,
-  ) {
+  ) async {
     double stockTotalAssets = 0.0;
     double stockTotalCosts = 0.0;
     final selectedCurrencyCode = GlobalStore().selectedCurrencyCode;
@@ -604,7 +604,11 @@ class AppUtils {
     double cryptoTotalAssets = 0.0;
     double cryptoTotalCosts = 0.0;
     final cryptoBalanceCache = GlobalStore().cryptoBalanceCache;
-    cryptoBalanceCache.forEach((exchange, balances) {
+
+    for (var exchangeEntry in cryptoBalanceCache.entries) {
+      final exchange = exchangeEntry.key;
+      final balances = exchangeEntry.value;
+
       if (exchange == 'bitflyer') {
         CryptoInfoData? cryptoInfo;
         try {
@@ -614,9 +618,14 @@ class AppUtils {
         } catch (_) {
           cryptoInfo = null;
         }
-        balances.forEach((currencyCode, amount) {
+        print('Calculating crypto balances for $exchange: $dbCryptoInfos');
+
+        for (var balanceEntry in balances.entries) {
+          final currencyCode = balanceEntry.key;
+          final amount = balanceEntry.value;
+
           if (currencyCode == 'JPY' || amount <= 0.0) {
-            return;
+            continue;
           }
           final rate =
               GlobalStore()
@@ -627,18 +636,19 @@ class AppUtils {
           cryptoTotalAssets += amount * currentPrice * rate;
           if (cryptoInfo == null) {
             cryptoTotalCosts += amount * currentPrice * rate;
-            return;
+            continue;
           }
-          calculateCryptoCost(cryptoInfo, currencyCode, amount).then((
-            costAndReceived,
-          ) {
-            final cost = costAndReceived.$1;
-            final received = costAndReceived.$2;
-            cryptoTotalCosts += cost * rate + (received * currentPrice * rate);
-          });
-        });
+          final cost = await calculateCryptoCost(
+            cryptoInfo,
+            currencyCode,
+            amount,
+            currentPrice,
+          );
+          cryptoTotalCosts += cost * rate;
+        }
+        print('Crypto total costs updated: $cryptoTotalCosts');
       }
-    });
+    }
 
     return {
       'stock': {'totalAssets': stockTotalAssets, 'totalCosts': stockTotalCosts},
@@ -652,73 +662,86 @@ class AppUtils {
   // -------------------------------------------------
   // 计算加密资产的成本
   // -------------------------------------------------
-  Future<(double, double)> calculateCryptoCost(
+  Future<double> calculateCryptoCost(
     CryptoInfoData cryptoInfo,
     String currencyCode,
     double totalAmount,
+    double currentPrice,
   ) async {
     if (cryptoInfo.cryptoExchange.isEmpty || currencyCode.isEmpty) {
-      return (0.0, 0.0);
+      return 0.0;
     }
 
+    print('Calculating crypto costs for $currencyCode: $totalAmount');
+
     double totalCost = 0.0;
-    double totalReceived = 0.0;
+    double currentAmount = 0.0;
 
     if (cryptoInfo.cryptoExchange.toLowerCase() == 'bitflyer') {
       // 获取余额历史数据
       final bitflyerbalanceHistory = await BitflyerApi(
         cryptoInfo.apiKey,
         cryptoInfo.apiSecret,
-      ).getBalanceHistory(true, currencyCode: currencyCode, count: 100);
+      ).getBalanceHistory(true, currencyCode: currencyCode, count: 200);
 
       if (bitflyerbalanceHistory.isEmpty) {
-        return (totalCost, totalReceived);
+        return totalCost;
       }
-
-      double totalBuyAmount = 0.0;
-      double totalSellAmount = 0.0;
 
       for (var historyData in bitflyerbalanceHistory) {
         final tradeType = historyData['trade_type']?.toString();
         final amount = (historyData['amount'] as num?)?.toDouble() ?? 0.0;
         final price = (historyData['price'] as num?)?.toDouble() ?? 0.0;
 
-        if (tradeType == 'BUY') {
-          // 检查当前累计买入和卖出量加上这次买入量是否超过当前持仓
-          if (totalBuyAmount + totalReceived + totalSellAmount + amount >=
-              totalAmount) {
-            // 只需要部分数量就能达到当前持仓
-            final remainingAmount =
-                totalAmount - totalBuyAmount - totalReceived - totalSellAmount;
-            totalCost += remainingAmount * price;
-            break; // 达到当前持仓量，结束循环
-          } else {
-            // 全部数量都需要
-            totalCost += amount * price;
-            totalBuyAmount += amount;
-          }
-        } else if (tradeType == 'SELL') {
-          // 记录卖出量
-          totalSellAmount += amount;
-        } else if (tradeType == 'RECEIVE') {
-          // 处理收到的加密货币，这里假设成本为当前市场价格
-          // 检查当前累计买入和卖出量加上这次买入量是否超过当前持仓
-          if (totalBuyAmount + totalReceived + totalSellAmount + amount >=
-              totalAmount) {
-            // 只需要部分数量就能达到当前持仓
-            final remainingAmount =
-                totalAmount - totalBuyAmount - totalReceived - totalSellAmount;
-            totalReceived += remainingAmount;
-            break; // 达到当前持仓量，结束循环
-          } else {
-            // 全部数量都需要
-            totalReceived += amount;
-          }
+        final remaining = totalAmount - currentAmount;
+
+        switch (tradeType) {
+          case 'BUY':
+            final buyQty = amount.abs();
+            if (buyQty >= remaining) {
+              totalCost += remaining * price;
+              currentAmount += remaining;
+              break;
+            } else {
+              totalCost += buyQty * price;
+              currentAmount += buyQty;
+            }
+            break;
+
+          case 'SELL':
+          case 'WITHDRAW':
+          case 'CANCEL_COLL':
+          case 'PAYMENT':
+            // 倒推时要加回减少的数量
+            currentAmount -= amount.abs();
+            break;
+
+          case 'DEPOSIT':
+          case 'RECEIVE':
+          case 'POST_COLL':
+            final recvQty = amount.abs();
+            if (recvQty >= remaining) {
+              totalCost += remaining * currentPrice;
+              currentAmount += remaining;
+              break;
+            } else {
+              totalCost += recvQty * currentPrice;
+              currentAmount += recvQty;
+            }
+            break;
+
+          default:
+            // 其他类型忽略
+            break;
         }
+
+        if (currentAmount >= totalAmount) break;
       }
     }
 
-    return (totalCost, totalReceived);
+    print('Crypto costs calculated: $totalCost, $currentAmount');
+
+    return totalCost;
   }
 
   // -------------------------------------------------
