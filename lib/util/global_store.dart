@@ -1,15 +1,33 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
-class GlobalStore {
+class GlobalStore extends ChangeNotifier {
   static final GlobalStore _instance = GlobalStore._internal();
   factory GlobalStore() => _instance;
   GlobalStore._internal();
 
+  String? _userId;
+  int? _accountId;
+
   // 用户ID
-  String? userId;
+  String? get userId => _userId;
+  set userId(String? value) {
+    if (_userId != value) {
+      _userId = value;
+      notifyListeners();
+    }
+  }
+
   // 账户ID
-  int? accountId;
+  int? get accountId => _accountId;
+  set accountId(int? value) {
+    if (_accountId != value) {
+      _accountId = value;
+      notifyListeners();
+    }
+  }
+
   // 选中的货币代码
   String selectedCurrencyCode = 'JPY';
   // 当前持仓
@@ -28,8 +46,8 @@ class GlobalStore {
   DateTime? syncEndDate;
   // 最近与交易所同步时间
   Map<String, DateTime> cryptoLastSyncTime = {};
-  // 交易所的余额缓存
-  Map<String, Map<String, double>> cryptoBalanceCache = {};
+  // 虚拟货币交易所的余额和历史数据的缓存
+  Map<String, Map<String, List<dynamic>>> cryptoBalanceDataCache = {};
   // 最新的总资产和总成本，key 是 'stock' 或 'crypto'，value 是 {'totalAssets': num, 'totalCosts': num}
   Map<String, Map<String, double>> totalAssetsAndCostsMap = {};
 
@@ -38,8 +56,8 @@ class GlobalStore {
   // -------------------------------------------------
   Future<void> loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    userId = prefs.getString('userId');
-    accountId = prefs.getInt('accountId');
+    _userId = prefs.getString('userId');
+    _accountId = prefs.getInt('accountId');
     selectedCurrencyCode = prefs.getString('selectedCurrencyCode') ?? 'JPY';
     portfolio = jsonDecode(prefs.getString('portfolio') ?? '[]');
     historicalPortfolio =
@@ -74,21 +92,21 @@ class GlobalStore {
       });
     }
 
-    // 安全地加载 cryptoBalanceCache
-    final cryptoBalanceCacheJson = jsonDecode(
-      prefs.getString('cryptoBalanceCache') ?? '{}',
+    // 安全地加载 cryptoBalanceDataCache
+    final cryptoBalanceDataCacheJson = jsonDecode(
+      prefs.getString('cryptoBalanceDataCache') ?? '{}',
     );
-    cryptoBalanceCache = {};
-    if (cryptoBalanceCacheJson is Map) {
-      cryptoBalanceCacheJson.forEach((key, value) {
+    cryptoBalanceDataCache = {};
+    if (cryptoBalanceDataCacheJson is Map) {
+      cryptoBalanceDataCacheJson.forEach((key, value) {
         if (key is String && value is Map) {
-          final Map<String, double> balanceMap = {};
+          final Map<String, List<dynamic>> dataMap = {};
           value.forEach((subKey, subValue) {
-            if (subKey is String && subValue is num) {
-              balanceMap[subKey] = subValue.toDouble();
+            if (subKey is String && subValue is List) {
+              dataMap[subKey] = List<dynamic>.from(subValue);
             }
           });
-          cryptoBalanceCache[key] = balanceMap;
+          cryptoBalanceDataCache[key] = dataMap;
         }
       });
     }
@@ -118,8 +136,8 @@ class GlobalStore {
   // -------------------------------------------------
   Future<void> saveUserIdToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    if (userId != null) {
-      prefs.setString('userId', userId!);
+    if (_userId != null) {
+      prefs.setString('userId', _userId!);
     }
   }
 
@@ -128,8 +146,8 @@ class GlobalStore {
   // -------------------------------------------------
   Future<void> saveAccountIdToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    if (accountId != null) {
-      prefs.setInt('accountId', accountId!);
+    if (_accountId != null) {
+      prefs.setInt('accountId', _accountId!);
     }
   }
 
@@ -224,11 +242,14 @@ class GlobalStore {
   }
 
   // -------------------------------------------------
-  // 保存数据到 SharedPreferences cryptoBalanceCache
+  // 保存数据到 SharedPreferences cryptoBalanceDataCache
   // -------------------------------------------------
-  Future<void> saveCryptoBalanceCacheToPrefs() async {
+  Future<void> saveCryptoBalanceDataCacheToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString('cryptoBalanceCache', jsonEncode(cryptoBalanceCache));
+    prefs.setString(
+      'cryptoBalanceDataCache',
+      jsonEncode(cryptoBalanceDataCache),
+    );
   }
 
   // -------------------------------------------------
@@ -240,5 +261,38 @@ class GlobalStore {
       'totalAssetsAndCostsMap',
       jsonEncode(totalAssetsAndCostsMap),
     );
+  }
+
+  // 清除用户ID
+  Future<void> clearUserIdFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userId');
+    _userId = null;
+  }
+
+  // 清除账户ID
+  Future<void> clearAccountIdFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('accountId');
+    _accountId = null;
+  }
+
+  // 清除所有用户数据
+  Future<void> clearAllUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    _userId = null;
+    _accountId = null;
+    selectedCurrencyCode = 'JPY';
+    portfolio = [];
+    historicalPortfolio = {};
+    currentStockPrices = {};
+    stockPricesLastUpdated = null;
+    lastSyncTime = null;
+    syncStartDate = null;
+    syncEndDate = null;
+    cryptoLastSyncTime = {};
+    cryptoBalanceDataCache = {};
+    totalAssetsAndCostsMap = {};
   }
 }

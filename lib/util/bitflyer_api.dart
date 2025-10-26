@@ -89,16 +89,16 @@ class BitflyerApi {
       // APIリクエスト
       final List<dynamic> response = await getRequest('/v1/me/getbalance', {});
 
+      if (response.isEmpty) {
+        print('Bitflyer Balances is empty');
+        return [];
+      }
+
       // レスポンスの処理
-      GlobalStore().cryptoBalanceCache['bitflyer'] = response.asMap().map(
-        (index, value) =>
-            MapEntry(value['currency_code'], value['amount'] as double),
-      );
-      await GlobalStore().saveCryptoBalanceCacheToPrefs();
       return response;
     } catch (e) {
       print('Error fetching balances: $e');
-      rethrow;
+      return [];
     }
   }
 

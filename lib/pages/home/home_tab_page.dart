@@ -73,6 +73,9 @@ class HomeTabPageState extends State<HomeTabPage> {
       // 等待数据库完全初始化
       await _waitForDatabaseReady();
 
+      // 进行数据初始化
+      //await AppUtils().initializeAppData();
+
       // 刷新数据
       await refreshTotalAssetsAndCosts();
 
@@ -125,51 +128,27 @@ class HomeTabPageState extends State<HomeTabPage> {
 
   // 刷新总资产和总成本
   Future<void> refreshTotalAssetsAndCosts() async {
-    try {
-      print('开始刷新总资产和总成本...');
+    // 刷新总资产和总成本
+    AppUtils().refreshTotalAssetsAndCosts();
 
-      // 同步加密货币数据
-      final dbCryptoInfos = await AppUtils().getCryptoDataFromDB(widget.db);
-      print('从数据库获取到 ${dbCryptoInfos.length} 条加密货币信息');
-
-      // 取得总资产和总成本
-      final assetsAndCostsMap = await AppUtils().getTotalAssetsAndCostsValue(
-        dbCryptoInfos,
-      );
-      print('资产成本映射: $assetsAndCostsMap');
-
-      GlobalStore().totalAssetsAndCostsMap = assetsAndCostsMap;
-      GlobalStore().saveTotalAssetsAndCostsMapToPrefs();
-
-      if (mounted) {
-        setState(() {
-          totalAssets = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
-            0,
-            (prev, key) =>
-                prev +
-                ((GlobalStore().totalAssetsAndCostsMap[key]?['totalAssets'] ??
-                        0)
-                    .toDouble()),
-          );
-          totalCosts = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
-            0,
-            (prev, key) =>
-                prev +
-                ((GlobalStore().totalAssetsAndCostsMap[key]?['totalCosts'] ?? 0)
-                    .toDouble()),
-          );
-          print('计算得到总资产: $totalAssets, 总成本: $totalCosts');
-        });
-      }
-    } catch (e) {
-      print('Error refreshing total assets and costs: $e');
-      // 发生错误时使用默认值
-      if (mounted) {
-        setState(() {
-          totalAssets = 0;
-          totalCosts = 0;
-        });
-      }
+    if (mounted) {
+      setState(() {
+        totalAssets = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
+          0,
+          (prev, key) =>
+              prev +
+              ((GlobalStore().totalAssetsAndCostsMap[key]?['totalAssets'] ?? 0)
+                  .toDouble()),
+        );
+        totalCosts = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
+          0,
+          (prev, key) =>
+              prev +
+              ((GlobalStore().totalAssetsAndCostsMap[key]?['totalCosts'] ?? 0)
+                  .toDouble()),
+        );
+        print('计算得到总资产: $totalAssets, 总成本: $totalCosts');
+      });
     }
   }
 

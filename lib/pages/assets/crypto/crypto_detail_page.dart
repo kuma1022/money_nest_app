@@ -72,56 +72,56 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
     // 调用 Bitflyer API
     try {
       final String firstCurrency = 'JPY';
-      Map<String, Map<String, List<dynamic>>> syncData = await AppUtils()
-          .syncCryptoDataFromServer(cryptoInfos, firstCurrency);
-      if (syncData.isEmpty ||
-          !syncData.containsKey('bitflyer') &&
-              !syncData.containsKey('coincheck') &&
-              !syncData.containsKey('binance') &&
-              !syncData.containsKey('kucoin') &&
-              !syncData.containsKey('bybit') &&
-              !syncData.containsKey('newCryptoInfos')) {
-        print(
-          'No sync data for bitflyer, coincheck, binance, kucoin or bybit found.',
-        );
-        return;
-      }
+      List<dynamic> balances = [];
 
-      // 将异步操作移到 setState 外面
-      List<String> deleteExchanges = [];
-      List<CryptoInfoData> newCryptoInfos = [];
+      for (var cryptoInfo in cryptoInfos) {
+        await AppUtils().syncCryptoBalanceDataFromServer(cryptoInfo);
+        balances =
+            GlobalStore().cryptoBalanceDataCache[cryptoInfo.cryptoExchange
+                .toLowerCase()]?['balances'] ??
+            [];
 
-      // 安全地处理 newCryptoInfos 数据
-      if (syncData.containsKey('newCryptoInfos') &&
-          syncData['newCryptoInfos'] != null &&
-          syncData['newCryptoInfos']!.containsKey('infos') &&
-          syncData['newCryptoInfos']!['infos'] != null) {
-        final List? infos = syncData['newCryptoInfos']!['infos'];
-        if (infos != null) {
-          newCryptoInfos = infos as List<CryptoInfoData>;
-        }
-      }
+        if (balances.isNotEmpty) {
+          // 取各个货币的当前价格
+          for (var balance in balances) {
+            final double amount = balance['amount'] as double? ?? 0.0;
+            final String currencyCode =
+                balance['currency_code'] as String? ?? 'JPY';
+            if (amount == 0.0 || currencyCode == 'JPY') {
+              balance['current_price'] = 1.0;
+              continue;
+            }
+            try {
+              double currentPrice =
+                  GlobalStore().currentStockPrices['$currencyCode-JPY'] ?? 0.0;
+              if (currentPrice == 0.0) {
+                if (cryptoInfo.cryptoExchange.toLowerCase() == 'bitflyer') {
+                  final api = BitflyerApi(
+                    cryptoInfo.apiKey,
+                    cryptoInfo.apiSecret,
+                  );
+                  final Map<String, dynamic> tickerData = await api.getTicker(
+                    true,
+                    '${currencyCode}_JPY',
+                  );
+                  currentPrice = tickerData['ltp'] as double;
+                }
+              }
+              balance['current_price'] = currentPrice;
+            } catch (e) {
+              balance['current_price'] = 0.0;
+            }
+          }
 
-      for (var info in cryptoInfos) {
-        if (!newCryptoInfos.contains(info)) {
-          deleteExchanges.add(info.cryptoExchange);
-        }
-      }
+          await AppUtils().syncCryptoBalanceHistoryDataFromServer(
+            cryptoInfo,
+            firstCurrency,
+          );
 
-      // 执行删除操作
-      bool deleted = false;
-      if (deleteExchanges.isNotEmpty) {
-        deleted = await AppUtils().deleteCryptoInfo(
-          userId: GlobalStore().userId!,
-          cryptoData: {
-            'account_id': GlobalStore().accountId!,
-            'crypto_exchange': deleteExchanges,
-          },
-        );
-        if (!deleted) {
-          print('Failed to delete crypto info from server.');
-          // 处理删除失败的情况
-          return;
+          GlobalStore().cryptoBalanceDataCache[cryptoInfo.cryptoExchange
+                  .toLowerCase()]?['balances'] =
+              balances;
+          GlobalStore().saveCryptoBalanceDataCacheToPrefs();
         }
       }
 
@@ -131,8 +131,9 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
           _selectedCurrency = firstCurrency;
 
           // 安全地处理 bitflyer 数据
-          if (syncData.containsKey('bitflyer')) {
-            final bitflyerData = syncData['bitflyer'];
+          if (GlobalStore().cryptoBalanceDataCache.containsKey('bitflyer')) {
+            final bitflyerData =
+                GlobalStore().cryptoBalanceDataCache['bitflyer'];
             if (bitflyerData != null) {
               bitFlyerBalances = bitflyerData['balances'] ?? [];
               bitFlyerBalanceHistory = bitflyerData['balanceHistory'] ?? [];
@@ -152,8 +153,8 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
           cryptoAssets = bitFlyerBalances.isNotEmpty
               ? bitFlyerBalances
                     .where((balance) {
-                      return (balance['currency_code'] != 'JPY' &&
-                          balance['amount'] != 0);
+                      return (balance['currency_code'] as String != 'JPY' &&
+                          balance['amount'] as double != 0.0);
                     })
                     .map((balance) {
                       final String name = balance['currency_code'];
@@ -182,38 +183,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                     })
                     .toList()
               : [];
-
-          // 本地数据库删除
-          // 安全地处理 deletedExchanges
-          if (syncData.containsKey('deletedExchanges') &&
-              syncData['deletedExchanges'] != null) {
-            final deletedExchangesList =
-                syncData['deletedExchanges'] as List<dynamic>?;
-            if (deletedExchangesList != null) {
-              for (var exchange in deletedExchangesList) {
-                widget.db.cryptoInfo.delete().where(
-                  (tbl) =>
-                      tbl.accountId.equals(GlobalStore().accountId!) &
-                      tbl.cryptoExchange.equals(exchange.toString()),
-                );
-              }
-            }
-          }
-          cryptoInfos = newCryptoInfos;
         });
-        // 在 setState 外面执行数据库删除操作
-        for (var exchange in deleteExchanges) {
-          try {
-            await (widget.db.delete(widget.db.cryptoInfo)..where(
-                  (tbl) =>
-                      tbl.accountId.equals(GlobalStore().accountId!) &
-                      tbl.cryptoExchange.equals(exchange),
-                ))
-                .go();
-          } catch (e) {
-            print('Error deleting exchange $exchange from local DB: $e');
-          }
-        }
       }
     } catch (e) {
       // 提示用户待会儿再试

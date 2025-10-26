@@ -13,6 +13,7 @@ import 'package:money_nest_app/util/provider/portfolio_provider.dart';
 import 'package:money_nest_app/util/provider/stocks_provider.dart';
 import 'package:money_nest_app/util/provider/total_asset_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,51 +21,29 @@ void main() async {
   final db = AppDatabase();
 
   await GlobalStore().loadFromPrefs();
-  final t1 = DateTime.now();
-  print('Load prefs time: ${t1.difference(t0).inMilliseconds} ms');
+  //final t1 = DateTime.now();
+  //print('Load prefs time: ${t1.difference(t0).inMilliseconds} ms');
   // 这里提前初始化 userID 和 accountID
-  String userId = 'e226aa2d-1680-468c-8a41-33a3dad9874f'; // 自己用的 userId
-  int accountId = 1; // 自己用的 accountId
-  //String userId = '85963d3d-9b09-4a15-840c-05d1ded31c18'; // 测试用的 userId
-  //int accountId = 2; // 测试用的 accountId
-  GlobalStore().userId = userId;
-  GlobalStore().accountId = accountId;
-  GlobalStore().selectedCurrencyCode = 'JPY'; // 默认日元
+  //String userId = 'e226aa2d-1680-468c-8a41-33a3dad9874f'; // 自己用的 userId
+  //int accountId = 1; // 自己用的 accountId
+  //GlobalStore().userId = userId;
+  //GlobalStore().accountId = accountId;
+  //GlobalStore().selectedCurrencyCode = 'JPY'; // 默认日元
   //GlobalStore().cryptoApiKeys = {
   //  'bitflyer': {
   //    'apiKey': '3XQ54WjxVseYCK8q4MMwpx',
   //    'apiSecret': 's/SeVD0jTuK6e5D2wsm7xqdg1pg9+pbCsNhcQARjb0I=',
   //  },
   //};
-  await GlobalStore().saveUserIdToPrefs();
-  await GlobalStore().saveAccountIdToPrefs();
-  await GlobalStore().saveSelectedCurrencyCodeToPrefs();
+  //await GlobalStore().saveUserIdToPrefs();
+  //await GlobalStore().saveAccountIdToPrefs();
+  //await GlobalStore().saveSelectedCurrencyCodeToPrefs();
   //await GlobalStore().saveCryptoApiKeysToPrefs();
 
   final t2 = DateTime.now();
-  print(
-    'Init userId and accountId time: ${t2.difference(t1).inMilliseconds} ms',
-  );
-
-  // 判断是否同步服务器，如果没有同步，则进行同步
-  if (GlobalStore().lastSyncTime == null) {
-    await AppUtils().syncDataWithSupabase(userId, accountId, db);
-    final t3_1 = DateTime.now();
-    print('Sync data time: ${t3_1.difference(t2).inMilliseconds} ms');
-    await GlobalStore().saveLastSyncTimeToPrefs();
-  } else {
-    print('No need to fetch historical data');
-  }
-
-  final t3 = DateTime.now();
-  print('Sync data time: ${t3.difference(t2).inMilliseconds} ms');
-
-  // 计算持仓并更新到 GlobalStore
-  await AppUtils().calculatePortfolioValue(userId, accountId);
-  await AppUtils().getStockPricesByYHFinanceAPI();
-  await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs();
-  final t4 = DateTime.now();
-  print('Calculate portfolio time: ${t4.difference(t3).inMilliseconds} ms');
+  //print(
+  //  'Init userId and accountId time: ${t2.difference(t1).inMilliseconds} ms',
+  //);
 
   final marketDataProvider = MarketDataProvider(db);
   final buyRecordsProvider = BuyRecordsProvider(db);
@@ -72,8 +51,14 @@ void main() async {
   await marketDataProvider.loadMarketData();
   await buyRecordsProvider.loadRecords();
   await stocksProvider.loadStocks();
-  final t5 = DateTime.now();
-  print('Load providers time: ${t5.difference(t4).inMilliseconds} ms');
+
+  WidgetsFlutterBinding.ensureInitialized();
+  // 初始化 Supabase
+  await Supabase.initialize(
+    url: 'https://yeciaqfdlznrstjhqfxu.supabase.co', // 替换为你的 Supabase URL
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllY2lhcWZkbHpucnN0amhxZnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDE3NTIsImV4cCI6MjA3MTk3Nzc1Mn0.QXWNGKbr9qjeBLYRWQHEEBMT1nfNKZS3vne-Za38bOc', // 替换为你的 Supabase anon key
+  );
 
   runApp(
     MultiProvider(
@@ -93,7 +78,7 @@ void main() async {
     ),
   );
   final t6 = DateTime.now();
-  print('[PERF] runApp: ${t6.difference(t5).inMilliseconds} ms');
+  print('[PERF] runApp: ${t6.difference(t2).inMilliseconds} ms');
   print('[PERF] main() total: ${t6.difference(t0).inMilliseconds} ms');
 }
 

@@ -301,6 +301,53 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
   );
+
+  // 完整的数据库初始化方法
+  Future<void> initialize() async {
+    try {
+      print('AppDatabase: Initializing');
+
+      // 1. 确保数据库连接正常
+      await _ensureDbConnection();
+
+      // 2. 清理旧的缓存数据（如果需要）
+      await _cleanupOldData();
+
+      print('AppDatabase: User initialization completed successfully');
+    } catch (e) {
+      print('AppDatabase: Error during user initialization: $e');
+      rethrow;
+    }
+  }
+
+  // 确保数据库连接
+  Future<void> _ensureDbConnection() async {
+    try {
+      // 执行一个简单的查询来确保数据库连接正常
+      await customSelect('SELECT 1').get();
+      print('AppDatabase: Database connection verified');
+    } catch (e) {
+      print('AppDatabase: Database connection failed: $e');
+      rethrow;
+    }
+  }
+
+  // 清理旧数据（可选）
+  Future<void> _cleanupOldData() async {
+    try {
+      await delete(tradeRecords).go();
+      await delete(stocks).go();
+      await delete(tradeSellMappings).go();
+      await delete(accounts).go();
+      await delete(stockPrices).go();
+      await delete(fxRates).go();
+      await delete(cryptoInfo).go();
+      print('AppDatabase: Old data cleanup completed');
+    } catch (e) {
+      print('AppDatabase: Error during cleanup: $e');
+      // 清理失败不应该阻止初始化
+    }
+  }
 }
 
 LazyDatabase _openConnection() {

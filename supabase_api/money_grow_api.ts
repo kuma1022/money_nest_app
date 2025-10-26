@@ -12,7 +12,18 @@ Deno.serve(async (req)=>{
     const url = new URL(req.url);
     const path = url.pathname;
     const method = req.method;
+    const body = await req.json().catch(() => ({}));
     console.log('Incoming request:', method, path);
+
+    // 简单的操作路由
+    if (body.action === 'login' && method === 'POST') {
+      return handleLogin(body);
+    }
+    
+    if (body.action === 'register' && method === 'POST') {
+      return handleRegister(body);
+    }
+
     // ------------------- GET /stock-search 股票搜索 -------------------
     if (path.endsWith('/stock-search') && method === 'GET') {
       const q = (url.searchParams.get('q') || '').trim();
@@ -52,13 +63,13 @@ Deno.serve(async (req)=>{
       });
     }
     // ------------------- POST /auth/register 注册用户 -------------------
-    if (path.startsWith('/auth/register') && method === 'POST') {
-      return handleRegister(await req.json());
-    }
+    //if (path.startsWith('/auth/register') && method === 'POST') {
+    //  return handleRegister(await req.json());
+    //}
     // ------------------- POST /auth/login 登录用户 -------------------
-    if (path.startsWith('/auth/login') && method === 'POST') {
-      return handleLogin(await req.json());
-    }
+    //if (path.startsWith('/auth/login') && method === 'POST') {
+    //  return handleLogin(await req.json());
+    //}
     // ------------------- 订阅相关 -------------------
     if (path.startsWith('/subscriptions')) {
       // POST /subscriptions 购买/激活订阅
@@ -155,74 +166,7 @@ Deno.serve(async (req)=>{
     });
   }
 });
-// 注册用户
-async function handleRegister(body) {
-  const { email, password, apple_user_id, name, account_type } = body;
-  // 创建 Auth 用户
-  const { data: user, error: authError } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    user_metadata: {
-      apple_user_id
-    }
-  });
-  if (authError) return new Response(JSON.stringify({
-    error: authError.message
-  }), {
-    status: 400
-  });
-  // 在 accounts 表创建记录
-  const { error: accError } = await supabase.from('accounts').insert({
-    user_id: user.id,
-    name,
-    type: account_type
-  });
-  if (accError) return new Response(JSON.stringify({
-    error: accError.message
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    user_id: user.id
-  }), {
-    status: 200
-  });
-}
-// 登录用户
-async function handleLogin(body) {
-  const { email, password, apple_user_id } = body;
-  let user;
-  if (apple_user_id) {
-    const { data, error } = await supabase.from('accounts').select('user_id').eq('user_id', apple_user_id).single();
-    if (error) return new Response(JSON.stringify({
-      error: 'User not found'
-    }), {
-      status: 404
-    });
-    user = data;
-  } else {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    if (error) return new Response(JSON.stringify({
-      error: error.message
-    }), {
-      status: 400
-    });
-    user = data.user;
-  }
-  // 查询订阅状态
-  const { data: subs } = await supabase.rpc('get_user_subscription', {
-    p_user_id: user.id
-  });
-  return new Response(JSON.stringify({
-    user_id: user.id,
-    subscriptions: subs
-  }), {
-    status: 200
-  });
-}
+
 // 购买/激活订阅
 async function handlePurchaseSubscription(body) {
   const { user_id, platform, start_at, expire_at } = body;
@@ -876,4 +820,151 @@ async function handleDeleteCryptoInfo(userId, body) {
   }), {
     status: 200
   });
+}
+
+// ------------------- 辅助函数 -------------------
+// 生成 6 位随机验证码
+function generateCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// 保存验证码到数据库
+async function saveVerificationCode(email: string, code: string) {
+  const expire_at = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 分钟有效
+  const { error } = await supabase.from('auth_verification').upsert({
+    email, code, expire_at
+  });
+  if (error) throw new Error(error.message);
+}
+
+// ------------------- POST /auth/register 注册用户 -------------------
+async function handleRegister(body) {
+  const { email, password, name, account_type, code } = body;
+
+  if (!code) {
+    try {
+      //const verificationCode = generateCode();
+      //await saveVerificationCode(email, verificationCode);
+
+      // 创建未确认的用户，这会触发 Confirm signup 邮件模板
+      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: false,
+      });
+
+      if (userError) {
+        return new Response(JSON.stringify({
+          error: 'ユーザー作成に失敗しました: ' + userError.message
+        }), { status: 400 });
+      }
+
+      const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
+        email: email
+      });
+
+      if (otpError) {
+        return new Response(JSON.stringify({ 
+          error: 'メール送信に失敗しました: ' + otpError
+        }), { status: 400 });
+      }
+
+      console.log(`Verification code sent to ${email}`);
+      
+      return new Response(JSON.stringify({
+        success: true,
+        message: '認証コードをメールに送信しました',
+      }), { status: 200 });
+      
+    } catch (error) {
+      console.error('Error in registration step 1:', error);
+      return new Response(JSON.stringify({ 
+        error: 'サーバーエラーが発生しました: ' + error
+      }), { status: 500 });
+    }
+  }
+
+  // 第二步：验证验证码并确认用户
+  try {
+    /*const { data: verifData, error: verifErr } = await supabase.from('auth_verification')
+      .select('*')
+      .eq('email', email)
+      .eq('code', code)
+      .gt('expire_at', new Date().toISOString())
+      .single();*/
+    const { data: verifData, error: verifErr } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: 'email'
+    });
+    console.log('Verifying code for email:', email, 'code:', code);
+    console.log('Verification data:', verifData);
+    console.log('Verification error:', verifErr);
+    if (verifErr) {
+      return new Response(JSON.stringify({
+        error: '認証コードが無効または期限切れです'
+      }), { status: 400 });
+    }
+
+    // 在 accounts 表创建记录
+    const { data: accountData, error: accError } = await supabase.from('accounts').insert({
+      user_id: verifData.user.id,
+      name: name || '未設定',
+      type: account_type || 'personal'
+    }).select();
+    
+    if (accError) {
+      console.error('Account creation error:', accError);
+      return new Response(JSON.stringify({ 
+        error: 'アカウント作成に失敗しました: ' + accError.message 
+      }), { status: 500 });
+    }
+
+    // 检查是否成功插入
+    if (!accountData || accountData.length === 0) {
+      return new Response(JSON.stringify({
+        error: 'アカウントの作成に失敗しました'
+      }), { status: 500 });
+    }
+    
+    const accountId = accountData[0].id; // 获取插入记录的 ID
+    return new Response(JSON.stringify({ 
+      user_id: verifData.user.id,
+      account_id: accountId,
+      success: true,
+      message: 'アカウント作成が完了しました'
+    }), { status: 200 });
+    
+  } catch (error) {
+    console.error('Error in registration step 2:', error);
+    return new Response(JSON.stringify({ 
+      error: 'アカウント作成中にエラーが発生しました: ' + error 
+    }), { status: 500 });
+  }
+}
+
+// ------------------- POST /auth/login 登录用户 -------------------
+async function handleLogin(body) {
+  const { email, password, apple_user_id } = body;
+  let user;
+  if (apple_user_id) {
+    const { data, error } = await supabase.from('accounts').select('user_id').eq('user_id', apple_user_id).single();
+    if (error) return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 });
+    user = data;
+  } else {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) {
+      console.error('Login error:', error);
+      return new Response(JSON.stringify({ error: error?.message || 'Login failed' }), { status: 400 });
+    }
+    user = data.user;
+  }
+
+  // 查询订阅状态
+  const { data: subs, error: subsError } = await supabase.rpc('get_user_subscription', { p_user_id: user.id });
+  if (subsError) {
+    return new Response(JSON.stringify({ error: subsError.message }), { status: 500 });
+  }
+
+  return new Response(JSON.stringify({ user_id: user.id, subscriptions: subs || [], success: true, message: 'Login success' }), { status: 200 });
 }

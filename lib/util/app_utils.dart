@@ -29,6 +29,85 @@ class AppUtils {
   // 数据库实例
   final db = AppDatabase();
 
+  // 初始化应用数据
+  Future<void> initializeAppData() async {
+    final t2 = DateTime.now();
+    GlobalStore().selectedCurrencyCode = 'JPY';
+    GlobalStore().saveSelectedCurrencyCodeToPrefs();
+
+    String userId = GlobalStore().userId ?? '';
+    int accountId = GlobalStore().accountId ?? 0;
+
+    if (userId.isEmpty || accountId == 0) {
+      throw Exception('User ID or Account ID is not set in GlobalStore');
+    }
+
+    // 判断是否同步服务器，如果没有同步，则进行同步
+    if (GlobalStore().lastSyncTime == null) {
+      // 初始化数据库
+      await db.initialize();
+      await AppUtils().syncDataWithSupabase(userId, accountId, db);
+      final t3_1 = DateTime.now();
+      print('Sync data time: ${t3_1.difference(t2).inMilliseconds} ms');
+      await GlobalStore().saveLastSyncTimeToPrefs();
+    } else {
+      print('No need to fetch historical data');
+    }
+
+    final t3 = DateTime.now();
+    print('Sync data time: ${t3.difference(t2).inMilliseconds} ms');
+
+    // 计算持仓并更新到 GlobalStore
+    await AppUtils().calculatePortfolioValue(userId, accountId);
+    await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs();
+    final t4 = DateTime.now();
+    print('Calculate portfolio time: ${t4.difference(t3).inMilliseconds} ms');
+  }
+
+  // 刷新总资产和总成本
+  Future<void> refreshTotalAssetsAndCosts() async {
+    try {
+      print('开始刷新总资产和总成本...');
+
+      // 同步加密货币数据
+      final dbCryptoInfos = await AppUtils().getCryptoDataFromDB(db);
+      print('从数据库获取到 ${dbCryptoInfos.length} 条加密货币信息');
+
+      for (var cryptoInfo in dbCryptoInfos) {
+        print('同步 ${cryptoInfo.cryptoExchange} 的余额数据...');
+        await AppUtils().syncCryptoBalanceDataFromServer(cryptoInfo);
+        if (GlobalStore()
+            .cryptoBalanceDataCache[cryptoInfo.cryptoExchange
+                .toLowerCase()]!['balances']!
+            .isNotEmpty) {
+          for (var balance
+              in GlobalStore().cryptoBalanceDataCache[cryptoInfo.cryptoExchange
+                  .toLowerCase()]!['balances']!) {
+            if (balance['currency_code'] as String == 'JPY' ||
+                balance['amount'] as double == 0.0) {
+              continue;
+            }
+            await AppUtils().syncCryptoBalanceHistoryDataFromServer(
+              cryptoInfo,
+              balance['currency_code'] as String,
+            );
+          }
+        }
+      }
+
+      // 取得总资产和总成本
+      final assetsAndCostsMap = await AppUtils().getTotalAssetsAndCostsValue(
+        dbCryptoInfos,
+      );
+      print('资产成本映射: $assetsAndCostsMap');
+
+      GlobalStore().totalAssetsAndCostsMap = assetsAndCostsMap;
+      GlobalStore().saveTotalAssetsAndCostsMapToPrefs();
+    } catch (e) {
+      print('Error refreshing total assets and costs: $e');
+    }
+  }
+
   // -------------------------------------------------
   // 获取股票搜索建议
   // -------------------------------------------------
@@ -349,63 +428,64 @@ class AppUtils {
   }
 
   // -------------------------------------------------
-  // 从服务器同步加密资产数据
+  // 从服务器同步加密资产余额数据
   // -------------------------------------------------
-  Future<Map<String, Map<String, List<dynamic>>>> syncCryptoDataFromServer(
-    List<CryptoInfoData> cryptoInfos,
-    String firstCurrency,
+  Future<void> syncCryptoBalanceDataFromServer(
+    CryptoInfoData cryptoInfo,
   ) async {
     // 调用 Bitflyer API
-    final List<CryptoInfoData> newCryptoInfos = [];
     List<dynamic> balances = [];
-    List<dynamic> balanceHistory = [];
-    Map<String, Map<String, List<dynamic>>> cryptoDataMap = {};
 
-    for (var cryptoInfo in cryptoInfos) {
-      if (cryptoInfo.cryptoExchange.toLowerCase() == 'bitflyer') {
-        final api = BitflyerApi(cryptoInfo.apiKey, cryptoInfo.apiSecret);
-        if (await api.checkApiKeyAndSecret()) {
-          balances = await api.getBalances(false);
-          print('Bitflyer Balances Success: $balances');
-          // 取各个货币的当前价格
-          for (var balance in balances) {
-            if (balance['amount'] as double == 0.0 ||
-                balance['currency_code'] == 'JPY') {
-              balance['current_price'] = 1.0;
-              continue;
-            }
-            final String symbol = balance['currency_code'] + '_JPY';
-            try {
-              final Map<String, dynamic> tickerData = await api.getTicker(
-                true,
-                symbol,
-              );
-              final double currentPrice = tickerData['ltp'] as double;
-              balance['current_price'] = currentPrice;
-            } catch (e) {
-              balance['current_price'] = 0.0;
-            }
-          }
-          balanceHistory = await api.getBalanceHistory(
-            true,
-            currencyCode: firstCurrency,
-            count: 100,
-          );
-          newCryptoInfos.add(cryptoInfo);
-          cryptoDataMap[cryptoInfo.cryptoExchange.toLowerCase()] = {
-            'balances': balances,
-            'balanceHistory': balanceHistory,
-          };
-          print(
-            'Bitflyer Balance History Success. Length: ${balanceHistory.length}',
-          );
-        } else {
-          print('Bitflyer API key or secret is missing, skipping API call.');
-        }
+    if (cryptoInfo.cryptoExchange.toLowerCase() == 'bitflyer') {
+      final api = BitflyerApi(cryptoInfo.apiKey, cryptoInfo.apiSecret);
+      if (await api.checkApiKeyAndSecret()) {
+        balances = await api.getBalances(true);
+
+        // 更新缓存
+        GlobalStore().cryptoBalanceDataCache['bitflyer'] = {
+          'balances': balances,
+          'balanceHistory':
+              GlobalStore()
+                  .cryptoBalanceDataCache['bitflyer']?['balanceHistory'] ??
+              [],
+        };
+        await GlobalStore().saveCryptoBalanceDataCacheToPrefs();
+        print('Bitflyer Balances Success: $balances');
+      } else {
+        print('Bitflyer API key or secret is missing, skipping API call.');
       }
     }
-    cryptoDataMap['newCryptoInfos'] = {'infos': newCryptoInfos};
-    return cryptoDataMap;
+  }
+
+  // -------------------------------------------------
+  // 从服务器同步加密资产余额历史数据
+  // -------------------------------------------------
+  Future<void> syncCryptoBalanceHistoryDataFromServer(
+    CryptoInfoData cryptoInfo,
+    String currencyCode,
+  ) async {
+    // 调用 Bitflyer API
+    List<dynamic> balanceHistory = [];
+
+    if (cryptoInfo.cryptoExchange.toLowerCase() == 'bitflyer') {
+      final api = BitflyerApi(cryptoInfo.apiKey, cryptoInfo.apiSecret);
+      if (await api.checkApiKeyAndSecret()) {
+        balanceHistory = await api.getBalanceHistory(
+          true,
+          currencyCode: currencyCode,
+          count: 100,
+        );
+
+        // 更新缓存
+        GlobalStore()
+                .cryptoBalanceDataCache['bitflyer']?['balanceHistory_$currencyCode'] =
+            balanceHistory;
+        await GlobalStore().saveCryptoBalanceDataCacheToPrefs();
+        print('Bitflyer Balance History Success: $balanceHistory');
+      } else {
+        print('Bitflyer API key or secret is missing, skipping API call.');
+      }
+    }
   }
 
   // -------------------------------------------------
@@ -472,13 +552,15 @@ class AppUtils {
   // -------------------------------------------------
   Future<void> getStockPricesByYHFinanceAPI() async {
     final stocksList = await db.select(db.stocks).get();
-    if (GlobalStore().cryptoBalanceCache.isNotEmpty) {
-      for (var exchange in GlobalStore().cryptoBalanceCache.keys) {
-        final balances = GlobalStore().cryptoBalanceCache[exchange];
-        if (balances != null) {
-          for (var currencyCode in balances.keys) {
+    if (GlobalStore().cryptoBalanceDataCache.keys.isNotEmpty) {
+      for (var exchange in GlobalStore().cryptoBalanceDataCache.keys) {
+        final balances =
+            GlobalStore().cryptoBalanceDataCache[exchange]?['balances'];
+        if (balances != null && balances.isNotEmpty) {
+          for (var balance in balances) {
+            final currencyCode = balance['currency_code'];
             if (currencyCode != 'JPY' &&
-                balances[currencyCode]! > 0.0 &&
+                balance['amount'] > 0.0 &&
                 !stocksList.any((s) => s.ticker == '$currencyCode-JPY')) {
               stocksList.add(
                 Stock(
@@ -570,10 +652,23 @@ class AppUtils {
   Future<Map<String, Map<String, double>>> getTotalAssetsAndCostsValue(
     List<CryptoInfoData> dbCryptoInfos,
   ) async {
+    print('=== getTotalAssetsAndCostsValue 开始 ===');
+    print('输入参数 dbCryptoInfos: ${dbCryptoInfos.length} 条记录');
+
     double stockTotalAssets = 0.0;
     double stockTotalCosts = 0.0;
     final selectedCurrencyCode = GlobalStore().selectedCurrencyCode;
+    print('当前选择的货币: $selectedCurrencyCode');
+
+    // 获取最新股票价格
+    try {
+      await AppUtils().getStockPricesByYHFinanceAPI();
+    } catch (e) {
+      print('获取股票价格失败: $e');
+    }
+
     // 计算股票总资产和总成本
+    print('开始计算股票资产，Portfolio 数量: ${GlobalStore().portfolio.length}');
     for (var item in GlobalStore().portfolio) {
       final qty = item['quantity'] as num? ?? 0;
       final buyPrice = item['buyPrice'] as num? ?? 0;
@@ -582,13 +677,16 @@ class AppUtils {
       final currency = item['currency'] as String? ?? 'JPY';
       final fee = item['fee'] as num? ?? 0;
       final feeCurrency = item['feeCurrency'] as String? ?? currency;
+
+      print('处理股票: $code, 数量: $qty, 买入价格: $buyPrice');
+
       final rate =
           GlobalStore()
-              .currentStockPrices['${currency == 'USD' ? '' : currency}$selectedCurrencyCode=X'] ??
+              .currentStockPrices['${currency == 'USD' ? '' : currency}${selectedCurrencyCode ?? 'JPY'}=X'] ??
           1.0;
       final feeRate =
           GlobalStore()
-              .currentStockPrices['${feeCurrency == 'USD' ? '' : feeCurrency}$selectedCurrencyCode=X'] ??
+              .currentStockPrices['${feeCurrency == 'USD' ? '' : feeCurrency}${selectedCurrencyCode ?? 'JPY'}=X'] ??
           1.0;
       final currentPrice =
           GlobalStore().currentStockPrices[exchange == 'JP'
@@ -598,65 +696,128 @@ class AppUtils {
 
       stockTotalAssets += qty * currentPrice * rate;
       stockTotalCosts += qty * buyPrice * rate + fee * feeRate;
+
+      print(
+        '股票计算结果: 资产+${qty * currentPrice * rate}, 成本+${qty * buyPrice * rate + fee * feeRate}',
+      );
     }
+
+    print('股票总计: 资产=$stockTotalAssets, 成本=$stockTotalCosts');
 
     // 计算加密资产总资产和总成本
     double cryptoTotalAssets = 0.0;
     double cryptoTotalCosts = 0.0;
-    final cryptoBalanceCache = GlobalStore().cryptoBalanceCache;
+    final cryptoBalanceCache = GlobalStore().cryptoBalanceDataCache;
+
+    print('开始计算加密货币资产');
+    print('加密货币余额缓存: $cryptoBalanceCache');
 
     for (var exchangeEntry in cryptoBalanceCache.entries) {
       final exchange = exchangeEntry.key;
-      final balances = exchangeEntry.value;
+      final balances = exchangeEntry.value['balances'];
 
-      if (exchange == 'bitflyer') {
+      print('处理交易所: $exchange');
+      print('余额数据: $balances');
+
+      if (balances != null && balances.isNotEmpty) {
         CryptoInfoData? cryptoInfo;
         try {
           cryptoInfo = dbCryptoInfos.firstWhere(
             (info) => info.cryptoExchange.toLowerCase() == exchange,
           );
+          print('找到匹配的 cryptoInfo: ${cryptoInfo.cryptoExchange}');
         } catch (_) {
           cryptoInfo = null;
+          print('未找到匹配的 cryptoInfo for $exchange');
         }
-        print('Calculating crypto balances for $exchange: $dbCryptoInfos');
 
-        for (var balanceEntry in balances.entries) {
-          final currencyCode = balanceEntry.key;
-          final amount = balanceEntry.value;
+        if (cryptoInfo == null) {
+          print('No crypto info found for exchange: $exchange');
+          continue;
+        }
 
-          if (currencyCode == 'JPY' || amount <= 0.0) {
+        for (var balance in balances) {
+          try {
+            final currencyCode = balance['currency_code'];
+            final amount = balance['amount'];
+
+            print('处理加密货币: $currencyCode, 数量: $amount');
+
+            if (currencyCode == 'JPY' || amount <= 0.0) {
+              print('跳过 $currencyCode (JPY或数量<=0)');
+              continue;
+            }
+
+            final rate =
+                GlobalStore()
+                    .currentStockPrices['JPY$selectedCurrencyCode=X'] ??
+                1.0;
+            double currentPrice =
+                GlobalStore().currentStockPrices['$currencyCode-JPY'] ?? 0.0;
+
+            print('当前价格: $currentPrice, 汇率: $rate');
+
+            if (currentPrice == 0.0) {
+              if (cryptoInfo.cryptoExchange.toLowerCase() == 'bitflyer') {
+                try {
+                  final api = BitflyerApi(
+                    cryptoInfo.apiKey,
+                    cryptoInfo.apiSecret,
+                  );
+                  final Map<String, dynamic> tickerData = await api.getTicker(
+                    true,
+                    '${currencyCode}_JPY',
+                  );
+                  currentPrice = (tickerData['ltp'] as num?)?.toDouble() ?? 0.0;
+                  print('从 BitFlyer API 获取价格: $currentPrice');
+                } catch (e) {
+                  print('BitFlyer API 调用失败: $e');
+                  currentPrice = 0.0;
+                }
+              }
+            }
+
+            if (currentPrice > 0) {
+              cryptoTotalAssets += amount * currentPrice * rate;
+
+              try {
+                final cost = await calculateCryptoCost(
+                  cryptoInfo,
+                  currencyCode,
+                  amount,
+                  currentPrice,
+                );
+                cryptoTotalCosts += cost * rate;
+                print(
+                  '加密货币计算: $currencyCode, 资产+${amount * currentPrice * rate}, 成本+${cost * rate}',
+                );
+              } catch (e) {
+                print('计算加密货币成本失败: $e');
+              }
+            } else {
+              print('跳过 $currencyCode (价格为0)');
+            }
+          } catch (e) {
+            print('处理余额数据时出错: $e');
             continue;
           }
-          final rate =
-              GlobalStore()
-                  .currentStockPrices['${currencyCode == 'USD' ? '' : currencyCode}$selectedCurrencyCode=X'] ??
-              1.0;
-          final currentPrice =
-              GlobalStore().currentStockPrices['$currencyCode-JPY'] ?? 0.0;
-          cryptoTotalAssets += amount * currentPrice * rate;
-          if (cryptoInfo == null) {
-            cryptoTotalCosts += amount * currentPrice * rate;
-            continue;
-          }
-          final cost = await calculateCryptoCost(
-            cryptoInfo,
-            currencyCode,
-            amount,
-            currentPrice,
-          );
-          cryptoTotalCosts += cost * rate;
         }
-        print('Crypto total costs updated: $cryptoTotalCosts');
       }
     }
 
-    return {
+    print('加密货币总计: 资产=$cryptoTotalAssets, 成本=$cryptoTotalCosts');
+
+    final result = {
       'stock': {'totalAssets': stockTotalAssets, 'totalCosts': stockTotalCosts},
       'crypto': {
         'totalAssets': cryptoTotalAssets,
         'totalCosts': cryptoTotalCosts,
       },
     };
+
+    print('=== getTotalAssetsAndCostsValue 结束 ===');
+    print('返回结果: $result');
+    return result;
   }
 
   // -------------------------------------------------
@@ -668,78 +829,100 @@ class AppUtils {
     double totalAmount,
     double currentPrice,
   ) async {
+    print('=== calculateCryptoCost 开始 ===');
+    print(
+      '参数: exchange=${cryptoInfo.cryptoExchange}, currency=$currencyCode, amount=$totalAmount',
+    );
+
     if (cryptoInfo.cryptoExchange.isEmpty || currencyCode.isEmpty) {
+      print('参数为空，返回 0');
       return 0.0;
     }
-
-    print('Calculating crypto costs for $currencyCode: $totalAmount');
 
     double totalCost = 0.0;
     double currentAmount = 0.0;
 
     if (cryptoInfo.cryptoExchange.toLowerCase() == 'bitflyer') {
       // 获取余额历史数据
-      final bitflyerbalanceHistory = await BitflyerApi(
-        cryptoInfo.apiKey,
-        cryptoInfo.apiSecret,
-      ).getBalanceHistory(true, currencyCode: currencyCode, count: 200);
+      try {
+        final balanceHistoryData = GlobalStore()
+            .cryptoBalanceDataCache['bitflyer']?['balanceHistory_$currencyCode'];
 
-      if (bitflyerbalanceHistory.isEmpty) {
-        return totalCost;
-      }
-
-      for (var historyData in bitflyerbalanceHistory) {
-        final tradeType = historyData['trade_type']?.toString();
-        final amount = (historyData['amount'] as num?)?.toDouble() ?? 0.0;
-        final price = (historyData['price'] as num?)?.toDouble() ?? 0.0;
-
-        final remaining = totalAmount - currentAmount;
-
-        switch (tradeType) {
-          case 'BUY':
-            final buyQty = amount.abs();
-            if (buyQty >= remaining) {
-              totalCost += remaining * price;
-              currentAmount += remaining;
-              break;
-            } else {
-              totalCost += buyQty * price;
-              currentAmount += buyQty;
-            }
-            break;
-
-          case 'SELL':
-          case 'WITHDRAW':
-          case 'CANCEL_COLL':
-          case 'PAYMENT':
-            // 倒推时要加回减少的数量
-            currentAmount -= amount.abs();
-            break;
-
-          case 'DEPOSIT':
-          case 'RECEIVE':
-          case 'POST_COLL':
-            final recvQty = amount.abs();
-            if (recvQty >= remaining) {
-              totalCost += remaining * currentPrice;
-              currentAmount += remaining;
-              break;
-            } else {
-              totalCost += recvQty * currentPrice;
-              currentAmount += recvQty;
-            }
-            break;
-
-          default:
-            // 其他类型忽略
-            break;
+        if (balanceHistoryData == null) {
+          print('没有找到余额历史数据: balanceHistory_$currencyCode');
+          return 0.0;
         }
 
-        if (currentAmount >= totalAmount) break;
+        final bitflyerbalanceHistory = balanceHistoryData as List<dynamic>;
+        print('余额历史数据条数: ${bitflyerbalanceHistory.length}');
+
+        if (bitflyerbalanceHistory.isEmpty) {
+          print('余额历史为空');
+          return totalCost;
+        }
+
+        for (var historyData in bitflyerbalanceHistory) {
+          try {
+            final tradeType = historyData['trade_type']?.toString();
+            final amount = (historyData['amount'] as num?)?.toDouble() ?? 0.0;
+            final price = (historyData['price'] as num?)?.toDouble() ?? 0.0;
+
+            final remaining = totalAmount - currentAmount;
+
+            switch (tradeType) {
+              case 'BUY':
+                final buyQty = amount.abs();
+                if (buyQty >= remaining) {
+                  totalCost += remaining * price;
+                  currentAmount += remaining;
+                  break;
+                } else {
+                  totalCost += buyQty * price;
+                  currentAmount += buyQty;
+                }
+                break;
+
+              case 'SELL':
+              case 'WITHDRAW':
+              case 'CANCEL_COLL':
+              case 'PAYMENT':
+                // 倒推时要加回减少的数量
+                currentAmount -= amount.abs();
+                break;
+
+              case 'DEPOSIT':
+              case 'RECEIVE':
+              case 'POST_COLL':
+                final recvQty = amount.abs();
+                if (recvQty >= remaining) {
+                  totalCost += remaining * currentPrice;
+                  currentAmount += remaining;
+                  break;
+                } else {
+                  totalCost += recvQty * currentPrice;
+                  currentAmount += recvQty;
+                }
+                break;
+
+              default:
+                // 其他类型忽略
+                break;
+            }
+
+            if (currentAmount >= totalAmount) break;
+          } catch (e) {
+            print('处理历史数据项时出错: $e');
+            continue;
+          }
+        }
+      } catch (e) {
+        print('处理余额历史数据时出错: $e');
+        return 0.0;
       }
     }
 
-    print('Crypto costs calculated: $totalCost, $currentAmount');
+    print('=== calculateCryptoCost 结束 ===');
+    print('计算结果: totalCost=$totalCost, currentAmount=$currentAmount');
 
     return totalCost;
   }

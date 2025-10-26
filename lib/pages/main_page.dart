@@ -72,7 +72,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       onAddPressed: _showTradeAddPage, // 传递回调
     ),
     AssetAnalysisPage(),
-    SettingsTabPage(),
+    SettingsTabPage(db: widget.db),
   ];
 
   void _showTradeAddPage() {

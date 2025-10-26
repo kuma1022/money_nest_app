@@ -1,14 +1,114 @@
 import 'package:flutter/material.dart';
+import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/pages/setting/premium_login_page.dart';
+import 'package:money_nest_app/util/global_store.dart';
 
 class SettingsTabPage extends StatefulWidget {
-  const SettingsTabPage({super.key});
+  final AppDatabase db;
+  const SettingsTabPage({super.key, required this.db});
 
   @override
   State<SettingsTabPage> createState() => _SettingsTabPageState();
 }
 
-class _SettingsTabPageState extends State<SettingsTabPage> {
+class _SettingsTabPageState extends State<SettingsTabPage>
+    with WidgetsBindingObserver {
+  bool _isLoggedIn = false;
+  String? _userName;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    GlobalStore().addListener(_onGlobalStoreChanged);
+    _checkLoginStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    GlobalStore().removeListener(_onGlobalStoreChanged);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // 当应用恢复前台时刷新登录状态
+    if (state == AppLifecycleState.resumed) {
+      _checkLoginStatus();
+    }
+  }
+
+  void _onGlobalStoreChanged() {
+    _checkLoginStatus();
+  }
+
+  // 检查登录状态
+  Future<void> _checkLoginStatus() async {
+    final userId = GlobalStore().userId;
+    final accountId = GlobalStore().accountId;
+
+    print('Checking login status - userId: $userId, accountId: $accountId');
+
+    setState(() {
+      _isLoggedIn = userId != null && userId.isNotEmpty && accountId != null;
+      // 这里可以从 GlobalStore 或其他地方获取用户名
+      _userName = _isLoggedIn ? 'ユーザー' : null; // 临时使用默认名称
+    });
+
+    print('Login status updated - isLoggedIn: $_isLoggedIn');
+  }
+
+  // 登出功能
+  Future<void> _logout() async {
+    // 显示确认对话框
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('ログアウト'),
+          content: const Text('本当にログアウトしますか？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('キャンセル'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('ログアウト'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout == true) {
+      // 清理数据库中的用户数据
+      await widget.db.initialize();
+
+      // 清空持久化数据
+      await GlobalStore().clearAllUserData();
+
+      // 更新UI状态
+      setState(() {
+        _isLoggedIn = false;
+        _userName = null;
+      });
+
+      // 显示成功消息
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ログアウトしました'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -27,7 +127,29 @@ class _SettingsTabPageState extends State<SettingsTabPage> {
           children: [
             const SizedBox(height: 10),
             // プレミアム機能
-            _PremiumCard(cardColor: cardColor, borderColor: borderColor),
+            _PremiumCard(
+              cardColor: cardColor,
+              borderColor: borderColor,
+              isLoggedIn: _isLoggedIn,
+              userName: _userName,
+              onLoginPressed: () async {
+                if (_isLoggedIn) {
+                  await _logout();
+                } else {
+                  final result = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (_) => PremiumLoginPage(db: widget.db),
+                    ),
+                  );
+                  // 如果登录成功，刷新状态
+                  print('Login result: $result');
+                  if (result == true) {
+                    print('Login successful, refreshing status...');
+                    await _checkLoginStatus();
+                  }
+                }
+              },
+            ),
             const _NoAdCard(),
             const SizedBox(height: 10),
             _DisplaySettingsCard(
@@ -151,18 +273,34 @@ class _SettingsTabPageState extends State<SettingsTabPage> {
 class _PremiumCard extends StatelessWidget {
   final Color cardColor;
   final Color borderColor;
-  const _PremiumCard({required this.cardColor, required this.borderColor});
+  final bool isLoggedIn;
+  final String? userName;
+  final VoidCallback onLoginPressed;
+
+  const _PremiumCard({
+    required this.cardColor,
+    required this.borderColor,
+    required this.isLoggedIn,
+    this.userName,
+    required this.onLoginPressed,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE3F0FF), Color(0xFFD6F5F2)],
+        gradient: LinearGradient(
+          colors: isLoggedIn
+              ? [const Color(0xFFE8F5E8), const Color(0xFFF0FFF0)] // 绿色系 - 已登录
+              : [const Color(0xFFE3F0FF), const Color(0xFFD6F5F2)], // 蓝色系 - 未登录
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Color(0xFFB7D8F6), width: 1),
+        border: Border.all(
+          color: isLoggedIn ? const Color(0xFFC8E6C9) : const Color(0xFFB7D8F6),
+          width: 1,
+        ),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -172,8 +310,10 @@ class _PremiumCard extends StatelessWidget {
           Row(
             children: [
               Icon(
-                Icons.emoji_events_outlined,
-                color: Color(0xFF1976D2),
+                isLoggedIn ? Icons.account_circle : Icons.emoji_events_outlined,
+                color: isLoggedIn
+                    ? const Color(0xFF4CAF50)
+                    : const Color(0xFF1976D2),
                 size: 32,
               ),
               const Spacer(),
@@ -181,12 +321,16 @@ class _PremiumCard extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFB3E5FC).withOpacity(0.3),
+                  color: isLoggedIn
+                      ? const Color(0xFFC8E6C9).withOpacity(0.3)
+                      : const Color(0xFFB3E5FC).withOpacity(0.3),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.auto_graph,
-                  color: Color(0xFF4DD0E1),
+                child: Icon(
+                  isLoggedIn ? Icons.check_circle : Icons.auto_graph,
+                  color: isLoggedIn
+                      ? const Color(0xFF4CAF50)
+                      : const Color(0xFF4DD0E1),
                   size: 20,
                 ),
               ),
@@ -194,36 +338,57 @@ class _PremiumCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           // 标题
-          const Center(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'プレミアム機能で\n',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 17,
-                      color: Colors.black87,
+          Center(
+            child: isLoggedIn
+                ? Column(
+                    children: [
+                      Text(
+                        'ようこそ、${userName ?? 'ユーザー'}さん',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const Text(
+                        'プレミアム機能をお楽しみください',
+                        style: TextStyle(
+                          color: Color(0xFF4CAF50),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  )
+                : const Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'プレミアム機能で\n',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        TextSpan(
+                          text: '投資をもっと賢く',
+                          style: TextStyle(
+                            color: Color(0xFF1976D2),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                          ),
+                        ),
+                      ],
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                  TextSpan(
-                    text: '投資をもっと賢く',
-                    style: TextStyle(
-                      color: Color(0xFF1976D2),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 17,
-                    ),
-                  ),
-                ],
-              ),
-              textAlign: TextAlign.center,
-            ),
           ),
           const SizedBox(height: 8),
-          const Center(
+          Center(
             child: Text(
-              'ログインして全機能にアクセスしましょう',
-              style: TextStyle(color: Colors.black54, fontSize: 13),
+              isLoggedIn ? 'すべての機能が利用可能です' : 'ログインして全機能にアクセスしましょう',
+              style: const TextStyle(color: Colors.black54, fontSize: 13),
             ),
           ),
           const SizedBox(height: 18),
@@ -235,59 +400,64 @@ class _PremiumCard extends StatelessWidget {
             crossAxisSpacing: 10,
             physics: const NeverScrollableScrollPhysics(),
             childAspectRatio: 2.8,
-            children: const [
+            children: [
               _PremiumFeatureBox(
                 icon: Icons.visibility_off_outlined,
                 iconColor: Color(0xFF43A047),
                 label: '広告なし',
+                isActive: isLoggedIn,
               ),
               _PremiumFeatureBox(
                 icon: Icons.show_chart_outlined,
                 iconColor: Color(0xFF1976D2),
                 label: '高度分析',
+                isActive: isLoggedIn,
               ),
               _PremiumFeatureBox(
                 icon: Icons.cloud_sync_outlined,
                 iconColor: Color(0xFF00ACC1),
                 label: 'クラウド同期',
+                isActive: isLoggedIn,
               ),
               _PremiumFeatureBox(
                 icon: Icons.account_balance_wallet_outlined,
                 iconColor: Color(0xFFFF9800),
                 label: '複数口座',
+                isActive: isLoggedIn,
               ),
             ],
           ),
           const SizedBox(height: 18),
-          // 登录按钮
+          // 登录/登出按钮
           SizedBox(
             height: 44,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1976D2),
+                backgroundColor: isLoggedIn
+                    ? Colors.red
+                    : const Color(0xFF1976D2),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 0,
               ),
-              icon: const Icon(Icons.star_border, size: 22),
-              label: const Text(
-                'ログイン・新規登録',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              icon: Icon(
+                isLoggedIn ? Icons.logout : Icons.star_border,
+                size: 22,
               ),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const PremiumLoginPage()),
-                );
-              },
+              label: Text(
+                isLoggedIn ? 'ログアウト' : 'ログイン・新規登録',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              onPressed: onLoginPressed,
             ),
           ),
           const SizedBox(height: 8),
-          const Center(
+          Center(
             child: Text(
-              '月額たった480円〜で全機能が使い放題',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              isLoggedIn ? 'プレミアム会員として登録済み' : '月額たった480円〜で全機能が使い放題',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ),
         ],
@@ -300,18 +470,26 @@ class _PremiumFeatureBox extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final String label;
+  final bool isActive;
+
   const _PremiumFeatureBox({
     required this.icon,
     required this.iconColor,
     required this.label,
+    this.isActive = false,
   });
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
+        color: isActive
+            ? Colors.white.withOpacity(0.95)
+            : Colors.white.withOpacity(0.85),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isActive ? Colors.green.shade200 : Colors.grey.shade200,
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -322,6 +500,10 @@ class _PremiumFeatureBox extends StatelessWidget {
             label,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
+          if (isActive) ...[
+            const SizedBox(width: 4),
+            const Icon(Icons.check_circle, color: Colors.green, size: 14),
+          ],
         ],
       ),
     );
