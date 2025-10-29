@@ -1,6 +1,4 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:money_nest_app/components/animated_pie_chart.dart';
 import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_pie_chart.dart';
 import 'package:money_nest_app/components/glass_quick_bar.dart';

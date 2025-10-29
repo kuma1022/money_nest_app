@@ -12,20 +12,42 @@ class GlobalStore extends ChangeNotifier {
 
   // 用户ID
   String? get userId => _userId;
-  set userId(String? value) {
-    if (_userId != value) {
+  set userId(dynamic value) {
+    if (value == null) {
+      _userId = null;
+    } else if (value is String) {
       _userId = value;
-      notifyListeners();
+    } else {
+      print('Converting userId from ${value.runtimeType} to String');
+      _userId = value.toString();
     }
+    notifyListeners();
   }
 
   // 账户ID
   int? get accountId => _accountId;
-  set accountId(int? value) {
-    if (_accountId != value) {
+  set accountId(dynamic value) {
+    if (value == null) {
+      _accountId = null;
+    } else if (value is int) {
       _accountId = value;
-      notifyListeners();
+    } else if (value is String) {
+      _accountId = int.tryParse(value);
+      if (_accountId == null) {
+        print('Warning: Cannot parse accountId string: $value');
+      }
+    } else if (value is double) {
+      _accountId = value.toInt();
+    } else {
+      print('Warning: Unexpected accountId type: ${value.runtimeType}');
+      try {
+        _accountId = int.tryParse(value.toString());
+      } catch (e) {
+        print('Failed to convert accountId: $e');
+        _accountId = null;
+      }
     }
+    notifyListeners();
   }
 
   // 选中的货币代码

@@ -36,14 +36,7 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
   String? registerError;
   bool isLoading = false;
 
-  // Supabase客户端
-  SupabaseClient? _supabase;
   StreamSubscription<AuthState>? _authSubscription;
-
-  SupabaseClient get supabase {
-    _supabase ??= Supabase.instance.client;
-    return _supabase!;
-  }
 
   @override
   void initState() {
@@ -54,7 +47,7 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
   }
 
   void _initializeAuthListener() {
-    _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
+    _authSubscription = AppUtils().initializeAuthListener((data) {
       final event = data.event;
       final session = data.session;
 
@@ -95,9 +88,10 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
 
     try {
       // 调用 Edge Function
-      final res = await supabase.functions.invoke(
+      final res = await AppUtils().supabaseInvoke(
         'money_grow_api',
-        body: {'action': 'login', 'email': email, 'password': password},
+        queryParameters: {'action': 'login'},
+        body: {'email': email, 'password': password},
         headers: {'Content-Type': 'application/json'},
         method: HttpMethod.post,
       );
@@ -109,7 +103,9 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
       // 安全地检查响应状态和数据
       if (res.status == 200 && res.data != null) {
         // 更灵活的响应数据处理
-        dynamic responseData = res.data;
+        dynamic responseData = res.data is String
+            ? jsonDecode(res.data)
+            : res.data;
 
         // 处理可能的 JSON 字符串
         if (responseData is String) {
@@ -307,10 +303,10 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
 
     try {
       // 第一步：发送验证码 - 调用 Edge Function
-      final res = await supabase.functions.invoke(
+      final res = await AppUtils().supabaseInvoke(
         'money_grow_api',
+        queryParameters: {'action': 'register'},
         body: {
-          'action': 'register',
           'email': email,
           'password': password,
           'name': nickname.isEmpty ? null : nickname,
@@ -327,7 +323,9 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
       // 检查响应状态和数据
       if (res.status == 200 && res.data != null) {
         // 更灵活的响应数据处理
-        dynamic responseData = res.data;
+        dynamic responseData = res.data is String
+            ? jsonDecode(res.data)
+            : res.data;
 
         // 处理可能的 JSON 字符串
         if (responseData is String) {
@@ -419,7 +417,7 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
 
   @override
   void dispose() {
-    _authSubscription?.cancel();
+    AppUtils().cancelAuthListener(_authSubscription!);
     emailController.dispose();
     passwordController.dispose();
     regEmailController.dispose();

@@ -7,156 +7,119 @@ const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("
 });
 import { gzip } from "https://deno.land/x/compress@v0.4.5/mod.ts";
 console.info('Edge Function initialized');
-Deno.serve(async (req)=>{
+Deno.serve(async (req: { url: string | URL; method: any; headers: { get: (arg0: string) => string; }; json: () => any; })=>{
   try {
     const url = new URL(req.url);
     const path = url.pathname;
     const method = req.method;
-    const body = await req.json().catch(() => ({}));
-    console.log('Incoming request:', method, path);
 
-    // 简单的操作路由
-    if (body.action === 'login' && method === 'POST') {
-      return handleLogin(body);
+    // 只在非 GET 请求时读取 body
+    let body: any = {};
+    if (method !== 'GET') {
+      try {
+        const contentType = req.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          body = await req.json();
+        }
+      } catch (e) {
+        console.warn('Failed to parse JSON body:', e);
+      }
     }
+    console.log('Incoming request:', method, path, body);
     
-    if (body.action === 'register' && method === 'POST') {
-      return handleRegister(body);
+    // POST actions
+    if (method === 'POST') {
+      const action = url.searchParams.get('action');
+
+      // login 登录用户
+      if (action === 'login') return handleLogin(body);
+      // register 注册用户
+      if (action === 'register') return handleRegister(body);
+      // 购买/激活订阅
+      if (action === 'subscriptions') return handlePurchaseSubscription(body);
+      // 新增交易记录
+      if (action === 'user-assets') {
+        const userId = url.searchParams.get('user_id');
+        return handleCreateAsset(userId, body);
+      }
+      // 暗号资产key值
+      if (action === 'user-cryptoInfo') {
+        const userId = url.searchParams.get('user_id');
+        return handleCreateOrUpdateCryptoInfo(userId, body);
+      }
     }
 
-    // ------------------- GET /stock-search 股票搜索 -------------------
-    if (path.endsWith('/stock-search') && method === 'GET') {
-      const q = (url.searchParams.get('q') || '').trim();
-      const exchange = (url.searchParams.get('exchange') || '').trim() || null;
-      const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '20', 10), 1), 200);
-      if (!q) return new Response(JSON.stringify({
-        error: 'Missing parameter: q'
-      }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      const { data, error } = await supabase.rpc('search_stocks', {
-        search_query: q,
-        row_limit: limit,
-        exchange_filter: exchange
-      });
-      if (error) return new Response(JSON.stringify({
-        error: 'Database error'
-      }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      return new Response(JSON.stringify({
-        query: q,
-        exchange,
-        count: data?.length || 0,
-        results: data || []
-      }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-    }
-    // ------------------- POST /auth/register 注册用户 -------------------
-    //if (path.startsWith('/auth/register') && method === 'POST') {
-    //  return handleRegister(await req.json());
-    //}
-    // ------------------- POST /auth/login 登录用户 -------------------
-    //if (path.startsWith('/auth/login') && method === 'POST') {
-    //  return handleLogin(await req.json());
-    //}
-    // ------------------- 订阅相关 -------------------
-    if (path.startsWith('/subscriptions')) {
-      // POST /subscriptions 购买/激活订阅
-      if (method === 'POST') return handlePurchaseSubscription(await req.json());
-      // GET /subscriptions 查询订阅状态
-      if (method === 'GET') return handleCheckSubscription(await req.json());
-      // DELETE /subscriptions 取消订阅
-      if (method === 'DELETE') return handleCancelSubscription(await req.json());
-    }
-    // ------------------- GET /stock-prices 股票历史价格数据 -------------------
-    if (path.endsWith('/stock-prices') && method === 'GET') {
-      const stockIds = (url.searchParams.get('stock_ids') || '').trim().split(',');
-      const startDate = url.searchParams.get('start_date') || null;
-      const endDate = url.searchParams.get('end_date') || null;
-      if (stockIds.length === 0 || startDate === null || endDate === null) {
-        return new Response(JSON.stringify({
-          error: 'Missing parameter: stock_ids or start_date or end_date'
-        }), {
-          status: 400
-        });
+    // GET actions
+    if (method === 'GET') {
+      const action = url.searchParams.get('action');
+
+      // 股票搜索
+      if (action === 'stock-search') {
+        const q = (url.searchParams.get('q') || '').trim();
+        const exchange = (url.searchParams.get('exchange') || '').trim() || null;
+        const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '20', 10), 1), 200);
+        return handleStockSearch(q, exchange, limit);
       }
-      return handleGetStockPrices(stockIds, startDate, endDate);
-    }
-    // ------------------- 用户相关 -------------------
-    const userMatch = path.match(/\/users\/([^/]+)\/(.*)$/);
-    if (!userMatch) return new Response(JSON.stringify({
-      error: 'Not Found'
-    }), {
-      status: 404
-    });
-    const userId = userMatch[1];
-    const subPath = userMatch[2];
-    // ------------------- 资产交易信息 -------------------
-    if (subPath === 'assets') {
-      const body = await req.json();
-      // POST /users/:userId/assets 新增交易记录，卖出时记录 trade_sell_mappings
-      if (method === 'POST') return handleCreateAsset(userId, body);
-      // PUT /users/:userId/assets 更新交易记录，不允许修改 action、asset_id、account_id
-      if (method === 'PUT') return handleUpdateAsset(userId, body);
-      // DELETE /users/:userId/assets 删除交易记录，自动删除相关 trade_sell_mappings
-      if (method === 'DELETE') return handleDeleteAsset(userId, body);
-    }
-    // ------------------- 暗号资产key值 -------------------
-    if (subPath === 'cryptoInfo') {
-      const body = await req.json();
-      if (method === 'POST') return handleCreateOrUpdateCryptoInfo(userId, body);
-      if (method === 'DELETE') return handleDeleteCryptoInfo(userId, body);
-    }
-    // ------------------- 资产金额记录 -------------------
-    if (subPath === 'assets/values') {
-      const body = await req.json();
-      if (method === 'POST') return handleCreateAssetValue(userId, body);
-      if (method === 'DELETE') return handleDeleteAssetValue(userId, body);
-    }
-    // ------------------- 分红记录 -------------------
-    if (subPath === 'dividends') {
-      const body = await req.json();
-      if (method === 'POST') return handleCreateDividend(userId, body);
-      if (method === 'PUT') return handleUpdateDividend(userId, body);
-      if (method === 'DELETE') return handleDeleteDividend(userId, body);
-    }
-    // ------------------- 资产走势 -------------------
-    if (subPath === 'assets/chart' && method === 'GET') {
-      return handleGetAssetChart(userId, url.searchParams);
-    }
-    // ------------------- 用户摘要 -------------------
-    if (subPath === 'summary' && method === 'GET') {
-      return handleGetUserSummary(userId);
-    }
-    // ------------------- 用户历史记录 -------------------
-    if (subPath === 'history' && method === 'GET') {
-      const start = url.searchParams.get('start');
-      const end = url.searchParams.get('end');
-      if (!start || !end) {
-        return new Response(JSON.stringify({
-          error: 'Missing start or end param'
-        }), {
-          status: 400
-        });
+      // 股票历史价格数据
+      if (action === 'stock-prices') {
+        const stockIds = (url.searchParams.get('stock_ids') || '').trim().split(',');
+        const startDate = url.searchParams.get('start_date') || null;
+        const endDate = url.searchParams.get('end_date') || null;
+        if (stockIds.length === 0 || startDate === null || endDate === null) {
+          return new Response(JSON.stringify({
+            error: 'Missing parameter: stock_ids or start_date or end_date'
+          }), {
+            status: 400
+          });
+        }
+        return handleGetStockPrices(stockIds, startDate, endDate);
       }
-      return handleGetUserHistory(userId, start, end);
+      // 查询订阅状态
+      if (action === 'subscriptions') {
+        //return handleCheckSubscription(await req.json());
+      }
+      // 用户摘要
+      if (action === 'user-summary') {
+        const userId = url.searchParams.get('user_id');
+        return handleGetUserSummary(userId);
+      }
+
     }
+
+    // PUT actions
+    if (method === 'PUT') {
+      const action = url.searchParams.get('action');
+
+      // 更新交易记录，不允许修改 action、asset_id、account_id
+      if (action === 'user-assets') {
+        const userId = url.searchParams.get('user_id');
+        return handleUpdateAsset(userId, body);
+      }
+    }
+
+    // DELETE actions
+    if (method === 'DELETE') {
+      const action = url.searchParams.get('action');
+      // 取消订阅
+      if (action === 'subscriptions') return handleCancelSubscription(body);
+      // 删除交易记录，自动删除相关 trade_sell_mappings
+      if (action === 'user-assets') {
+        const userId = url.searchParams.get('user_id');
+        return handleDeleteAsset(userId, body);
+      }
+      // 删除暗号资产key值
+      if (action === 'user-cryptoInfo') {
+        const userId = url.searchParams.get('user_id');
+        return handleDeleteCryptoInfo(userId, body);
+      }
+    }
+
     return new Response(JSON.stringify({
       error: 'Not Found'
     }), {
       status: 404
     });
+
   } catch (e) {
     console.error(e);
     return new Response(JSON.stringify({
@@ -166,6 +129,49 @@ Deno.serve(async (req)=>{
     });
   }
 });
+
+// ------------------- 股票搜索 -------------------
+async function handleStockSearch(q: string, exchange: string | null, limit: number) {
+  if (!q) {
+    return new Response(JSON.stringify({
+      error: 'Missing parameter: q'
+    }), {
+      status: 400,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+       
+  const { data, error } = await supabase.rpc('search_stocks', {
+    search_query: q,
+    row_limit: limit,
+    exchange_filter: exchange
+  });
+  
+  if (error) {
+    return new Response(JSON.stringify({
+      error: 'Database error'
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+  
+  return new Response(JSON.stringify({
+    query: q,
+    exchange,
+    count: data?.length || 0,
+    results: data || []
+  }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });  
+}
 
 // 购买/激活订阅
 async function handlePurchaseSubscription(body) {
@@ -188,6 +194,7 @@ async function handlePurchaseSubscription(body) {
     status: 200
   });
 }
+
 // 查询订阅状态
 async function handleCheckSubscription(body) {
   const { user_id } = body;
@@ -205,6 +212,7 @@ async function handleCheckSubscription(body) {
     status: 200
   });
 }
+
 // 取消订阅
 async function handleCancelSubscription(body) {
   const { user_id, platform } = body;
@@ -223,6 +231,7 @@ async function handleCancelSubscription(body) {
     status: 200
   });
 }
+
 // ------------------- GET /stock-prices 股票历史价格数据 -------------------
 async function handleGetStockPrices(stockIds, startDate, endDate) {
   const { data: stockPrices, error } = await supabase.rpc('get_stock_prices', {
@@ -364,6 +373,7 @@ async function handleGetStockPrices(stockIds, startDate, endDate) {
     }
   });
 }
+
 // ------------------- 股票交易处理 -------------------
 async function handleCreateAsset(userId, body) {
   // Basic validation
@@ -477,6 +487,7 @@ async function handleCreateAsset(userId, body) {
     });
   }
 }
+
 // 更新资产交易记录
 async function handleUpdateAsset(userId, body) {
   const { data, error } = await supabase.rpc('update_asset_with_mappings', {
@@ -512,6 +523,7 @@ async function handleUpdateAsset(userId, body) {
     status: 200
   });
 }
+
 // 删除资产交易记录
 async function handleDeleteAsset(userId, body) {
   const { data, error } = await supabase.rpc('delete_asset_with_mappings', {
@@ -535,124 +547,7 @@ async function handleDeleteAsset(userId, body) {
     status: 200
   });
 }
-// ------------------- 资产金额记录处理 -------------------
-async function handleCreateAssetValue(userId, body) {
-  const valueDate = new Date(body.value_date + "T00:00:00Z");
-  const { data, error } = await supabase.rpc("insert_asset_value", {
-    p_user_id: userId,
-    p_asset_id: body.asset_id,
-    p_value_date: valueDate.toISOString(),
-    p_amount: body.amount
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true,
-    asset_value: data
-  }), {
-    status: 200
-  });
-}
-async function handleDeleteAssetValue(userId, body) {
-  const valueDate = new Date(body.value_date + "T00:00:00Z");
-  const { error } = await supabase.rpc("delete_asset_value", {
-    p_user_id: userId,
-    p_asset_id: body.asset_id,
-    p_value_date: valueDate.toISOString()
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true
-  }), {
-    status: 200
-  });
-}
-// ------------------- 分红记录处理 -------------------
-async function handleCreateDividend(userId, body) {
-  const divDate = new Date(body.dividend_date + "T00:00:00Z");
-  const { data, error } = await supabase.rpc("insert_dividend", {
-    p_user_id: userId,
-    p_asset_id: body.asset_id,
-    p_dividend_date: divDate.toISOString(),
-    p_amount: body.amount
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true,
-    dividend: data
-  }), {
-    status: 200
-  });
-}
-async function handleUpdateDividend(userId, body) {
-  const divDate = new Date(body.dividend_date + "T00:00:00Z");
-  const { data, error } = await supabase.rpc("update_dividend", {
-    p_dividend_id: body.dividend_id,
-    p_user_id: userId,
-    p_asset_id: body.asset_id,
-    p_dividend_date: divDate.toISOString(),
-    p_amount: body.amount
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true,
-    dividend: data
-  }), {
-    status: 200
-  });
-}
-async function handleDeleteDividend(userId, body) {
-  const { error } = await supabase.rpc("delete_dividend", {
-    p_dividend_id: body.dividend_id,
-    p_user_id: userId
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true
-  }), {
-    status: 200
-  });
-}
-// ------------------- 资产走势 -------------------
-async function handleGetAssetChart(userId, searchParams) {
-  const startDate = searchParams.get('start_date');
-  const endDate = searchParams.get('end_date');
-  const { data, error } = await supabase.rpc("get_asset_chart", {
-    p_user_id: userId,
-    p_start_date: startDate,
-    p_end_date: endDate
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true,
-    chart: data
-  }), {
-    status: 200
-  });
-}
+
 // ------------------- 用户摘要 -------------------
 // 返回账户、持仓
 async function handleGetUserSummary(userId) {
@@ -747,25 +642,7 @@ async function handleGetUserSummary(userId) {
     }
   });
 }
-// ------------------- 用户历史记录 -------------------
-async function handleGetUserHistory(userId, start, end) {
-  const { data, error } = await supabase.rpc('get_user_history', {
-    p_user_id: userId,
-    p_start_date: start,
-    p_end_date: end
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true,
-    history: data
-  }), {
-    status: 200
-  });
-}
+
 // ------------------- 暗号资产key值处理 -------------------
 async function handleCreateOrUpdateCryptoInfo(userId, body) {
   if (!userId || !body || !body.account_id || !body.crypto_exchange || !body.api_key || !body.api_secret) {
@@ -798,6 +675,7 @@ async function handleCreateOrUpdateCryptoInfo(userId, body) {
   });
 }
 
+// 删除暗号资产key值
 async function handleDeleteCryptoInfo(userId, body) {
   // 支持单个或多个 crypto_exchange 删除
   const exchanges = Array.isArray(body.crypto_exchange) 
@@ -820,21 +698,6 @@ async function handleDeleteCryptoInfo(userId, body) {
   }), {
     status: 200
   });
-}
-
-// ------------------- 辅助函数 -------------------
-// 生成 6 位随机验证码
-function generateCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-// 保存验证码到数据库
-async function saveVerificationCode(email: string, code: string) {
-  const expire_at = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 分钟有效
-  const { error } = await supabase.from('auth_verification').upsert({
-    email, code, expire_at
-  });
-  if (error) throw new Error(error.message);
 }
 
 // ------------------- POST /auth/register 注册用户 -------------------

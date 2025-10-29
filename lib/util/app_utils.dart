@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -8,6 +9,7 @@ import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/util/bitflyer_api.dart';
 import 'package:money_nest_app/util/global_store.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppUtils {
   factory AppUtils() {
@@ -16,11 +18,15 @@ class AppUtils {
   AppUtils._internal();
   static final AppUtils _singleton = AppUtils._internal();
 
+  // Supabase客户端
+  SupabaseClient? _supabase;
+
+  SupabaseClient get supabase {
+    _supabase ??= Supabase.instance.client;
+    return _supabase!;
+  }
+
   // API Keys and URLs
-  String supabaseApiUrl =
-      'https://yeciaqfdlznrstjhqfxu.supabase.co/functions/v1/money_grow_api';
-  String supabaseApiKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllY2lhcWZkbHpucnN0amhxZnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDE3NTIsImV4cCI6MjA3MTk3Nzc1Mn0.QXWNGKbr9qjeBLYRWQHEEBMT1nfNKZS3vne-Za38bOc';
   String yahooFinanceApiKey =
       '003c4869d0msh2ea657dbb66bd59p1e94f4jsn72dabcb8d29a';
   String yahooFinanceApiHost = 'yahoo-finance15.p.rapidapi.com';
@@ -29,39 +35,132 @@ class AppUtils {
   // 数据库实例
   final db = AppDatabase();
 
+  // 初始化 Supabase 认证状态监听器
+  StreamSubscription<AuthState> initializeAuthListener(
+    Function(AuthState)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    return supabase.auth.onAuthStateChange.listen(
+      (data) {
+        if (onData != null) {
+          onData(data);
+        }
+      },
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+    );
+  }
+
+  // 取消认证状态监听
+  void cancelAuthListener(StreamSubscription<AuthState> subscription) {
+    subscription.cancel();
+  }
+
+  // 调用 Supabase 函数
+  Future<FunctionResponse> supabaseInvoke(
+    String functionName, {
+    Map<String, String>? headers,
+    Object? body,
+    Iterable<MultipartFile>? files,
+    Map<String, dynamic>? queryParameters,
+    HttpMethod method = HttpMethod.post,
+    String? region,
+  }) async {
+    return await supabase.functions.invoke(
+      functionName,
+      headers: headers,
+      body: body,
+      files: files,
+      queryParameters: queryParameters,
+      method: method,
+      region: region,
+    );
+  }
+
   // 初始化应用数据
   Future<void> initializeAppData() async {
-    final t2 = DateTime.now();
-    GlobalStore().selectedCurrencyCode = 'JPY';
-    GlobalStore().saveSelectedCurrencyCodeToPrefs();
+    try {
+      print('AppUtils.initializeAppData() starting...');
 
-    String userId = GlobalStore().userId ?? '';
-    int accountId = GlobalStore().accountId ?? 0;
+      final t2 = DateTime.now();
+      GlobalStore().selectedCurrencyCode = 'JPY';
+      GlobalStore().saveSelectedCurrencyCodeToPrefs();
 
-    if (userId.isEmpty || accountId == 0) {
-      throw Exception('User ID or Account ID is not set in GlobalStore');
+      String userId = GlobalStore().userId ?? '';
+      int accountId = GlobalStore().accountId ?? 0;
+
+      print('initializeAppData - userId: $userId (${userId.runtimeType})');
+      print(
+        'initializeAppData - accountId: $accountId (${accountId.runtimeType})',
+      );
+
+      // 类型检查和转换
+      if (GlobalStore().userId != null && GlobalStore().userId is! String) {
+        print('Warning: userId is not String, converting...');
+        userId = GlobalStore().userId.toString();
+        GlobalStore().userId = userId; // 修正 GlobalStore 中的数据
+      }
+
+      if (GlobalStore().accountId != null && GlobalStore().accountId is! int) {
+        print('Warning: accountId is not int, converting...');
+        try {
+          if (GlobalStore().accountId is String) {
+            accountId = int.parse(GlobalStore().accountId as String);
+          } else if (GlobalStore().accountId is double) {
+            accountId = (GlobalStore().accountId as double).toInt();
+          } else {
+            throw Exception(
+              'Cannot convert accountId to int: ${GlobalStore().accountId.runtimeType}',
+            );
+          }
+          GlobalStore().accountId = accountId; // 修正 GlobalStore 中的数据
+        } catch (e) {
+          throw Exception(
+            'Invalid accountId type: ${GlobalStore().accountId.runtimeType}',
+          );
+        }
+      }
+
+      if (userId.isEmpty || accountId == 0) {
+        throw Exception('User ID or Account ID is not set in GlobalStore');
+      }
+
+      // 判断是否同步服务器，如果没有同步，则进行同步
+      if (GlobalStore().lastSyncTime == null) {
+        // 初始化数据库
+        await db.initialize();
+
+        // 再次确认类型正确
+        print(
+          'Before sync - userId: $userId (${userId.runtimeType}), accountId: $accountId (${accountId.runtimeType})',
+        );
+
+        await AppUtils().syncDataWithSupabase(userId, accountId, db);
+        final t3_1 = DateTime.now();
+        print('Sync data time: ${t3_1.difference(t2).inMilliseconds} ms');
+        await GlobalStore().saveLastSyncTimeToPrefs();
+      } else {
+        print('No need to fetch historical data');
+      }
+
+      final t3 = DateTime.now();
+      print('Sync data time: ${t3.difference(t2).inMilliseconds} ms');
+
+      // 计算持仓并更新到 GlobalStore
+      await AppUtils().calculatePortfolioValue(userId, accountId);
+      await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs();
+      final t4 = DateTime.now();
+      print('Calculate portfolio time: ${t4.difference(t3).inMilliseconds} ms');
+
+      print('AppUtils.initializeAppData() completed successfully');
+    } catch (e) {
+      print('AppUtils.initializeAppData() error: $e');
+      print('Stack trace: ${StackTrace.current}');
+      rethrow;
     }
-
-    // 判断是否同步服务器，如果没有同步，则进行同步
-    if (GlobalStore().lastSyncTime == null) {
-      // 初始化数据库
-      await db.initialize();
-      await AppUtils().syncDataWithSupabase(userId, accountId, db);
-      final t3_1 = DateTime.now();
-      print('Sync data time: ${t3_1.difference(t2).inMilliseconds} ms');
-      await GlobalStore().saveLastSyncTimeToPrefs();
-    } else {
-      print('No need to fetch historical data');
-    }
-
-    final t3 = DateTime.now();
-    print('Sync data time: ${t3.difference(t2).inMilliseconds} ms');
-
-    // 计算持仓并更新到 GlobalStore
-    await AppUtils().calculatePortfolioValue(userId, accountId);
-    await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs();
-    final t4 = DateTime.now();
-    print('Calculate portfolio time: ${t4.difference(t3).inMilliseconds} ms');
   }
 
   // 刷新总资产和总成本
@@ -115,17 +214,22 @@ class AppUtils {
     String value,
     String exchange,
   ) async {
-    final url = Uri.parse(
-      '${AppUtils().supabaseApiUrl}/stock-search?q=$value&exchange=$exchange&limit=5',
-    );
-    final response = await http.get(
-      url,
-      headers: {'Authorization': 'Bearer ${AppUtils().supabaseApiKey}'},
+    final response = await supabaseInvoke(
+      'money_grow_api',
+      queryParameters: {
+        'action': 'stock-search',
+        'q': value,
+        'exchange': exchange,
+        'limit': '5',
+      },
+      method: HttpMethod.get,
     );
 
     List<Stock> result = [];
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
+    if (response.status == 200) {
+      final data = response.data is String
+          ? jsonDecode(response.data)
+          : response.data;
       if (data['results'] is List) {
         result = (data['results'] as List)
             .map(
@@ -163,19 +267,18 @@ class AppUtils {
     required Map<String, dynamic> assetData,
     required Map<String, dynamic>? stockData, // 传递股票信息
   }) async {
-    final url = Uri.parse('${AppUtils().supabaseApiUrl}/users/$userId/assets');
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer ${AppUtils().supabaseApiKey}',
-        'Content-Type': 'application/json',
-      },
+    final response = await supabaseInvoke(
+      'money_grow_api',
+      queryParameters: {'action': 'user-assets', 'user_id': userId},
       body: jsonEncode(assetData),
+      method: HttpMethod.post,
     );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
+    if (response.status == 200 || response.status == 201) {
       // 1. 解析返回的 asset id
-      final data = jsonDecode(response.body);
+      final data = response.data is String
+          ? jsonDecode(response.data)
+          : response.data;
       final int? assetId = data['asset_id'] is int
           ? data['asset_id']
           : int.tryParse(data['asset_id']?.toString() ?? '');
@@ -352,7 +455,7 @@ class AppUtils {
       }
       return true;
     } else {
-      print('Create asset failed: ${response.statusCode} ${response.body}');
+      print('Create asset failed: ${response.status} ${response.data}');
       return false;
     }
   }
@@ -364,19 +467,14 @@ class AppUtils {
     required String userId,
     required Map<String, dynamic> cryptoData,
   }) async {
-    final url = Uri.parse(
-      '${AppUtils().supabaseApiUrl}/users/$userId/cryptoInfo',
-    );
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer ${AppUtils().supabaseApiKey}',
-        'Content-Type': 'application/json',
-      },
+    final response = await supabaseInvoke(
+      'money_grow_api',
+      queryParameters: {'action': 'user-cryptoInfo', 'user_id': userId},
       body: jsonEncode(cryptoData),
+      method: HttpMethod.post,
     );
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
+    if (response.status == 200 || response.status == 201) {
       // 操作成功
       return true;
     }
@@ -390,18 +488,13 @@ class AppUtils {
     required String userId,
     required Map<String, dynamic> cryptoData,
   }) async {
-    final url = Uri.parse(
-      '${AppUtils().supabaseApiUrl}/users/$userId/cryptoInfo',
-    );
-    final response = await http.delete(
-      url,
-      headers: {
-        'Authorization': 'Bearer ${AppUtils().supabaseApiKey}',
-        'Content-Type': 'application/json',
-      },
+    final response = await supabaseInvoke(
+      'money_grow_api',
+      queryParameters: {'action': 'user-cryptoInfo', 'user_id': userId},
       body: jsonEncode(cryptoData),
+      method: HttpMethod.delete,
     );
-    if (response.statusCode == 200 || response.statusCode == 201) {
+    if (response.status == 200 || response.status == 201) {
       // 操作成功
       return true;
     }
@@ -1001,22 +1094,22 @@ class AppUtils {
     DateTime endDate,
   ) async {
     // Supabaseから履歴価格データを取得
-    final url = Uri.parse('${AppUtils().supabaseApiUrl}/stock-prices').replace(
+    final response = await supabaseInvoke(
+      'money_grow_api',
       queryParameters: {
+        'action': 'stock-prices',
         'stock_ids': stockIds,
         'start_date': startDate,
         'end_date': endDate,
       },
+      method: HttpMethod.get,
     );
-    final response = await http.get(
-      url,
-      headers: {'Authorization': 'Bearer ${AppUtils().supabaseApiKey}'},
-    );
-    print(url);
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final historicalPortfolio = GlobalStore().historicalPortfolio;
-      final data = jsonDecode(response.body);
+    if (response.status == 200 || response.status == 201) {
+      //final historicalPortfolio = GlobalStore().historicalPortfolio;
+      final data = response.data is String
+          ? jsonDecode(response.data)
+          : response.data;
       final stocks = data['stocks'];
       final fxRates = data['fx_rates'];
       for (var key in (stocks as Map).keys) {
@@ -1071,177 +1164,249 @@ class AppUtils {
     int accountId,
     AppDatabase db,
   ) async {
-    final t0 = DateTime.now();
-    final url = Uri.parse('${AppUtils().supabaseApiUrl}/users/$userId/summary');
-    final response = await http.get(
-      url,
-      headers: {'Authorization': 'Bearer ${AppUtils().supabaseApiKey}'},
-    );
-    final t1 = DateTime.now();
-    print(
-      'Fetch data from supabase time: ${t1.difference(t0).inMilliseconds} ms',
-    );
+    try {
+      final t0 = DateTime.now();
+      final response = await supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {'action': 'user-summary', 'user_id': userId},
+        method: HttpMethod.get,
+      );
+      final t1 = DateTime.now();
+      print(
+        'Fetch data from supabase time: ${t1.difference(t0).inMilliseconds} ms',
+      );
 
-    List<Stock> result = [];
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data['account_info'] is List) {
-        final accountInfoList = data['account_info'] as List;
-        for (var accountInfo in accountInfoList) {
-          if (accountInfo['account_id'] == accountId) {
-            // 1. 同步股票信息
-            final stocks = accountInfo['stocks'] as List;
-            final List<StocksCompanion> stockRecordsInsert = [];
-            for (var stock in stocks) {
-              final record = StocksCompanion(
-                id: Value(stock['id']),
-                ticker: Value(stock['ticker']),
-                exchange: Value(stock['exchange']),
-                name: Value(stock['name']),
-                currency: Value(stock['currency']),
-                country: Value(stock['country']),
-                status: Value(stock['status'] ?? 'active'),
-                nameUs: Value(stock['name_us']),
-                sectorIndustryId: Value(stock['sector_industry_id']),
-                logo: Value(stock['logo']),
+      print('Sync data response: ${response.data}');
+      print('Response data type: ${response.data.runtimeType}');
+
+      if (response.status == 200) {
+        // 安全地处理响应数据
+        dynamic data = response.data is String
+            ? jsonDecode(response.data)
+            : response.data;
+
+        print('Parsed data type: ${data.runtimeType}');
+
+        if (data['account_info'] is List) {
+          final accountInfoList = data['account_info'] as List;
+          print('Found ${accountInfoList.length} accounts');
+
+          for (var accountInfo in accountInfoList) {
+            if (accountInfo is! Map<String, dynamic>) {
+              print(
+                'Skipping invalid account info: ${accountInfo.runtimeType}',
               );
-              stockRecordsInsert.add(record);
+              continue;
             }
-            // 清空本地该账户的股票信息
-            await (db.delete(db.stocks)).go();
-            // 插入最新的股票信息
-            await db.batch((batch) {
-              batch.insertAll(db.stocks, stockRecordsInsert);
-            });
 
-            final t2 = DateTime.now();
-            print(
-              'Sync stocks and stock prices time: ${t2.difference(t1).inMilliseconds} ms',
-            );
+            final accountInfoMap = accountInfo as Map<String, dynamic>;
+            print('Processing account: ${accountInfoMap['account_id']}');
 
-            // 2. 同步股票交易信息
-            final tradeRecords = accountInfo['trade_records'] as List;
-            final List<TradeRecordsCompanion> tradeRecordsInsert = [];
-            for (var trade in tradeRecords) {
-              final record = TradeRecordsCompanion(
-                id: Value(trade['trade_id']),
-                userId: Value(userId),
-                accountId: Value(trade['account_id']),
-                assetType: Value(trade['asset_type']),
-                assetId: Value(trade['asset_id']),
-                tradeDate: Value(
-                  DateFormat('yyyy-MM-dd').parse(trade['trade_date']),
-                ),
-                action: Value(trade['action']),
-                tradeType: Value(trade['trade_type']),
-                quantity: Value(
-                  (num.tryParse(trade['quantity'].toString()) ?? 0).toDouble(),
-                ),
-                price: Value(
-                  (num.tryParse(trade['price'].toString()) ?? 0).toDouble(),
-                ),
-                feeAmount: Value(
-                  (num.tryParse(trade['fee_amount']?.toString() ?? '0') ?? 0)
-                      .toDouble(),
-                ),
-                feeCurrency: Value(trade['fee_currency']),
-                positionType: Value(trade['position_type']),
-                leverage: Value(
-                  trade['leverage'] != null
-                      ? (num.tryParse(trade['leverage'].toString()) ?? 0)
-                            .toDouble()
-                      : null,
-                ),
-                swapAmount: Value(
-                  trade['swap_amount'] != null
-                      ? (num.tryParse(trade['swap_amount'].toString()) ?? 0)
-                            .toDouble()
-                      : null,
-                ),
-                swapCurrency: Value(trade['swap_currency']),
-                manualRateInput: Value(trade['manual_rate_input'] ?? false),
-                remark: Value(trade['remark']),
+            if (accountInfoMap['account_id'] == accountId) {
+              print('Found matching account: $accountId');
+
+              // 1. 同步股票信息
+              final stocks = accountInfoMap['stocks'] as List;
+              print('Syncing ${stocks.length} stocks');
+
+              final List<StocksCompanion> stockRecordsInsert = [];
+              for (var stock in stocks) {
+                if (stock is! Map<String, dynamic>) {
+                  print('Skipping invalid stock data: ${stock.runtimeType}');
+                  continue;
+                }
+
+                final record = StocksCompanion(
+                  id: Value(stock['id']),
+                  ticker: Value(stock['ticker']),
+                  exchange: Value(stock['exchange']),
+                  name: Value(stock['name']),
+                  currency: Value(stock['currency']),
+                  country: Value(stock['country']),
+                  status: Value(stock['status'] ?? 'active'),
+                  nameUs: Value(stock['name_us']),
+                  sectorIndustryId: Value(stock['sector_industry_id']),
+                  logo: Value(stock['logo']),
+                );
+                stockRecordsInsert.add(record);
+              }
+
+              // 清空本地该账户的股票信息
+              await (db.delete(db.stocks)).go();
+              // 插入最新的股票信息
+              await db.batch((batch) {
+                batch.insertAll(db.stocks, stockRecordsInsert);
+              });
+
+              final t2 = DateTime.now();
+              print(
+                'Sync stocks and stock prices time: ${t2.difference(t1).inMilliseconds} ms',
               );
-              tradeRecordsInsert.add(record);
-            }
-            // 清空本地该账户的交易记录
-            await (db.delete(db.tradeRecords)..where(
-                  (tbl) =>
-                      tbl.userId.equals(userId) &
-                      tbl.accountId.equals(accountId),
-                ))
-                .go();
-            // 插入最新的交易记录
-            await db.batch((batch) {
-              batch.insertAll(db.tradeRecords, tradeRecordsInsert);
-            });
 
-            final t3 = DateTime.now();
-            print(
-              'Sync trade records time: ${t3.difference(t2).inMilliseconds} ms',
-            );
+              // 2. 同步股票交易信息
+              final tradeRecords = accountInfoMap['trade_records'] as List;
+              print('Syncing ${tradeRecords.length} trade records');
 
-            // 3. 同步卖出映射关系
-            final sellMappings = accountInfo['trade_sell_mapping'] as List;
-            final List<TradeSellMappingsCompanion> sellMappingsInsert = [];
-            for (var mapping in sellMappings) {
-              final record = TradeSellMappingsCompanion(
-                buyId: Value(mapping['buy_id']),
-                sellId: Value(mapping['sell_id']),
-                quantity: Value(
-                  (num.tryParse(mapping['quantity'].toString()) ?? 0)
-                      .toDouble(),
-                ),
+              final List<TradeRecordsCompanion> tradeRecordsInsert = [];
+              for (var trade in tradeRecords) {
+                if (trade is! Map<String, dynamic>) {
+                  print('Skipping invalid trade data: ${trade.runtimeType}');
+                  continue;
+                }
+
+                final record = TradeRecordsCompanion(
+                  id: Value(trade['trade_id']),
+                  userId: Value(userId),
+                  accountId: Value(trade['account_id']),
+                  assetType: Value(trade['asset_type']),
+                  assetId: Value(trade['asset_id']),
+                  tradeDate: Value(
+                    DateFormat('yyyy-MM-dd').parse(trade['trade_date']),
+                  ),
+                  action: Value(trade['action']),
+                  tradeType: Value(trade['trade_type']),
+                  quantity: Value(
+                    (num.tryParse(trade['quantity'].toString()) ?? 0)
+                        .toDouble(),
+                  ),
+                  price: Value(
+                    (num.tryParse(trade['price'].toString()) ?? 0).toDouble(),
+                  ),
+                  feeAmount: Value(
+                    (num.tryParse(trade['fee_amount']?.toString() ?? '0') ?? 0)
+                        .toDouble(),
+                  ),
+                  feeCurrency: Value(trade['fee_currency']),
+                  positionType: Value(trade['position_type']),
+                  leverage: Value(
+                    trade['leverage'] != null
+                        ? (num.tryParse(trade['leverage'].toString()) ?? 0)
+                              .toDouble()
+                        : null,
+                  ),
+                  swapAmount: Value(
+                    trade['swap_amount'] != null
+                        ? (num.tryParse(trade['swap_amount'].toString()) ?? 0)
+                              .toDouble()
+                        : null,
+                  ),
+                  swapCurrency: Value(trade['swap_currency']),
+                  manualRateInput: Value(trade['manual_rate_input'] ?? false),
+                  remark: Value(trade['remark']),
+                );
+                tradeRecordsInsert.add(record);
+              }
+
+              // 清空本地该账户的交易记录
+              await (db.delete(db.tradeRecords)..where(
+                    (tbl) =>
+                        tbl.userId.equals(userId) &
+                        tbl.accountId.equals(accountId),
+                  ))
+                  .go();
+              // 插入最新的交易记录
+              await db.batch((batch) {
+                batch.insertAll(db.tradeRecords, tradeRecordsInsert);
+              });
+
+              final t3 = DateTime.now();
+              print(
+                'Sync trade records time: ${t3.difference(t2).inMilliseconds} ms',
               );
-              sellMappingsInsert.add(record);
-            }
-            // 清空本地该账户的卖出映射关系
-            await (db.delete(db.tradeSellMappings)).go();
-            // 插入最新的卖出映射关系
-            await db.batch((batch) {
-              batch.insertAll(db.tradeSellMappings, sellMappingsInsert);
-            });
 
-            final t4 = DateTime.now();
-            print(
-              'Sync sell mappings time: ${t4.difference(t3).inMilliseconds} ms',
-            );
+              // 3. 同步卖出映射关系
+              final sellMappings = accountInfoMap['trade_sell_mapping'] as List;
+              print('Syncing ${sellMappings.length} sell mappings');
 
-            // 4. 同步crypto info
-            final cryptoInfo = accountInfo['crypto_info'] as List;
-            final List<CryptoInfoCompanion> cryptoInfoInsert = [];
-            for (var crypto in cryptoInfo) {
-              final cryptoCompanion = CryptoInfoCompanion(
-                accountId: Value(accountId),
-                cryptoExchange: Value(crypto['crypto_exchange']),
-                apiKey: Value(crypto['api_key']),
-                apiSecret: Value(crypto['api_secret']),
-                status: Value(crypto['status']),
-                createdAt: Value(
-                  DateTime.tryParse(crypto['created_at']) ?? DateTime.now(),
-                ),
-                updatedAt: Value(
-                  DateTime.tryParse(crypto['updated_at']) ?? DateTime.now(),
-                ),
+              final List<TradeSellMappingsCompanion> sellMappingsInsert = [];
+              for (var mapping in sellMappings) {
+                if (mapping is! Map<String, dynamic>) {
+                  print(
+                    'Skipping invalid mapping data: ${mapping.runtimeType}',
+                  );
+                  continue;
+                }
+
+                final record = TradeSellMappingsCompanion(
+                  buyId: Value(mapping['buy_id']),
+                  sellId: Value(mapping['sell_id']),
+                  quantity: Value(
+                    (num.tryParse(mapping['quantity'].toString()) ?? 0)
+                        .toDouble(),
+                  ),
+                );
+                sellMappingsInsert.add(record);
+              }
+
+              // 清空本地该账户的卖出映射关系
+              await (db.delete(db.tradeSellMappings)).go();
+              // 插入最新的卖出映射关系
+              await db.batch((batch) {
+                batch.insertAll(db.tradeSellMappings, sellMappingsInsert);
+              });
+
+              final t4 = DateTime.now();
+              print(
+                'Sync sell mappings time: ${t4.difference(t3).inMilliseconds} ms',
               );
-              cryptoInfoInsert.add(cryptoCompanion);
-            }
-            // 清空本地该账户的crypto info
-            await (db.delete(
-              db.cryptoInfo,
-            )..where((tbl) => tbl.accountId.equals(accountId))).go();
-            // 插入最新的crypto info
-            await db.batch((batch) {
-              batch.insertAll(db.cryptoInfo, cryptoInfoInsert);
-            });
 
-            final t5 = DateTime.now();
-            print(
-              'Sync crypto info time: ${t5.difference(t4).inMilliseconds} ms',
-            );
+              // 4. 同步crypto info
+              final cryptoInfo = accountInfoMap['crypto_info'] as List;
+              print('Syncing ${cryptoInfo.length} crypto info records');
+
+              final List<CryptoInfoCompanion> cryptoInfoInsert = [];
+              for (var crypto in cryptoInfo) {
+                if (crypto is! Map<String, dynamic>) {
+                  print('Skipping invalid crypto data: ${crypto.runtimeType}');
+                  continue;
+                }
+
+                final cryptoCompanion = CryptoInfoCompanion(
+                  accountId: Value(accountId),
+                  cryptoExchange: Value(crypto['crypto_exchange']),
+                  apiKey: Value(crypto['api_key']),
+                  apiSecret: Value(crypto['api_secret']),
+                  status: Value(crypto['status']),
+                  createdAt: Value(
+                    DateTime.tryParse(crypto['created_at']) ?? DateTime.now(),
+                  ),
+                  updatedAt: Value(
+                    DateTime.tryParse(crypto['updated_at']) ?? DateTime.now(),
+                  ),
+                );
+                cryptoInfoInsert.add(cryptoCompanion);
+              }
+
+              // 清空本地该账户的crypto info
+              await (db.delete(
+                db.cryptoInfo,
+              )..where((tbl) => tbl.accountId.equals(accountId))).go();
+              // 插入最新的crypto info
+              await db.batch((batch) {
+                batch.insertAll(db.cryptoInfo, cryptoInfoInsert);
+              });
+
+              final t5 = DateTime.now();
+              print(
+                'Sync crypto info time: ${t5.difference(t4).inMilliseconds} ms',
+              );
+
+              print('Account $accountId sync completed successfully');
+            }
           }
+        } else {
+          print('No account_info found in response data');
         }
+      } else {
+        print('Sync failed with status: ${response.status}');
+        throw Exception(
+          'Server returned status ${response.status}: ${response.data}',
+        );
       }
+    } catch (e) {
+      print('Error in syncDataWithSupabase: $e');
+      print('Stack trace: ${StackTrace.current}');
+      rethrow;
     }
   }
 

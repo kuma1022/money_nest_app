@@ -64,7 +64,9 @@ class _VerificationDialogState extends State<VerificationDialog> {
 
       if (res.status == 200 && res.data != null) {
         // 更灵活的响应数据处理
-        dynamic responseData = res.data;
+        dynamic responseData = res.data is String
+            ? jsonDecode(res.data)
+            : res.data;
 
         // 处理可能的 JSON 字符串
         if (responseData is String) {
