@@ -76,6 +76,9 @@ class _USStockDetailPageState extends State<USStockDetailPage> {
     await AppUtils().calculatePortfolioValue(userId, accountId);
     await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs();
 
+    // 确保汇率已经获取
+    _usdToJpyRate = GlobalStore().currentStockPrices['JPY=X'] ?? 150.0;
+
     // 按股票分组计算持仓
     final Map<int, Map<String, dynamic>> stockPositions = {};
 
@@ -133,13 +136,20 @@ class _USStockDetailPageState extends State<USStockDetailPage> {
       });
 
       stockPositions[stockId]!['totalQuantity'] += quantity;
-      stockPositions[stockId]!['totalCost'] +=
-          quantity * buyPrice +
-          (fee != null
-              ? feeCurrency == 'USD'
-                    ? fee
-                    : fee / _usdToJpyRate
-              : 0.0);
+
+      // 修正费用处理逻辑
+      double tradeCost = quantity * buyPrice; // 基本成本（USD）
+
+      if (fee != null && fee > 0) {
+        if (feeCurrency == 'USD') {
+          tradeCost += fee; // USD费用直接加上
+        } else {
+          // JPY费用转换为USD：JPY ÷ 汇率 = USD
+          tradeCost += fee / _usdToJpyRate;
+        }
+      }
+
+      stockPositions[stockId]!['totalCost'] += tradeCost;
     }
 
     // 计算当前价值和总评价额

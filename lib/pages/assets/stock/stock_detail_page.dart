@@ -68,6 +68,14 @@ class _StockDetailPageState extends State<StockDetailPage> {
     await AppUtils().calculatePortfolioValue(userId, accountId);
     await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs();
 
+    // 调试：打印 GlobalStore().portfolio 的内容
+    print(
+      'Debug: GlobalStore().portfolio length: ${GlobalStore().portfolio.length}',
+    );
+    if (GlobalStore().portfolio.isNotEmpty) {
+      print('Debug: First portfolio item: ${GlobalStore().portfolio.first}');
+    }
+
     // 按股票分组计算持仓（参考 domestic_stock_detail_page.dart 的做法）
     final Map<int, Map<String, dynamic>> stockPositions = {};
 
@@ -121,9 +129,35 @@ class _StockDetailPageState extends State<StockDetailPage> {
       });
 
       stockPositions[stockId]!['totalQuantity'] += quantity;
-      stockPositions[stockId]!['totalCost'] +=
-          quantity * buyPrice + (fee ?? 0.0);
+
+      // 修正费用处理逻辑
+      double tradeCost = quantity * buyPrice;
+
+      // 只有当费用确实存在时才添加，并且需要根据货币进行正确转换
+      if (fee != null && fee > 0) {
+        final usdToJpyRate = GlobalStore().currentStockPrices['JPY=X'] ?? 150.0;
+
+        if (exchange == 'US') {
+          // 美股：成本是USD，费用需要转换为USD
+          if (feeCurrency == 'USD') {
+            tradeCost += fee;
+          } else {
+            tradeCost += fee / usdToJpyRate; // JPY费用转换为USD
+          }
+        } else {
+          // 日股：成本是JPY，费用需要转换为JPY
+          if (feeCurrency == 'JPY') {
+            tradeCost += fee;
+          } else {
+            tradeCost += fee * usdToJpyRate; // USD费用转换为JPY
+          }
+        }
+      }
+
+      stockPositions[stockId]!['totalCost'] += tradeCost;
     }
+
+    print('Debug: stockPositions length: ${stockPositions.length}');
 
     // 计算当前价值和总评价额
     double totalPortfolioValue = 0.0;
@@ -138,7 +172,13 @@ class _StockDetailPageState extends State<StockDetailPage> {
       final exchange = position['exchange'] as String;
       final avgPrice = position['totalCost'] / position['totalQuantity'];
       final currentPrice =
-          GlobalStore().currentStockPrices[position['code']] ?? avgPrice;
+          GlobalStore().currentStockPrices[position['code'] +
+              (exchange == 'JP' ? '.T' : '')] ??
+          avgPrice;
+
+      print(
+        'Debug: Stock ${position['code']} - totalQuantity: ${position['totalQuantity']}, totalCost: ${position['totalCost']}, currentPrice: $currentPrice',
+      );
 
       double totalValueJPY;
       double profitJPY;
@@ -154,6 +194,10 @@ class _StockDetailPageState extends State<StockDetailPage> {
         profitRate = position['totalCost'] > 0
             ? (profitUSD / position['totalCost']) * 100
             : 0.0;
+
+        print(
+          'Debug: US Stock ${position['code']} - totalValueUSD: $totalValueUSD, profitUSD: $profitUSD, totalValueJPY: $totalValueJPY',
+        );
       } else {
         // 日股计算（参考 domestic_stock_detail_page.dart）
         totalValueJPY = position['totalQuantity'] * currentPrice;
@@ -161,6 +205,10 @@ class _StockDetailPageState extends State<StockDetailPage> {
         profitRate = position['totalCost'] > 0
             ? (profitJPY / position['totalCost']) * 100
             : 0.0;
+
+        print(
+          'Debug: JP Stock ${position['code']} - totalValueJPY: $totalValueJPY, profitJPY: $profitJPY',
+        );
       }
 
       totalPortfolioValue += totalValueJPY;
@@ -180,6 +228,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
         'trades': position['trades'],
       };
     }
+
+    print('Debug: totalPortfolioValue: $totalPortfolioValue');
 
     // 计算保有割合
     for (final stock in stockSummary.values) {
@@ -204,6 +254,23 @@ class _StockDetailPageState extends State<StockDetailPage> {
         other.add(stock);
       }
     }
+
+    final domesticTotal = domestic.fold<double>(
+      0,
+      (sum, stock) => sum + (stock['totalValueJPY'] as double),
+    );
+    final usTotal = us.fold<double>(
+      0,
+      (sum, stock) => sum + (stock['totalValueJPY'] as double),
+    );
+    final otherTotal = other.fold<double>(
+      0,
+      (sum, stock) => sum + (stock['totalValueJPY'] as double),
+    );
+
+    print(
+      'Debug: domestic total: $domesticTotal, us total: $usTotal, other total: $otherTotal',
+    );
 
     // 按价值排序
     domestic.sort(
