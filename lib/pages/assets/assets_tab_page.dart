@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_line_chart.dart';
 import 'package:money_nest_app/components/custom_tab.dart';
-import 'package:money_nest_app/components/glass_panel.dart';
 import 'package:money_nest_app/components/summary_category_card.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/categories.dart';
 import 'package:money_nest_app/pages/assets/crypto/crypto_detail_page.dart';
 import 'package:money_nest_app/pages/assets/fund/fund_detail_page.dart';
-import 'package:money_nest_app/pages/assets/stock_detail_page.dart';
+import 'package:money_nest_app/pages/assets/stock/stock_detail_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
 import 'package:money_nest_app/util/app_utils.dart';
@@ -466,6 +465,14 @@ class AssetsTabPageState extends State<AssetsTabPage> {
         return InkWell(
           borderRadius: BorderRadius.circular(16), // 配合卡片圆角
           onTap: () {
+            // 如果是股票类别，跳转到 stock_detail_page
+            if (category['categoryCode'] == 'stock') {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => StockDetailPage(db: widget.db),
+                ),
+              );
+            }
             // 如果是加密货币类别，跳转到 crypto_detail_page
             if (category['categoryCode'] == 'crypto') {
               Navigator.of(context).push(
@@ -740,199 +747,6 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 2),
         Text(percent, style: const TextStyle(fontSize: 13, color: Colors.grey)),
       ],
-    );
-  }
-}
-
-// 分类资产卡片
-class _AssetCategoryCard extends StatelessWidget {
-  final String title;
-  final String amount;
-  final String profit;
-  final Color profitColor;
-  final Color profitBg;
-  final List<_AssetItem> items;
-  const _AssetCategoryCard({
-    required this.title,
-    required this.amount,
-    required this.profit,
-    required this.profitColor,
-    required this.profitBg,
-    required this.items,
-    super.key,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return GlassPanel(
-      margin: const EdgeInsets.only(bottom: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              const Spacer(),
-              Text(
-                amount,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: profitBg,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  profit,
-                  style: TextStyle(
-                    color: profitColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (items.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Column(children: items),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// 分类资产明细
-class _AssetItem extends StatelessWidget {
-  final String code;
-  final String name;
-  final String amount;
-  final String profit;
-  final Color profitColor;
-  const _AssetItem({
-    required this.code,
-    required this.name,
-    required this.amount,
-    required this.profit,
-    required this.profitColor,
-    super.key,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => StockDetailPage(
-              code: code,
-              name: name,
-              amount: amount,
-              profit: profit,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          color: AppColors.appBackground,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(code, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(
-                  name,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-              ],
-            ),
-            const Spacer(),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  amount,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  profit,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: profitColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// 其它资产明细
-class _OtherAssetItem extends StatelessWidget {
-  final String label;
-  final String subLabel;
-  final String amount;
-  final String? subAmount;
-  const _OtherAssetItem({
-    required this.label,
-    required this.subLabel,
-    required this.amount,
-    this.subAmount,
-    super.key,
-  });
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.appBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(
-                subLabel,
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(amount, style: const TextStyle(fontWeight: FontWeight.bold)),
-              if (subAmount != null)
-                Text(
-                  subAmount!,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }
