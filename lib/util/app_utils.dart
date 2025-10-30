@@ -270,7 +270,7 @@ class AppUtils {
     final response = await supabaseInvoke(
       'money_grow_api',
       queryParameters: {'action': 'user-assets', 'user_id': userId},
-      body: jsonEncode(assetData),
+      body: assetData,
       method: HttpMethod.post,
     );
 
@@ -470,7 +470,7 @@ class AppUtils {
     final response = await supabaseInvoke(
       'money_grow_api',
       queryParameters: {'action': 'user-cryptoInfo', 'user_id': userId},
-      body: jsonEncode(cryptoData),
+      body: cryptoData,
       method: HttpMethod.post,
     );
 
@@ -491,7 +491,7 @@ class AppUtils {
     final response = await supabaseInvoke(
       'money_grow_api',
       queryParameters: {'action': 'user-cryptoInfo', 'user_id': userId},
-      body: jsonEncode(cryptoData),
+      body: cryptoData,
       method: HttpMethod.delete,
     );
     if (response.status == 200 || response.status == 201) {
