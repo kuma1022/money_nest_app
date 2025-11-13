@@ -73,8 +73,8 @@ class _USStockDetailPageState extends State<USStockDetailPage> {
     if (userId == null || accountId == null) return;
 
     // 计算持仓并更新到 GlobalStore
-    await AppUtils().calculatePortfolioValue(userId, accountId);
-    await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs();
+    //await AppUtils().calculateAndSavePortfolio(widget.db, userId, accountId);
+    //await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs(widget.db);
 
     // 确保汇率已经获取
     _usdToJpyRate = GlobalStore().currentStockPrices['JPY=X'] ?? 150.0;

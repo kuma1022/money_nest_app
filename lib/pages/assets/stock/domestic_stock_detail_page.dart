@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_tab.dart';
 import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:intl/intl.dart';
@@ -72,8 +73,8 @@ class _DomesticStockDetailPageState extends State<DomesticStockDetailPage> {
     if (userId == null || accountId == null) return;
 
     // 计算持仓并更新到 GlobalStore
-    await AppUtils().calculatePortfolioValue(userId, accountId);
-    await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs();
+    //await AppUtils().calculateAndSavePortfolio(widget.db, userId, accountId);
+    //await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs(widget.db);
 
     // 按股票分组计算持仓
     final Map<int, Map<String, dynamic>> stockPositions = {};
@@ -315,8 +316,18 @@ class _DomesticStockDetailPageState extends State<DomesticStockDetailPage> {
         ),
         actions: [
           IconButton(
-            onPressed: () {
+            onPressed: () async {
               // 添加交易记录
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => TradeAddPage(db: widget.db)),
+              );
+
+              if (result == true) {
+                // 刷新数据
+                // 调用子组件的刷新方法
+                //_listKey.currentState?._fetchRecords();
+              }
             },
             icon: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

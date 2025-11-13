@@ -11,8 +11,11 @@ import 'package:money_nest_app/pages/assets/fund/fund_detail_page.dart';
 import 'package:money_nest_app/pages/assets/stock/stock_detail_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
+import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
+import 'package:provider/provider.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class AssetsTabPage extends StatefulWidget {
   final AppDatabase db;
@@ -32,6 +35,10 @@ class AssetsTabPage extends StatefulWidget {
 
 class AssetsTabPageState extends State<AssetsTabPage> {
   bool isLoading = false;
+  final RefreshController _refreshController = RefreshController();
+  RefreshController get refreshController => _refreshController;
+  final GlobalKey<CryptoDetailPageState> cryptoDetailPageKey =
+      GlobalKey<CryptoDetailPageState>();
   int _tabIndex = 0; // 0:概要 1:日本株 2:米国株 3:その他
   int _selectedTransitionIndex = 0; // 0:资产, 1:负債
   double totalAssets = 0;
@@ -55,19 +62,58 @@ class AssetsTabPageState extends State<AssetsTabPage> {
     'すべて': null,
   };
 
-  @override
-  void initState() {
-    super.initState();
-    // 异步初始化数据，不阻塞initState
-    _initializeData();
-  }
+  // 刷新总资产和总成本
+  Future<void> _initializeData() async {
+    if (!mounted) return;
 
-  // 异步初始化数据的方法
-  void _initializeData() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final dataSync = Provider.of<DataSyncService>(context, listen: false);
+
     try {
-      await refreshTotalAssetsAndCosts();
+      // 刷新总资产和总成本
+      await AppUtils().refreshTotalAssetsAndCosts(dataSync);
+
+      if (mounted) {
+        setState(() {
+          // 安全地计算总资产
+          totalAssets = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
+            0,
+            (prev, key) {
+              final data = GlobalStore().totalAssetsAndCostsMap[key];
+              return prev + (data?['totalAssets']?.toDouble() ?? 0.0);
+            },
+          );
+          // 安全地计算总成本
+          totalCosts = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
+            0,
+            (prev, key) {
+              final data = GlobalStore().totalAssetsAndCostsMap[key];
+              return prev + (data?['totalCosts']?.toDouble() ?? 0.0);
+            },
+          );
+        });
+      }
+
+      // 计算历史数据
+      priceHistory = [];
+      costBasisHistory = [];
+      // 计算资产总额和成本的历史数据
+      for (var date in GlobalStore().historicalPortfolio.keys) {
+        if (date.isBefore(startDate) || date.isAfter(endDate)) continue;
+        final item = GlobalStore().historicalPortfolio[date]!;
+        priceHistory.add((date, item['assetsTotal'] as double? ?? 0.0));
+        costBasisHistory.add((date, item['costBasis'] as double? ?? 0.0));
+      }
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     } catch (e) {
-      print('Error initializing assets data: $e');
+      print('Error refreshing total assets and costs: $e');
       // 发生错误时设置默认值
       if (mounted) {
         setState(() {
@@ -76,54 +122,6 @@ class AssetsTabPageState extends State<AssetsTabPage> {
           totalCosts = 0;
         });
       }
-    }
-  }
-
-  // 刷新总资产和总成本
-  Future<void> refreshTotalAssetsAndCosts() async {
-    if (mounted) {
-      setState(() {
-        isLoading = true;
-      });
-    }
-
-    // 计算总资产和总成本
-    //final totalMap = AppUtils().getTotalAssetsAndCostsValue();
-    if (mounted) {
-      setState(() {
-        // 安全地计算总资产
-        totalAssets = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
-          0,
-          (prev, key) {
-            final data = GlobalStore().totalAssetsAndCostsMap[key];
-            return prev + (data?['totalAssets']?.toDouble() ?? 0.0);
-          },
-        );
-        // 安全地计算总成本
-        totalCosts = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(0, (
-          prev,
-          key,
-        ) {
-          final data = GlobalStore().totalAssetsAndCostsMap[key];
-          return prev + (data?['totalCosts']?.toDouble() ?? 0.0);
-        });
-      });
-    }
-
-    // 计算历史数据
-    priceHistory = [];
-    costBasisHistory = [];
-    // 计算资产总额和成本的历史数据
-    for (var date in GlobalStore().historicalPortfolio.keys) {
-      if (date.isBefore(startDate) || date.isAfter(endDate)) continue;
-      final item = GlobalStore().historicalPortfolio[date]!;
-      priceHistory.add((date, item['assetsTotal'] as double? ?? 0.0));
-      costBasisHistory.add((date, item['costBasis'] as double? ?? 0.0));
-    }
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
     }
   }
 
@@ -195,10 +193,16 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       // );
 
       // 重新计算历史数据
-      await refreshTotalAssetsAndCosts();
+      //await refreshTotalAssetsAndCosts();
     } catch (e) {
       print('Error reloading by range: $e');
     }
+  }
+
+  // 手动刷新数据
+  Future<void> onRefresh() async {
+    await _initializeData();
+    _refreshController.refreshCompleted();
   }
 
   @override
@@ -477,9 +481,14 @@ class AssetsTabPageState extends State<AssetsTabPage> {
             if (category['categoryCode'] == 'crypto') {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => CryptoDetailPage(db: widget.db),
+                  builder: (context) =>
+                      CryptoDetailPage(key: cryptoDetailPageKey, db: widget.db),
                 ),
               );
+              // 访问 CryptoDetailPage 的初始化方法
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                cryptoDetailPageKey.currentState?.initializeData();
+              });
             }
             // 如果是投资信托类别，跳转到 fund_detail_page
             else if (category['categoryCode'] == 'fund') {

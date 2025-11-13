@@ -83,6 +83,12 @@ Deno.serve(async (req: { url: string | URL; method: any; headers: { get: (arg0: 
         const userId = url.searchParams.get('user_id');
         return handleGetUserSummary(userId);
       }
+      // 获取最后一次同步时间
+      if (action === 'get-last-sync-time') {
+        const userId = url.searchParams.get('user_id');
+        const accountId = url.searchParams.get('account_id');
+        return handleGetLastSyncTime(userId, accountId);
+      }
 
     }
 
@@ -586,10 +592,12 @@ async function handleGetUserSummary(userId) {
   const accountsMap = {};
   accountData.forEach((row)=> {
     const accId = row.account_id;
+    const accountUpdatedAt = row.account_updated_at;
     if (!accountsMap[accId]) {
       accountsMap[accId] = {
         account_id: accId,
         account_name: row.account_name,
+        account_updated_at: accountUpdatedAt,
         type: row.type || '',
         trade_records: [],
         stocks: [],
@@ -830,4 +838,16 @@ async function handleLogin(body) {
   }
 
   return new Response(JSON.stringify({ user_id: user.id, subscriptions: subs || [], success: true, message: 'Login success' }), { status: 200 });
+}
+
+// ------------------- 获取最后一次同步时间 -------------------
+async function handleGetLastSyncTime(userId, accountId) {
+  const { data, error } = await supabase.from('accounts').select('updated_at').eq('id', accountId).eq('user_id', userId).limit(1).single();
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  }
+  if (!data || !data.updated_at) {
+    return new Response(JSON.stringify({ error: 'Account not found' }), { status: 404 });
+  }
+  return new Response(JSON.stringify({ last_sync_time: data.updated_at }), { status: 200 });
 }

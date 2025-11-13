@@ -1,90 +1,104 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:money_nest_app/presentation/resources/app_resources.dart';
+import 'package:money_nest_app/services/data_sync_service.dart';
+import 'package:money_nest_app/services/supabase_api.dart';
+import 'package:money_nest_app/services/yahoo_api.dart';
 import 'package:money_nest_app/util/app_utils.dart';
-import 'package:money_nest_app/util/bitflyer_api.dart';
 import 'package:money_nest_app/util/global_store.dart';
-import 'package:money_nest_app/util/provider/buy_records_provider.dart';
-import 'package:money_nest_app/util/provider/market_data_provider.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/l10n/app_localizations.dart';
 import 'package:money_nest_app/pages/main_page.dart';
-import 'package:money_nest_app/util/provider/portfolio_provider.dart';
-import 'package:money_nest_app/util/provider/stocks_provider.dart';
-import 'package:money_nest_app/util/provider/total_asset_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final t0 = DateTime.now();
+
+  // 加载全局设置
+  await GlobalStore().loadFromPrefs();
+
+  // 初始化本地数据库
   final db = AppDatabase();
 
-  await GlobalStore().loadFromPrefs();
-  //final t1 = DateTime.now();
-  //print('Load prefs time: ${t1.difference(t0).inMilliseconds} ms');
-  // 这里提前初始化 userID 和 accountID
-  //String userId = 'e226aa2d-1680-468c-8a41-33a3dad9874f'; // 自己用的 userId
-  //int accountId = 1; // 自己用的 accountId
-  //GlobalStore().userId = userId;
-  //GlobalStore().accountId = accountId;
-  //GlobalStore().selectedCurrencyCode = 'JPY'; // 默认日元
-  //GlobalStore().cryptoApiKeys = {
-  //  'bitflyer': {
-  //    'apiKey': '3XQ54WjxVseYCK8q4MMwpx',
-  //    'apiSecret': 's/SeVD0jTuK6e5D2wsm7xqdg1pg9+pbCsNhcQARjb0I=',
-  //  },
-  //};
-  //await GlobalStore().saveUserIdToPrefs();
-  //await GlobalStore().saveAccountIdToPrefs();
-  //await GlobalStore().saveSelectedCurrencyCodeToPrefs();
-  //await GlobalStore().saveCryptoApiKeysToPrefs();
+  // 初始化 SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
 
-  final t2 = DateTime.now();
-  //print(
-  //  'Init userId and accountId time: ${t2.difference(t1).inMilliseconds} ms',
-  //);
-
-  final marketDataProvider = MarketDataProvider(db);
-  final buyRecordsProvider = BuyRecordsProvider(db);
-  final stocksProvider = StocksProvider(db);
-  await marketDataProvider.loadMarketData();
-  await buyRecordsProvider.loadRecords();
-  await stocksProvider.loadStocks();
-
-  WidgetsFlutterBinding.ensureInitialized();
   // 初始化 Supabase
   await Supabase.initialize(
-    url: 'https://yeciaqfdlznrstjhqfxu.supabase.co', // 替换为你的 Supabase URL
+    url: 'https://yeciaqfdlznrstjhqfxu.supabase.co',
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllY2lhcWZkbHpucnN0amhxZnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDE3NTIsImV4cCI6MjA3MTk3Nzc1Mn0.QXWNGKbr9qjeBLYRWQHEEBMT1nfNKZS3vne-Za38bOc', // 替换为你的 Supabase anon key
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllY2lhcWZkbHpucnN0amhxZnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY0MDE3NTIsImV4cCI6MjA3MTk3Nzc1Mn0.QXWNGKbr9qjeBLYRWQHEEBMT1nfNKZS3vne-Za38bOc',
+  );
+  final supabaseClient = Supabase.instance.client;
+  final supabaseApi = SupabaseApi(supabaseClient);
+
+  // 初始化 Yahoo API
+  final yahooApi = YahooApi(
+    baseUrl: 'https://your-yahoo-proxy-or-endpoint.com',
+  );
+
+  // 初始化 DataSyncService
+  final dataSync = DataSyncService(
+    supabaseApi: supabaseApi,
+    yahooApi: yahooApi,
+    db: db,
+    prefs: prefs,
   );
 
   runApp(
     MultiProvider(
-      providers: [
-        Provider<AppDatabase>.value(value: db),
-        ChangeNotifierProvider<MarketDataProvider>.value(
-          value: marketDataProvider,
-        ),
-        ChangeNotifierProvider<BuyRecordsProvider>.value(
-          value: buyRecordsProvider,
-        ),
-        ChangeNotifierProvider<StocksProvider>.value(value: stocksProvider),
-        ChangeNotifierProvider(create: (_) => TotalAssetProvider()),
-        ChangeNotifierProvider(create: (_) => PortfolioProvider()),
-      ],
+      providers: [Provider<DataSyncService>.value(value: dataSync)],
       child: MyApp(db: db),
     ),
   );
   final t6 = DateTime.now();
-  print('[PERF] runApp: ${t6.difference(t2).inMilliseconds} ms');
   print('[PERF] main() total: ${t6.difference(t0).inMilliseconds} ms');
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final AppDatabase db;
-  const MyApp({super.key, required this.db});
+  const MyApp({required this.db, super.key});
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  bool _firstStart = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // cold start initialization — capture services synchronously
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final dataSync = Provider.of<DataSyncService>(context, listen: false);
+      if (_firstStart) {
+        _firstStart = false;
+        // 初始化应用数据（App cold start）
+        await AppUtils().initializeAppData(dataSync, false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
+    // 当从后台回到前台时触发（轻量校验/按 TTL 刷新）
+    if (state == AppLifecycleState.resumed) {
+      print('AppLifecycleState.resumed - refreshing data as needed');
+      final dataSync = Provider.of<DataSyncService>(context, listen: false);
+      await AppUtils().initializeAppData(dataSync, false);
+    }
+  }
 
   // This widget is the root of your application.
   @override
@@ -116,7 +130,7 @@ class MyApp extends StatelessWidget {
         Locale('zh'), // 中文
         Locale('ja'), // 日文
       ],
-      home: MainPage(db: db),
+      home: MainPage(db: widget.db),
     );
   }
 }

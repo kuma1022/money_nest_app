@@ -5,8 +5,11 @@ import 'package:money_nest_app/components/glass_tab.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/pages/setting/verification_dialog.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
+import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
+import 'package:provider/provider.dart';
+import 'package:money_nest_app/services/supabase_api.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PremiumLoginPage extends StatefulWidget {
@@ -36,30 +39,27 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
   String? registerError;
   bool isLoading = false;
 
-  StreamSubscription<AuthState>? _authSubscription;
+  StreamSubscription<dynamic>? _authSubscription;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeAuthListener();
-    });
-  }
+      final dataSync = Provider.of<DataSyncService>(context, listen: false);
+      _authSubscription = dataSync.supabaseApi.addAuthStateListener((data) {
+        final event = data.event;
+        final session = data.session;
 
-  void _initializeAuthListener() {
-    _authSubscription = AppUtils().initializeAuthListener((data) {
-      final event = data.event;
-      final session = data.session;
-
-      if (event == AuthChangeEvent.signedIn && session != null) {
-        print('User signed in: ${session.user.email}');
-        if (mounted) {
-          setState(() => isLoading = false);
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const PremiumSubscribePage()),
-          );
+        if (event == AuthChangeEvent.signedIn && session != null) {
+          print('User signed in: ${session.user.email}');
+          if (mounted) {
+            setState(() => isLoading = false);
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const PremiumSubscribePage()),
+            );
+          }
         }
-      }
+      });
     });
   }
 
@@ -88,13 +88,8 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
 
     try {
       // 调用 Edge Function
-      final res = await AppUtils().supabaseInvoke(
-        'money_grow_api',
-        queryParameters: {'action': 'login'},
-        body: {'email': email, 'password': password},
-        headers: {'Content-Type': 'application/json'},
-        method: HttpMethod.post,
-      );
+      final dataSync = Provider.of<DataSyncService>(context, listen: false);
+      final res = await dataSync.userLogin(email, password);
 
       print('Login response status: ${res.status}');
       print('Login response data: ${res.data}');
@@ -303,18 +298,8 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
 
     try {
       // 第一步：发送验证码 - 调用 Edge Function
-      final res = await AppUtils().supabaseInvoke(
-        'money_grow_api',
-        queryParameters: {'action': 'register'},
-        body: {
-          'email': email,
-          'password': password,
-          'name': nickname.isEmpty ? null : nickname,
-          'account_type': 'personal',
-        },
-        headers: {'Content-Type': 'application/json'},
-        method: HttpMethod.post,
-      );
+      final dataSync = Provider.of<DataSyncService>(context, listen: false);
+      final res = await dataSync.userRegister(email, password, nickname);
 
       print('Registration response status: ${res.status}');
       print('Registration response data: ${res.data}');
@@ -417,7 +402,7 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
 
   @override
   void dispose() {
-    AppUtils().cancelAuthListener(_authSubscription!);
+    _authSubscription?.cancel();
     emailController.dispose();
     passwordController.dispose();
     regEmailController.dispose();
@@ -977,19 +962,11 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
   // 进行完整的数据初始化
   Future<void> _performCompleteInitialization() async {
     try {
-      // Step 1: 初始化数据库和基础数据
-      print('Step 1: Initializing app data...');
-      await AppUtils().initializeAppData();
+      final dataSync = Provider.of<DataSyncService>(context, listen: false);
+      // 初始化数据库和基础数据
+      await AppUtils().initializeAppData(dataSync, true);
 
-      // Step 2: 等待一下确保初始化完成
-      //await Future.delayed(const Duration(milliseconds: 500));
-
-      // Step 3: 刷新资产和成本数据
-      print('Step 2: Refreshing assets and costs...');
-      await AppUtils().refreshTotalAssetsAndCosts();
-
-      // Step 4: 如果有其他需要初始化的数据，在这里添加
-      print('Step 3: Additional data initialization...');
+      // Step 3: 如果有其他需要初始化的数据，在这里添加
 
       // 可以添加更多初始化步骤，比如：
       // - 同步云端数据
@@ -998,8 +975,6 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
 
       // 示例：如果需要从服务器同步数据
       // await _syncUserDataFromServer();
-
-      print('All initialization steps completed successfully');
     } catch (e) {
       print('Error in complete initialization: $e');
       // 重新抛出异常以便上层处理

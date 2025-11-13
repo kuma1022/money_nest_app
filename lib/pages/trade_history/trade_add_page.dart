@@ -1,6 +1,5 @@
 import 'dart:async';
-import 'dart:ui'; // 新增
-import 'package:collection/collection.dart';
+import 'dart:ui';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' hide Column;
@@ -16,14 +15,21 @@ import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/models/trade_type.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
+import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 class TradeAddPage extends StatefulWidget {
   //final TradeRecord? record; // 支持编辑模式
   final VoidCallback? onClose;
-  const TradeAddPage({super.key, this.onClose}); //this.record});
+  final AppDatabase db;
+  const TradeAddPage({
+    super.key,
+    this.onClose,
+    required this.db,
+  }); //this.record});
 
   @override
   State<TradeAddPage> createState() => _TradeAddPageState();
@@ -406,13 +412,15 @@ class _TradeAddPageState extends State<TradeAddPage> {
     });
     _showOverlay();
 
-    List<Stock> result = await AppUtils().fetchStockSuggestions(
-      value,
-      exchange,
-    );
+    final dataSync = Provider.of<DataSyncService>(context, listen: false);
+    final lastQueried = value;
+    List<Stock> result = await dataSync.fetchStockSuggestions(value, exchange);
+
+    // 页面可能已被销毁，检查 mounted
+    if (!mounted) return;
 
     // 只处理最后一次输入的结果
-    if (_lastQueriedValue != value) return;
+    if (_lastQueriedValue != lastQueried) return;
 
     setState(() {
       _stockLoading = false;
@@ -527,13 +535,18 @@ class _TradeAddPageState extends State<TradeAddPage> {
 
   // 获取持仓数据
   Future<void> _loadSellHoldings({bool notNeedRefresh = false}) async {
-    sellHoldings = await getMyHoldingStocks(
-      assetCategoryCode,
-      assetSubCategoryCode == 'jp_stock' ? 'JP' : 'US',
-      tradeDate,
-    );
-    // 切换资产类型时清空已选
+    // capture globals/providers synchronously
+    final assetType = assetCategoryCode;
+    final exchange = assetSubCategoryCode == 'jp_stock' ? 'JP' : 'US';
+    final dateStr = tradeDate;
+
+    final holdings = await getMyHoldingStocks(assetType, exchange, dateStr);
+
+    if (!mounted) return; // ensure widget still mounted
+
     setState(() {
+      sellHoldings = holdings;
+      // 切换资产类型时清空已选
       if (notNeedRefresh) {
         final holding = sellHoldings.firstWhere(
           (h) => h['id'].toString() == selectedSellStockId.toString(),
@@ -546,7 +559,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
           return; // 如果持仓没有变化就不刷新
         }
         sellBatches = newSellBatches;
-        // 这里同步初始化 controllers 和 focusNodes
+        // 初始化 controllers 和 focusNodes
         sellBatchControllers.clear();
         sellBatchFocusNodes.clear();
         for (var batch in sellBatches) {
@@ -566,6 +579,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
         }
         sellTotalQty = 0;
       } else if (!notNeedRefresh) {
+        // reset selection
         sellBatches = [];
         sellBatchControllers.clear();
         sellTotalQty = 0;
@@ -1695,6 +1709,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
       }
       // 保存逻辑
       bool success = false;
+      final dataSync = Provider.of<DataSyncService>(context, listen: false);
       // 資産tab保存逻辑
       if (tabIndex == 0) {
         // 株式（国内株式,米国株式）
@@ -1703,7 +1718,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                 assetSubCategoryCode == 'us_stock')) {
           // 买入
           if (tradeAction == 'buy') {
-            success = await AppUtils().createAsset(
+            success = await dataSync.createAsset(
               userId: GlobalStore().userId!,
               assetData: {
                 "account_id": GlobalStore().accountId!,
@@ -1744,7 +1759,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
           }
           // 卖出
           else if (tradeAction == 'sell') {
-            success = await AppUtils().createAsset(
+            success = await dataSync.createAsset(
               userId: GlobalStore().userId!,
               assetData: {
                 "account_id": GlobalStore().accountId!,
@@ -1780,24 +1795,31 @@ class _TradeAddPageState extends State<TradeAddPage> {
           }
         }
         // 计算并保存资产总额历史到本地
-        await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs();
+        await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs(widget.db);
       } else {
         // 負債tab保存逻辑
         // ...
       }
 
+      if (!mounted) return; // 页面可能已被销毁，检查 mounted
+
       Navigator.of(context).pop(); // 关闭处理中遮罩
 
       if (success) {
-        final db = AppDatabase();
+        final dataSync = Provider.of<DataSyncService>(context, listen: false);
         // 刷新股票价格
-        await AppUtils().getStockPricesByYHFinanceAPI();
+        await dataSync.getStockPricesByYHFinanceAPI();
+
+        if (!mounted) return; // 页面可能已被销毁，检查 mounted
         // 刷新全局数据
-        await AppUtils().calculatePortfolioValue(
+        await AppUtils().calculateAndSavePortfolio(
+          widget.db,
           GlobalStore().userId!,
           GlobalStore().accountId!,
         );
         await _showSuccessDialog();
+
+        if (!mounted) return; // 页面可能已被销毁，检查 mounted
         widget.onClose != null
             ? widget.onClose!()
             : Navigator.pop(context, true);
@@ -1886,6 +1908,8 @@ class _TradeAddPageState extends State<TradeAddPage> {
 
     // 1秒后自动关闭弹窗
     await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return; // 页面可能已被销毁，检查 mounted
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }

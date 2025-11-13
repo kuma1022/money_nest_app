@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:money_nest_app/db/app_database.dart';
 
 class StockDetailPage extends StatelessWidget {
   final String code;
@@ -12,6 +13,7 @@ class StockDetailPage extends StatelessWidget {
     required this.amount,
     required this.profit,
     super.key,
+    required AppDatabase db,
   });
 
   // 示例数据（实际应从数据源获取）
@@ -244,7 +246,7 @@ class StockDetailPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${holdingQty}株',
+                                '$holdingQty株',
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,

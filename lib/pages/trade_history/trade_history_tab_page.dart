@@ -11,8 +11,9 @@ import 'package:intl/intl.dart';
 
 class TradeHistoryPage extends StatefulWidget {
   final VoidCallback? onAddPressed;
+  final AppDatabase db;
 
-  const TradeHistoryPage({super.key, this.onAddPressed});
+  const TradeHistoryPage({super.key, this.onAddPressed, required this.db});
 
   @override
   State<TradeHistoryPage> createState() => _TradeHistoryPageState();
@@ -58,7 +59,9 @@ class _TradeHistoryPageState extends State<TradeHistoryPage> {
                       //widget.onAddPressed, // 用回调
                       final result = await Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => TradeAddPage()),
+                        MaterialPageRoute(
+                          builder: (_) => TradeAddPage(db: widget.db),
+                        ),
                       );
 
                       if (result == true) {

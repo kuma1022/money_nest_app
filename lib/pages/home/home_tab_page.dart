@@ -9,9 +9,12 @@ import 'package:money_nest_app/components/summary_sub_category_card.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
+import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
+import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:intl/intl.dart';
 
 class HomeTabPage extends StatefulWidget {
   final AppDatabase db;
@@ -49,17 +52,8 @@ class HomeTabPageState extends State<HomeTabPage> {
   double totalAssets = 0;
   double totalCosts = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    // 延迟初始化，确保widget树和数据库都准备就绪
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeData();
-    });
-  }
-
   // 异步初始化数据的方法
-  void _initializeData() async {
+  Future<void> _initializeData() async {
     if (!mounted) return;
 
     // 设置加载状态
@@ -67,15 +61,34 @@ class HomeTabPageState extends State<HomeTabPage> {
       _isInitializing = true;
     });
 
+    final dataSync = Provider.of<DataSyncService>(context, listen: false);
     try {
       // 等待数据库完全初始化
-      await _waitForDatabaseReady();
+      //await _waitForDatabaseReady();
 
-      // 进行数据初始化
-      //await AppUtils().initializeAppData();
+      // 刷新总资产和总成本
+      await AppUtils().refreshTotalAssetsAndCosts(dataSync);
 
-      // 刷新数据
-      await refreshTotalAssetsAndCosts();
+      if (mounted) {
+        setState(() {
+          totalAssets = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
+            0,
+            (prev, key) =>
+                prev +
+                ((GlobalStore().totalAssetsAndCostsMap[key]?['totalAssets'] ??
+                        0)
+                    .toDouble()),
+          );
+          totalCosts = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
+            0,
+            (prev, key) =>
+                prev +
+                ((GlobalStore().totalAssetsAndCostsMap[key]?['totalCosts'] ?? 0)
+                    .toDouble()),
+          );
+          print('计算得到总资产: $totalAssets, 总成本: $totalCosts');
+        });
+      }
 
       // 页面初次进入时，触发动画
       _animatePieChart();
@@ -124,35 +137,9 @@ class HomeTabPageState extends State<HomeTabPage> {
     }
   }
 
-  // 刷新总资产和总成本
-  Future<void> refreshTotalAssetsAndCosts() async {
-    // 刷新总资产和总成本
-    AppUtils().refreshTotalAssetsAndCosts();
-
-    if (mounted) {
-      setState(() {
-        totalAssets = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
-          0,
-          (prev, key) =>
-              prev +
-              ((GlobalStore().totalAssetsAndCostsMap[key]?['totalAssets'] ?? 0)
-                  .toDouble()),
-        );
-        totalCosts = GlobalStore().totalAssetsAndCostsMap.keys.fold<double>(
-          0,
-          (prev, key) =>
-              prev +
-              ((GlobalStore().totalAssetsAndCostsMap[key]?['totalCosts'] ?? 0)
-                  .toDouble()),
-        );
-        print('计算得到总资产: $totalAssets, 总成本: $totalCosts');
-      });
-    }
-  }
-
   // 手动刷新数据
-  Future<void> _onRefresh() async {
-    await refreshTotalAssetsAndCosts();
+  Future<void> onRefresh() async {
+    await _initializeData();
     _refreshController.refreshCompleted();
   }
 
@@ -236,7 +223,7 @@ class HomeTabPageState extends State<HomeTabPage> {
               },
               child: SmartRefresher(
                 controller: _refreshController,
-                onRefresh: _onRefresh,
+                onRefresh: onRefresh,
                 header: const WaterDropHeader(),
                 child: SingleChildScrollView(
                   controller: widget.scrollController,
@@ -282,6 +269,17 @@ class HomeTabPageState extends State<HomeTabPage> {
                                             letterSpacing: 1,
                                           ),
                                         ),
+                                  const SizedBox(height: 6),
+                                  // 最近同步时间显示
+                                  Text(
+                                    GlobalStore().lastSyncTime != null
+                                        ? '最終更新: ${DateFormat('yyyy-MM-dd HH:mm').format(GlobalStore().lastSyncTime!)}'
+                                        : '最終更新: --',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
                                   // 只在非加载状态下显示损益信息
                                   if (!_isInitializing)
                                     Row(

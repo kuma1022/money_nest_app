@@ -26,6 +26,7 @@ class MainPage extends StatefulWidget {
 }
 
 class MainPageState extends State<MainPage> with TickerProviderStateMixin {
+  bool _didInitialRefresh = false; // 新增：只执行一次的标志
   int _currentIndex = 0;
   Widget? _overlayPage;
   late AnimationController _headerAnimController;
@@ -70,6 +71,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
     ),
     TradeHistoryPage(
       onAddPressed: _showTradeAddPage, // 传递回调
+      db: widget.db,
     ),
     AssetAnalysisPage(),
     SettingsTabPage(db: widget.db),
@@ -84,6 +86,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
             _overlayPage = null;
           });
         },
+        db: widget.db,
       );
     });
     _headerAnimController.forward(from: 0);
@@ -100,6 +103,15 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       parent: _headerAnimController,
       curve: Curves.easeInOut,
     );
+
+    // 在第一次 build 完成后，如果当前为首页（_currentIndex == 0）就触发 home tab 刷新（只执行一次）
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!_didInitialRefresh && _currentIndex == 0) {
+        homeTabPageKey.currentState?.onRefresh();
+        _didInitialRefresh = true;
+      }
+    });
   }
 
   @override
@@ -357,12 +369,10 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           });
                           // Home Tab刷新资产和成本
                           if (index == 0) {
-                            homeTabPageKey.currentState
-                                ?.refreshTotalAssetsAndCosts();
+                            homeTabPageKey.currentState?.onRefresh();
                           } else if (index == 1) {
                             WidgetsBinding.instance.addPostFrameCallback((_) {
-                              assetsTabPageKey.currentState
-                                  ?.refreshTotalAssetsAndCosts();
+                              assetsTabPageKey.currentState?.onRefresh();
                             });
                           }
                         },

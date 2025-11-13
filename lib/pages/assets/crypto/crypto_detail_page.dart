@@ -6,22 +6,24 @@ import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_tab.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
+import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:intl/intl.dart';
-import 'package:money_nest_app/util/bitflyer_api.dart';
+import 'package:money_nest_app/services/bitflyer_api.dart';
 import 'package:money_nest_app/util/global_store.dart';
+import 'package:provider/provider.dart';
 
 class CryptoDetailPage extends StatefulWidget {
-  final AppDatabase db;
   final ScrollController? scrollController;
+  final AppDatabase db;
 
-  const CryptoDetailPage({super.key, required this.db, this.scrollController});
+  const CryptoDetailPage({super.key, this.scrollController, required this.db});
 
   @override
-  State<CryptoDetailPage> createState() => _CryptoDetailPageState();
+  State<CryptoDetailPage> createState() => CryptoDetailPageState();
 }
 
-class _CryptoDetailPageState extends State<CryptoDetailPage> {
+class CryptoDetailPageState extends State<CryptoDetailPage> {
   String _selectedCurrency = 'JPY'; // 添加货币筛选状态
   List<dynamic> bitFlyerBalances = [];
   List<dynamic> bitFlyerBalanceHistory = [];
@@ -30,21 +32,15 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
   List<Map<String, dynamic>> cryptoAssets = [];
   bool _isInitializing = true; // 添加初始化loading状态
 
-  @override
-  void initState() {
-    super.initState();
-    _initializeData();
-  }
-
   // 添加单独的初始化方法
-  Future<void> _initializeData() async {
+  Future<void> initializeData() async {
     setState(() {
       _isInitializing = true;
     });
 
     try {
-      //await getCryptoDataFromDB();
-      final dbCryptoInfos = await AppUtils().getCryptoDataFromDB(widget.db);
+      final dataSync = Provider.of<DataSyncService>(context, listen: false);
+      final dbCryptoInfos = await dataSync.getCryptoDataFromDB();
       // 检查 widget 是否仍然挂载
       if (mounted) {
         setState(() {
@@ -73,9 +69,10 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
     try {
       final String firstCurrency = 'JPY';
       List<dynamic> balances = [];
+      final dataSync = Provider.of<DataSyncService>(context, listen: false);
 
       for (var cryptoInfo in cryptoInfos) {
-        await AppUtils().syncCryptoBalanceDataFromServer(cryptoInfo);
+        await dataSync.syncCryptoBalanceDataFromServer(cryptoInfo);
         balances =
             GlobalStore().cryptoBalanceDataCache[cryptoInfo.cryptoExchange
                 .toLowerCase()]?['balances'] ??
@@ -113,7 +110,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
             }
           }
 
-          await AppUtils().syncCryptoBalanceHistoryDataFromServer(
+          await dataSync.syncCryptoBalanceHistoryDataFromServer(
             cryptoInfo,
             firstCurrency,
           );
@@ -1159,6 +1156,8 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
 
   void _showApiClearDialog(String name, Color color) {
     final ValueNotifier<bool> isLoading = ValueNotifier(false);
+    final dataSync = Provider.of<DataSyncService>(context, listen: false);
+    final db = dataSync.getDatabase();
 
     showDialog(
       context: context,
@@ -1191,7 +1190,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                         onPressed: () async {
                           isLoading.value = true;
                           try {
-                            final bool deleted = await AppUtils()
+                            final bool deleted = await dataSync
                                 .deleteCryptoInfo(
                                   userId: GlobalStore().userId!,
                                   cryptoData: {
@@ -1203,20 +1202,19 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(content: Text('$name との連携を解除しました。')),
                               );
-                              await (widget.db.delete(widget.db.cryptoInfo)
-                                    ..where(
-                                      (tbl) =>
-                                          tbl.accountId.equals(
-                                            GlobalStore().accountId!,
-                                          ) &
-                                          tbl.cryptoExchange.equals(
-                                            name.toLowerCase(),
-                                          ),
-                                    ))
+                              await (db.delete(db.cryptoInfo)..where(
+                                    (tbl) =>
+                                        tbl.accountId.equals(
+                                          GlobalStore().accountId!,
+                                        ) &
+                                        tbl.cryptoExchange.equals(
+                                          name.toLowerCase(),
+                                        ),
+                                  ))
                                   .go();
                               // 重新获取数据
-                              final dbCryptoInfos = await AppUtils()
-                                  .getCryptoDataFromDB(widget.db);
+                              final dbCryptoInfos = await dataSync
+                                  .getCryptoDataFromDB();
                               // 检查 widget 是否仍然挂载
                               if (mounted) {
                                 setState(() {
@@ -1567,7 +1565,8 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
       }
 
       // 更新到SupabaseDB
-      final bool success = await AppUtils().createOrUpdateCryptoInfo(
+      final dataSync = Provider.of<DataSyncService>(context, listen: false);
+      final bool success = await dataSync.createOrUpdateCryptoInfo(
         userId: userId,
         cryptoData: {
           'account_id': accountId,
@@ -1619,7 +1618,7 @@ class _CryptoDetailPageState extends State<CryptoDetailPage> {
       }
 
       // 重新获取数据
-      final dbCryptoInfos = await AppUtils().getCryptoDataFromDB(widget.db);
+      final dbCryptoInfos = await dataSync.getCryptoDataFromDB();
       // 检查 widget 是否仍然挂载
       if (mounted) {
         setState(() {

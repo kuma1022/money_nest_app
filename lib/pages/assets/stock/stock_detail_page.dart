@@ -65,8 +65,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
     if (userId == null || accountId == null) return;
 
     // 计算持仓并更新到 GlobalStore
-    await AppUtils().calculatePortfolioValue(userId, accountId);
-    await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs();
+    //await AppUtils().calculateAndSavePortfolio(widget.db, userId, accountId);
+    //await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs(widget.db);
 
     // 调试：打印 GlobalStore().portfolio 的内容
     print(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:money_nest_app/services/supabase_api.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 
@@ -232,7 +233,6 @@ class GlobalStore extends ChangeNotifier {
   // -------------------------------------------------
   Future<void> saveLastSyncTimeToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    lastSyncTime = DateTime.now();
     prefs.setString('lastSyncTime', lastSyncTime!.toIso8601String());
   }
 
