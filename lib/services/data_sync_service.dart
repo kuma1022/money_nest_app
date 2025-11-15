@@ -418,65 +418,112 @@ class DataSyncService {
   // -------------------------------------------------
   // 创建资产（买入或卖出）
   // -------------------------------------------------
-  Future<bool> createAsset({
+  Future<bool> createOrUpdateAsset(
+    String mode, {
     required String userId,
     required Map<String, dynamic> assetData,
     required Map<String, dynamic>? stockData, // 传递股票信息
   }) async {
-    final response = await supabaseApi.supabaseInvoke(
-      'money_grow_api',
-      queryParameters: {'action': 'user-assets', 'user_id': userId},
-      body: assetData,
-      method: HttpMethod.post,
-    );
+    try {
+      final response = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {'action': 'user-assets', 'user_id': userId},
+        body: assetData,
+        method: mode == 'add' ? HttpMethod.post : HttpMethod.put,
+      );
 
-    if (response.status == 200 || response.status == 201) {
-      // 1. 解析返回的 asset id
-      final data = response.data is String
-          ? jsonDecode(response.data)
-          : response.data;
-      final int? assetId = data['asset_id'] is int
-          ? data['asset_id']
-          : int.tryParse(data['asset_id']?.toString() ?? '');
-      final sellMappingData =
-          data['sell_mappings'] is List &&
-              (data['sell_mappings'] as List).isNotEmpty
-          ? (data['sell_mappings'] as List)
-                .map(
-                  (m) => {
-                    "sell_id": m['sell_id'],
-                    "buy_id": m['buy_id'],
-                    "quantity": m['quantity'],
-                  },
-                )
-                .toList()
-          : null;
-      //final priceHistory =
-      //    data['price_history'] is List &&
-      //        (data['price_history'] as List).isNotEmpty
-      //    ? (data['price_history'] as List)
-      //          .map((m) => {"price": m['price'], "price_at": m['price_at']})
-      //          .toList()
-      //    : null;
+      if (response.status == 200 || response.status == 201) {
+        // 1. 解析返回的 trade id
+        final data = response.data is String
+            ? jsonDecode(response.data)
+            : response.data;
+        final int? tradeId = mode == 'add'
+            ? (data['trade_id'] is int
+                  ? data['trade_id']
+                  : int.tryParse(data['trade_id']?.toString() ?? ''))
+            : assetData['id'];
+        final DateTime? accountUpdatedAt = DateTime.tryParse(
+          data['account_updated_at'],
+        );
 
-      final warning = data['warning'] as String?;
-      console.log('warning: $warning');
-
-      if (assetId != null) {
-        // 2. 插入本地 TradeRecords
-        await db
-            .into(db.tradeRecords)
-            .insert(
+        if (tradeId != null && accountUpdatedAt != null) {
+          // 卖出mapping数据
+          final sellMappingData =
+              assetData['sell_mappings'] is List &&
+                  (assetData['sell_mappings'] as List).isNotEmpty
+              ? (assetData['sell_mappings'] as List)
+                    .map(
+                      (m) => {
+                        "sell_id": tradeId!,
+                        "buy_id": m['buy_id'],
+                        "quantity": m['quantity'],
+                      },
+                    )
+                    .toList()
+              : null;
+          if (mode == 'add') {
+            // 插入本地 TradeRecords
+            await db
+                .into(db.tradeRecords)
+                .insert(
+                  TradeRecordsCompanion(
+                    id: Value(tradeId),
+                    userId: Value(userId),
+                    accountId: Value(assetData['account_id']),
+                    assetType: Value(assetData['asset_type']),
+                    assetId: Value(assetData['asset_id']),
+                    tradeDate: Value(
+                      DateFormat('yyyy-MM-dd').parse(assetData['trade_date']!),
+                    ),
+                    action: Value(assetData['action']),
+                    tradeType: Value(assetData['trade_type']),
+                    quantity: Value(
+                      (num.tryParse(assetData['quantity'].toString()) ?? 0)
+                          .toDouble(),
+                    ),
+                    price: Value(
+                      (num.tryParse(assetData['price'].toString()) ?? 0)
+                          .toDouble(),
+                    ),
+                    feeAmount: Value(
+                      (num.tryParse(
+                                assetData['fee_amount']?.toString() ?? '0',
+                              ) ??
+                              0)
+                          .toDouble(),
+                    ),
+                    feeCurrency: Value(assetData['fee_currency']),
+                    positionType: Value(assetData['position_type']),
+                    leverage: Value(
+                      assetData['leverage'] != null
+                          ? num.tryParse(
+                              assetData['leverage'].toString(),
+                            )?.toDouble()
+                          : null,
+                    ),
+                    swapAmount: Value(
+                      assetData['swap_amount'] != null
+                          ? (num.tryParse(
+                              assetData['swap_amount'].toString(),
+                            ))?.toDouble()
+                          : null,
+                    ),
+                    swapCurrency: Value(assetData['swap_currency']),
+                    manualRateInput: Value(
+                      assetData['manual_rate_input'] ?? false,
+                    ),
+                    remark: Value(assetData['remark']),
+                  ),
+                );
+          } else if (mode == 'edit') {
+            // 更新本地 TradeRecords
+            await (db.update(
+              db.tradeRecords,
+            )..where((tbl) => tbl.id.equals(tradeId))).write(
               TradeRecordsCompanion(
-                id: Value(assetId),
-                userId: Value(userId),
-                accountId: Value(assetData['account_id']),
-                assetType: Value(assetData['asset_type']),
-                assetId: Value(assetData['asset_id']),
                 tradeDate: Value(
                   DateFormat('yyyy-MM-dd').parse(assetData['trade_date']!),
                 ),
-                action: Value(assetData['action']),
                 tradeType: Value(assetData['trade_type']),
                 quantity: Value(
                   (num.tryParse(assetData['quantity'].toString()) ?? 0)
@@ -511,107 +558,166 @@ class DataSyncService {
                 remark: Value(assetData['remark']),
               ),
             );
-
-        // 3. 插入或更新本地 Stocks
-        if (stockData != null) {
-          final stockId = stockData['id'] as int;
-          // 检查本地是否已有该股票
-          final existing = await (db.select(
-            db.stocks,
-          )..where((tbl) => tbl.id.equals(stockId))).getSingleOrNull();
-
-          final stocksCompanion = StocksCompanion(
-            id: Value(stockData['id']),
-            ticker: Value(stockData['ticker']),
-            exchange: Value(stockData['exchange']),
-            name: Value(stockData['name']),
-            currency: Value(stockData['currency']),
-            country: Value(stockData['country']),
-            status: Value(stockData['status'] ?? 'active'),
-            lastPrice: Value(
-              stockData['last_price'] != null
-                  ? (num.tryParse(
-                      stockData['last_price'].toString(),
-                    )?.toDouble())
-                  : null,
-            ),
-            lastPriceAt: Value(
-              stockData['last_price_at'] != null
-                  ? DateTime.tryParse(stockData['last_price_at'].toString())
-                  : null,
-            ),
-            nameUs: Value(stockData['name_us']),
-            sectorIndustryId: Value(stockData['sector_industry_id']),
-            logo: Value(stockData['logo']),
-          );
-
-          if (existing == null) {
-            await db.into(db.stocks).insert(stocksCompanion);
-          } else {
-            await (db.update(
-              db.stocks,
-            )..where((tbl) => tbl.id.equals(stockId))).write(stocksCompanion);
           }
-        }
 
-        // 3.1 插入或更新本地 StockPrices
-        /*if (priceHistory != null && stockData != null) {
-          final stockId = stockData['id'] as int;
-          for (final priceItem in priceHistory) {
-            final price = (num.tryParse(priceItem['price'].toString()) ?? 0)
-                .toDouble();
-            final priceAt = DateTime.tryParse(priceItem['price_at'].toString());
-            if (priceAt == null) continue;
+          // 3. 插入或更新本地 Stocks
+          if (stockData != null) {
+            final stockId = stockData['id'] as int;
+            // 检查本地是否已有该股票
+            final existing = await (db.select(
+              db.stocks,
+            )..where((tbl) => tbl.id.equals(stockId))).getSingleOrNull();
 
-            // 先查是否已存在
-            final existing =
-                await (db.select(db.stockPrices)..where(
-                      (tbl) =>
-                          tbl.stockId.equals(stockId) &
-                          tbl.priceAt.equals(priceAt),
-                    ))
-                    .getSingleOrNull();
-
-            final stockPriceCompanion = StockPricesCompanion(
-              stockId: Value(stockId),
-              price: Value(price),
-              priceAt: Value(priceAt),
+            final stocksCompanion = StocksCompanion(
+              id: Value(stockData['id']),
+              ticker: Value(stockData['ticker']),
+              exchange: Value(stockData['exchange']),
+              name: Value(stockData['name']),
+              currency: Value(stockData['currency']),
+              country: Value(stockData['country']),
+              status: Value(stockData['status'] ?? 'active'),
+              lastPrice: Value(
+                stockData['last_price'] != null
+                    ? (num.tryParse(
+                        stockData['last_price'].toString(),
+                      )?.toDouble())
+                    : null,
+              ),
+              lastPriceAt: Value(
+                stockData['last_price_at'] != null
+                    ? DateTime.tryParse(stockData['last_price_at'].toString())
+                    : null,
+              ),
+              nameUs: Value(stockData['name_us']),
+              sectorIndustryId: Value(stockData['sector_industry_id']),
+              logo: Value(stockData['logo']),
             );
 
             if (existing == null) {
-              await db.into(db.stockPrices).insert(stockPriceCompanion);
+              await db.into(db.stocks).insert(stocksCompanion);
             } else {
-              await (db.update(db.stockPrices)
-                    ..where((tbl) => tbl.id.equals(existing.id)))
-                  .write(stockPriceCompanion);
+              await (db.update(
+                db.stocks,
+              )..where((tbl) => tbl.id.equals(stockId))).write(stocksCompanion);
             }
           }
-        }*/
 
-        // 4. 插入本地 SellMappings
-        if (sellMappingData != null) {
-          for (var sellMapping in sellMappingData) {
-            final buyId = sellMapping['buy_id'];
-            final sellId = sellMapping['sell_id'];
-            final quantity =
-                (num.tryParse(sellMapping['quantity'].toString()) ?? 0)
-                    .toDouble();
+          // 4. 插入本地 SellMappings
+          if (sellMappingData != null) {
+            if (mode == 'edit') {
+              // 先删除已有的映射关系
+              await (db.delete(
+                db.tradeSellMappings,
+              )..where((tbl) => tbl.sellId.equals(tradeId))).go();
+            }
 
-            await db
-                .into(db.tradeSellMappings)
-                .insert(
-                  TradeSellMappingsCompanion(
-                    buyId: Value(buyId),
-                    sellId: Value(sellId),
-                    quantity: Value(quantity),
-                  ),
-                );
+            for (var sellMapping in sellMappingData) {
+              final buyId = sellMapping['buy_id'];
+              final sellId = sellMapping['sell_id'];
+              final quantity =
+                  (num.tryParse(sellMapping['quantity'].toString()) ?? 0)
+                      .toDouble();
+
+              await db
+                  .into(db.tradeSellMappings)
+                  .insert(
+                    TradeSellMappingsCompanion(
+                      buyId: Value(buyId),
+                      sellId: Value(sellId),
+                      quantity: Value(quantity),
+                    ),
+                  );
+            }
           }
+
+          // 更新最后同步时间
+          GlobalStore().lastSyncTime = accountUpdatedAt;
+          GlobalStore().saveLastSyncTimeToPrefs();
+          print('更新accountUpdatedAt: $accountUpdatedAt');
         }
+        return true;
+      } else {
+        print('Create asset failed: ${response.status} ${response.data}');
+        return false;
       }
-      return true;
-    } else {
-      console.log('Create asset failed: ${response.status} ${response.data}');
+    } catch (e) {
+      print('Error in createAsset: $e');
+      print('Stack trace: ${StackTrace.current}');
+      return false;
+    }
+  }
+
+  // -------------------------------------------------
+  // 删除资产（买入或卖出）
+  // -------------------------------------------------
+  Future<bool> deleteAsset({
+    required String userId,
+    required int accountId,
+    required int tradeId,
+  }) async {
+    try {
+      final response = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {'action': 'user-assets', 'user_id': userId},
+        body: {'account_id': accountId, 'id': tradeId},
+        method: HttpMethod.delete,
+      );
+
+      if (response.status == 200 || response.status == 201) {
+        // 1. 解析返回的 trade id
+        final data = response.data is String
+            ? jsonDecode(response.data)
+            : response.data;
+        final DateTime? accountUpdatedAt = DateTime.tryParse(
+          data['account_updated_at'],
+        );
+
+        if (accountUpdatedAt != null) {
+          // 取得股票ID
+          final localTrade = await (db.select(
+            db.tradeRecords,
+          )..where((tbl) => tbl.id.equals(tradeId))).getSingleOrNull();
+          final stockId = localTrade?.assetId;
+
+          // 删除本地 TradeRecords
+          await (db.delete(
+            db.tradeRecords,
+          )..where((tbl) => tbl.id.equals(tradeId))).go();
+
+          // 删除本地 TradeSellMappings
+          await (db.delete(
+            db.tradeSellMappings,
+          )..where((tbl) => tbl.sellId.equals(tradeId))).go();
+
+          // 删除本地 Stocks (如果没有其他交易使用该股票)
+          if (stockId != null) {
+            final otherTrades =
+                await (db.select(db.tradeRecords)..where(
+                      (tbl) =>
+                          tbl.assetId.equals(stockId) &
+                          tbl.assetType.equals('stock'),
+                    ))
+                    .get();
+            if (otherTrades.isEmpty) {
+              await (db.delete(
+                db.stocks,
+              )..where((tbl) => tbl.id.equals(stockId))).go();
+            }
+          }
+
+          // 更新最后同步时间
+          GlobalStore().lastSyncTime = accountUpdatedAt;
+          GlobalStore().saveLastSyncTimeToPrefs();
+          print('更新accountUpdatedAt: $accountUpdatedAt');
+        }
+        return true;
+      } else {
+        print('Delete asset failed: ${response.status} ${response.data}');
+        return false;
+      }
+    } catch (e) {
+      print('Error in deleteAsset: $e');
+      print('Stack trace: ${StackTrace.current}');
       return false;
     }
   }

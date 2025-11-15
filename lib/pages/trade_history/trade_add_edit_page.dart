@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart' hide Column;
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/components/custom_date_dropdown_field.dart';
-import 'package:money_nest_app/components/custom_dropdown_button_form_field.dart';
+import 'package:money_nest_app/components/modern_hud_dropdown.dart';
 import 'package:money_nest_app/components/custom_input_form_field_by_suggestion.dart';
 import 'package:money_nest_app/components/custom_text_form_field.dart';
 import 'package:money_nest_app/components/glass_tab.dart';
@@ -20,27 +20,33 @@ import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'trade_history_tab_page.dart'; // 导入 TradeRecord/TradeType
 
-class TradeAddPage extends StatefulWidget {
-  //final TradeRecord? record; // 支持编辑模式
+class TradeAddEditPage extends StatefulWidget {
+  final String mode;
+  final String type; // 'asset' or 'liability'
+  final TradeRecordDisplay record; // 支持编辑模式
   final VoidCallback? onClose;
   final AppDatabase db;
-  const TradeAddPage({
+  const TradeAddEditPage({
     super.key,
     this.onClose,
     required this.db,
+    required this.record,
+    required this.mode,
+    required this.type,
   }); //this.record});
 
   @override
-  State<TradeAddPage> createState() => _TradeAddPageState();
+  State<TradeAddEditPage> createState() => _TradeAddEditPageState();
 }
 
-class _TradeAddPageState extends State<TradeAddPage> {
+class _TradeAddEditPageState extends State<TradeAddEditPage> {
+  // 共通 State
   int tabIndex = 0; // 0: 資産, 1: 負債
 
-  // 共通 State
-
   // ##### 0. 資産 #####
+  late final int tradeId; // 编辑模式下的交易ID
   // ----- 0-1. カテゴリ・サブカテゴリ -----
   late final List<Categories> assetCategories;
   late final Map<String, List<Map<String, dynamic>>> assetCategoriesWithSub;
@@ -49,7 +55,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
 
   // ----- 0-2. 株式 -----
   // 操作タイプ（買い or 売り）
-  String tradeAction = 'buy';
+  ActionType tradeAction = ActionType.buy;
   // 0-2-1. 買い
   // 銘柄情報
   final TextEditingController _stockCodeController = TextEditingController();
@@ -83,11 +89,14 @@ class _TradeAddPageState extends State<TradeAddPage> {
   // 手数料・手数料通貨
   final TextEditingController _commissionController = TextEditingController();
   final FocusNode _commissionFocusNode = FocusNode();
-  late final List<String> commissionCurrencies;
+  final List<String> commissionCurrencies = Currency.values
+      .map((e) => e.code)
+      .toList();
   num? commissionValue;
   late String commissionCurrency;
   // メモ
   String? memoValue;
+  final TextEditingController _memoController = TextEditingController();
 
   // 0-2-2. 売り
   // 売却する銘柄情報
@@ -119,6 +128,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
   late String sellCommissionCurrency;
   // 売却メモ
   String? sellMemoValue;
+  final TextEditingController _sellMemoController = TextEditingController();
 
   // ##### 1. 負債 #####
   // ----- 1-1. カテゴリ・サブカテゴリ -----
@@ -131,54 +141,119 @@ class _TradeAddPageState extends State<TradeAddPage> {
   @override
   void initState() {
     super.initState();
-    // 初始化资产和负债类别
-    assetCategories =
-        Categories.values.where((cat) => cat.type == 'asset').toList()
-          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
-    debtCategories =
-        Categories.values.where((cat) => cat.type == 'liability').toList()
-          ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
-    assetCategoriesWithSub = assetCategories
-        .fold<Map<String, List<Map<String, dynamic>>>>({}, (map, cat) {
-          map[cat.code] = Subcategories.values
-              .where((sub) => sub.categoryId == cat.id)
-              .map(
-                (e) => {
-                  'id': e.id,
-                  'code': e.code,
-                  'name': e.name,
-                  'displayOrder': e.displayOrder,
-                },
-              )
-              .toList();
-          map[cat.code]?.sort(
-            (a, b) => a['displayOrder'].compareTo(b['displayOrder']),
-          );
-          return map;
-        });
-    debtCategoriesWithSub = debtCategories
-        .fold<Map<String, List<Map<String, dynamic>>>>({}, (map, cat) {
-          map[cat.code] = Subcategories.values
-              .where((sub) => sub.categoryId == cat.id)
-              .map(
-                (e) => {
-                  'id': e.id,
-                  'code': e.code,
-                  'name': e.name,
-                  'displayOrder': e.displayOrder,
-                },
-              )
-              .toList();
-          map[cat.code]?.sort(
-            (a, b) => a['displayOrder'].compareTo(b['displayOrder']),
-          );
-          return map;
-        });
 
-    // 设置默认的货币选项
-    commissionCurrencies = Currency.values.map((e) => e.code).toList();
-    commissionCurrency = commissionCurrencies.first;
-    sellCommissionCurrency = commissionCurrencies.first;
+    setState(() {
+      // 初始化资产类别
+      //if (widget.mode == 'add' ||
+      //    widget.mode == 'edit' && widget.type == 'asset') {
+      assetCategories =
+          Categories.values.where((cat) => cat.type == 'asset').toList()
+            ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+      assetCategoriesWithSub = assetCategories
+          .fold<Map<String, List<Map<String, dynamic>>>>({}, (map, cat) {
+            map[cat.code] = Subcategories.values
+                .where((sub) => sub.categoryId == cat.id)
+                .map(
+                  (e) => {
+                    'id': e.id,
+                    'code': e.code,
+                    'name': e.name,
+                    'displayOrder': e.displayOrder,
+                  },
+                )
+                .toList();
+            map[cat.code]?.sort(
+              (a, b) => a['displayOrder'].compareTo(b['displayOrder']),
+            );
+            return map;
+          });
+      //}
+      // 初始化负债类别
+      //if (widget.mode == 'add' ||
+      //    widget.mode == 'edit' && widget.type == 'liability') {
+      debtCategories =
+          Categories.values.where((cat) => cat.type == 'liability').toList()
+            ..sort((a, b) => a.displayOrder.compareTo(b.displayOrder));
+      debtCategoriesWithSub = debtCategories
+          .fold<Map<String, List<Map<String, dynamic>>>>({}, (map, cat) {
+            map[cat.code] = Subcategories.values
+                .where((sub) => sub.categoryId == cat.id)
+                .map(
+                  (e) => {
+                    'id': e.id,
+                    'code': e.code,
+                    'name': e.name,
+                    'displayOrder': e.displayOrder,
+                  },
+                )
+                .toList();
+            map[cat.code]?.sort(
+              (a, b) => a['displayOrder'].compareTo(b['displayOrder']),
+            );
+            return map;
+          });
+      //}
+    });
+
+    // ADD MODE 初始化默认值
+    if (widget.mode == 'add') {
+      // 设置默认的货币选项
+      setState(() {
+        commissionCurrency = commissionCurrencies.first;
+        sellCommissionCurrency = commissionCurrencies.first;
+      });
+    }
+
+    // EDIT MODE 初始化已有值
+    if (widget.mode == 'edit') {
+      final record = widget.record;
+      tradeId = record.id;
+      if (widget.type == 'asset') {
+        setState(() {
+          tabIndex = 0;
+          assetCategoryCode = record.assetType;
+          assetSubCategoryCode = record.stockInfo.exchange == 'JP'
+              ? 'jp_stock'
+              : 'us_stock';
+          tradeAction = record.action;
+          if (tradeAction == ActionType.buy) {
+            selectedStockInfo = record.stockInfo;
+            selectedStockCode = record.stockInfo.ticker ?? '';
+            _stockCodeController.text = selectedStockCode;
+            selectedStockName = record.stockInfo.name;
+            tradeDate = record.tradeDate;
+            tradeTypeCode = record.tradeType;
+            quantityValue = record.quantity;
+            _quantityController.text = quantityValue.toString();
+            unitPriceValue = record.price;
+            _unitPriceController.text = unitPriceValue.toString();
+            _updateAmount();
+            commissionValue = record.feeAmount;
+            _commissionController.text = commissionValue.toString();
+            commissionCurrency = record.feeCurrency;
+            memoValue = record.remark;
+            _memoController.text = memoValue ?? '';
+          } else if (tradeAction == ActionType.sell) {
+            selectedSellStockId = record.stockInfo.id;
+            selectedSellStockCode = record.stockInfo.ticker ?? '';
+            selectedSellStockName = record.stockInfo.name;
+            selectedSellStockExchange = record.stockInfo.exchange ?? '';
+            tradeDate = record.tradeDate;
+            sellTotalQty = record.quantity;
+            sellUnitPrice = record.price;
+            _sellUnitPriceController.text = sellUnitPrice.toString();
+            _updateSellAmount();
+            sellCommissionValue = record.feeAmount;
+            _sellCommissionController.text = sellCommissionValue.toString();
+            sellCommissionCurrency = record.feeCurrency;
+            sellMemoValue = record.remark;
+            _sellMemoController.text = sellMemoValue ?? '';
+          }
+        });
+      } else if (widget.type == 'liability') {
+        // 负债的其他字段初始化略
+      }
+    }
 
     // 初始化数字输入框的格式化监听
     addFocusFormatListener(
@@ -215,8 +290,16 @@ class _TradeAddPageState extends State<TradeAddPage> {
       maxDecimal: 4, // 最多4位小数
     );
 
-    // 初始化卖出持仓
-    _loadSellHoldings();
+    if (widget.mode == 'add') {
+      // 初始化卖出持仓
+      _loadSellHoldings();
+    }
+    if (widget.mode == 'edit' &&
+        widget.type == 'asset' &&
+        tradeAction == ActionType.sell) {
+      // 编辑模式下初始化卖出持仓
+      _loadSellHoldings(notNeedRefresh: true);
+    }
   }
 
   @override
@@ -230,10 +313,12 @@ class _TradeAddPageState extends State<TradeAddPage> {
     _stockCodeFocusNode.dispose();
     _commissionController.dispose();
     _commissionFocusNode.dispose();
+    _memoController.dispose();
     _sellCommissionController.dispose();
     _sellCommissionFocusNode.dispose();
     _sellUnitPriceController.dispose();
     _sellUnitPriceFocusNode.dispose();
+    _sellMemoController.dispose();
     for (var node in sellBatchFocusNodes.values) {
       node.dispose();
     }
@@ -337,9 +422,9 @@ class _TradeAddPageState extends State<TradeAddPage> {
                           child: ElevatedButton.icon(
                             onPressed: _handleSave,
                             icon: const Icon(Icons.save_alt_rounded, size: 20),
-                            label: const Text(
-                              '保存',
-                              style: TextStyle(
+                            label: Text(
+                              widget.mode == 'edit' ? '保存' : '追加',
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
@@ -544,8 +629,18 @@ class _TradeAddPageState extends State<TradeAddPage> {
 
     if (!mounted) return; // ensure widget still mounted
 
+    final sellMappingsForEdit = <TradeSellMapping>[];
+    if (widget.mode == 'edit') {
+      final sellMappings =
+          await (widget.db.tradeSellMappings.select()
+                ..where((tbl) => tbl.sellId.equals(tradeId)))
+              .get();
+      sellMappingsForEdit.addAll(sellMappings);
+    }
+
     setState(() {
       sellHoldings = holdings;
+      print('Loaded sell holdings: $sellHoldings');
       // 切换资产类型时清空已选
       if (notNeedRefresh) {
         final holding = sellHoldings.firstWhere(
@@ -565,7 +660,14 @@ class _TradeAddPageState extends State<TradeAddPage> {
         for (var batch in sellBatches) {
           final key = batch['id'].toString();
           sellBatchControllers[key] = TextEditingController(
-            text: batch['sell']?.toString() ?? '0',
+            text: widget.mode == 'edit'
+                ? sellMappingsForEdit
+                          .where((m) => m.buyId.toString() == key)
+                          .firstOrNull
+                          ?.quantity
+                          .toString() ??
+                      '0'
+                : batch['sell']?.toString() ?? '0',
           );
           sellBatchFocusNodes[key] = FocusNode();
           sellBatchControllers[key]!.addListener(_updateSellTotalQty);
@@ -692,7 +794,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
           ),
         ),
         const SizedBox(height: 6),
-        CustomDropdownButtonFormField<String>(
+        ModernHudDropdown<String>(
           hintText: 'カテゴリを選択',
           selectedValue:
               assetCategoryCode.isNotEmpty &&
@@ -703,11 +805,12 @@ class _TradeAddPageState extends State<TradeAddPage> {
               .map((e) => DropdownMenuItem(value: e.code, child: Text(e.name)))
               .toList(),
           onChanged: (v) => _onAssetCategoryChanged(v),
+          disabled: widget.mode == 'edit',
         ),
         const SizedBox(height: 6),
         // サブカテゴリ
         if (assetCategoryCode.isNotEmpty)
-          CustomDropdownButtonFormField<String>(
+          ModernHudDropdown<String>(
             hintText: 'サブカテゴリを選択',
             selectedValue:
                 assetSubCategoryCode.isNotEmpty &&
@@ -726,6 +829,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                   ),
                 )
                 .toList(),
+            disabled: widget.mode == 'edit',
           ),
         // 动态表单内容
         if (assetCategoryCode.isNotEmpty && assetSubCategoryCode.isNotEmpty)
@@ -749,7 +853,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
           ),
         ),
         const SizedBox(height: 6),
-        CustomDropdownButtonFormField<String>(
+        ModernHudDropdown<String>(
           hintText: 'カテゴリを選択',
           selectedValue:
               debtCategoryCode.isNotEmpty &&
@@ -765,11 +869,12 @@ class _TradeAddPageState extends State<TradeAddPage> {
               debtSubCategoryCode = '';
             });
           },
+          disabled: widget.mode == 'edit',
         ),
         const SizedBox(height: 6),
         // サブカテゴリ
         if (debtCategoryCode.isNotEmpty)
-          CustomDropdownButtonFormField<String>(
+          ModernHudDropdown<String>(
             hintText: 'サブカテゴリを選択',
             selectedValue:
                 debtSubCategoryCode.isNotEmpty &&
@@ -792,6 +897,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                 debtSubCategoryCode = v ?? '';
               });
             },
+            disabled: widget.mode == 'edit',
           ),
         // 动态表单内容
         if (debtCategoryCode.isNotEmpty && debtSubCategoryCode.isNotEmpty)
@@ -806,6 +912,34 @@ class _TradeAddPageState extends State<TradeAddPage> {
     if (assetCategoryCode == 'stock' &&
         (assetSubCategoryCode == 'jp_stock' ||
             assetSubCategoryCode == 'us_stock')) {
+      final children = {
+        ActionType.buy: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          child: Text(
+            '買い',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: tradeAction == ActionType.buy
+                  ? Color(0xFF4F8CFF)
+                  : Color(0xFF888888),
+            ),
+          ),
+        ),
+        ActionType.sell: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          child: Text(
+            '売り',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: tradeAction == ActionType.sell
+                  ? Color(0xFF4F8CFF)
+                  : Color(0xFF888888),
+            ),
+          ),
+        ),
+      };
       // 取引種別
       return StatefulBuilder(
         builder: (context, setInnerState) => Column(
@@ -813,49 +947,21 @@ class _TradeAddPageState extends State<TradeAddPage> {
           children: [
             const SizedBox(height: 6),
             const SizedBox(height: 6),
-            CupertinoSlidingSegmentedControl<String>(
+            CupertinoSlidingSegmentedControl<ActionType>(
               groupValue: tradeAction,
-              children: {
-                'buy': Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 8,
-                  ),
-                  child: Text(
-                    '買い',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: tradeAction == 'buy'
-                          ? Color(0xFF4F8CFF)
-                          : Color(0xFF888888),
-                    ),
-                  ),
-                ),
-                'sell': Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 8,
-                  ),
-                  child: Text(
-                    '売り',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: tradeAction == 'sell'
-                          ? Color(0xFF4F8CFF)
-                          : Color(0xFF888888),
-                    ),
-                  ),
-                ),
+              children: children,
+              onValueChanged: (v) {
+                setState(() => tradeAction = v!);
               },
-              onValueChanged: (v) => setState(() => tradeAction = v!),
+              disabledChildren: widget.mode == 'edit'
+                  ? {ActionType.buy, ActionType.sell}
+                  : {},
               backgroundColor: Colors.white.withOpacity(0.85),
               thumbColor: Colors.white,
             ),
             const SizedBox(height: 16),
-            if (tradeAction == 'buy') _buildBuyFields(),
-            if (tradeAction == 'sell') _buildSellFields(),
+            if (tradeAction == ActionType.buy) _buildBuyFields(),
+            if (tradeAction == ActionType.sell) _buildSellFields(),
           ],
         ),
       );
@@ -888,6 +994,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
             _removeOverlay();
             FocusScope.of(context).unfocus();
           },
+          disabled: widget.mode == 'edit',
         ),
         const SizedBox(height: 12),
         // 銘柄名
@@ -907,6 +1014,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
           ),
           controller: TextEditingController(text: selectedStockName),
           readOnly: true,
+          enabled: widget.mode != 'edit',
         ),
         const SizedBox(height: 16),
         const Text('取引詳細', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -927,7 +1035,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
         ),
         const SizedBox(height: 12),
         // 口座区分
-        CustomDropdownButtonFormField<String>(
+        ModernHudDropdown<String>(
           hintText: '口座区分を選択',
           selectedValue:
               tradeTypeCode.isNotEmpty &&
@@ -1116,7 +1224,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
-                  CustomDropdownButtonFormField<String>(
+                  ModernHudDropdown<String>(
                     hintText: '通貨を選択',
                     selectedValue:
                         commissionCurrency.isNotEmpty &&
@@ -1144,6 +1252,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
         const Text('メモ（任意）', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         TextFormField(
+          controller: _memoController,
           decoration: InputDecoration(
             hintText: '取引に関するメモを入力',
             filled: true,
@@ -1175,7 +1284,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
       children: [
         const Text('売却する銘柄', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        CustomDropdownButtonFormField<String>(
+        ModernHudDropdown<String>(
           hintText: '売却する銘柄を選択してください',
           selectedValue:
               (selectedSellStockId != null &&
@@ -1193,6 +1302,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
               )
               .toList(),
           onChanged: (v) => _onSellStockChanged(v),
+          disabled: widget.mode == 'edit',
         ),
         if (selectedSellStockId != null && sellBatches.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -1436,7 +1546,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                     ),
                     const SizedBox(height: 6),
 
-                    CustomDropdownButtonFormField<String>(
+                    ModernHudDropdown<String>(
                       hintText: '通貨を選択',
                       selectedValue:
                           sellCommissionCurrency.isNotEmpty &&
@@ -1466,6 +1576,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
           const Text('メモ（任意）', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           TextFormField(
+            controller: _sellMemoController,
             decoration: InputDecoration(
               hintText: '取引に関するメモを入力',
               filled: true,
@@ -1497,7 +1608,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
     String exchange,
     String? tradeDateStr,
   ) async {
-    final db = AppDatabase();
+    final db = widget.db;
     final userId = GlobalStore().userId;
     final accountId = GlobalStore().accountId;
 
@@ -1541,6 +1652,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
     // 统计每个 buy_id 已卖出数量
     final Map<int, num> buyIdToSoldQty = {};
     for (final mapping in sellMappings) {
+      if (widget.mode == 'edit' && mapping.sellId == tradeId) continue;
       buyIdToSoldQty[mapping.buyId] =
           (buyIdToSoldQty[mapping.buyId] ?? 0) + mapping.quantity;
     }
@@ -1661,7 +1773,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
             (assetSubCategoryCode == 'jp_stock' ||
                 assetSubCategoryCode == 'us_stock')) {
           // 买入
-          if (tradeAction == 'buy') {
+          if (tradeAction == ActionType.buy) {
             canSave =
                 assetCategoryCode.isNotEmpty &&
                 assetSubCategoryCode.isNotEmpty &&
@@ -1670,7 +1782,7 @@ class _TradeAddPageState extends State<TradeAddPage> {
                 tradeDate != null &&
                 quantityValue != null &&
                 unitPriceValue != null;
-          } else if (tradeAction == 'sell') {
+          } else if (tradeAction == ActionType.sell) {
             canSave =
                 assetCategoryCode.isNotEmpty &&
                 assetSubCategoryCode.isNotEmpty &&
@@ -1717,81 +1829,138 @@ class _TradeAddPageState extends State<TradeAddPage> {
             (assetSubCategoryCode == 'jp_stock' ||
                 assetSubCategoryCode == 'us_stock')) {
           // 买入
-          if (tradeAction == 'buy') {
-            success = await dataSync.createAsset(
-              userId: GlobalStore().userId!,
-              assetData: {
-                "account_id": GlobalStore().accountId!,
-                "asset_type": "stock",
-                "asset_id": selectedStockInfo!.id,
-                "asset_code": selectedStockInfo!.ticker,
-                "trade_date": tradeDate,
-                "exchange": selectedStockInfo!.exchange,
-                "action": tradeAction,
-                "trade_type": tradeTypeCode,
-                "position_type": null,
-                "quantity": quantityValue,
-                "price": unitPriceValue,
-                "leverage": null,
-                "swap_amount": null,
-                "swap_currency": null,
-                "fee_amount": commissionValue,
-                "fee_currency": commissionCurrency,
-                "manual_rate_input": false,
-                "remark": memoValue,
-                "sell_mappings": [],
-              },
-              stockData: {
-                "id": selectedStockInfo!.id,
-                "ticker": selectedStockInfo!.ticker,
-                "exchange": selectedStockInfo!.exchange,
-                "name": selectedStockInfo!.name,
-                "currency": selectedStockInfo!.currency,
-                "country": selectedStockInfo!.country,
-                "status": selectedStockInfo!.status,
-                "last_price": selectedStockInfo!.lastPrice,
-                "lastPriceAt": selectedStockInfo!.lastPriceAt,
-                "nameUs": selectedStockInfo!.nameUs,
-                "sectorIndustryId": selectedStockInfo!.sectorIndustryId,
-                "logo": selectedStockInfo!.logo,
-              },
-            );
+          if (tradeAction == ActionType.buy) {
+            if (widget.mode == 'add') {
+              success = await dataSync.createOrUpdateAsset(
+                'add',
+                userId: GlobalStore().userId!,
+                assetData: {
+                  "account_id": GlobalStore().accountId!,
+                  "asset_type": "stock",
+                  "asset_id": selectedStockInfo!.id,
+                  "asset_code": selectedStockInfo!.ticker,
+                  "trade_date": tradeDate,
+                  "exchange": selectedStockInfo!.exchange,
+                  "action": 'buy',
+                  "trade_type": tradeTypeCode,
+                  "position_type": null,
+                  "quantity": quantityValue,
+                  "price": unitPriceValue,
+                  "leverage": null,
+                  "swap_amount": null,
+                  "swap_currency": null,
+                  "fee_amount": commissionValue,
+                  "fee_currency": commissionCurrency,
+                  "manual_rate_input": false,
+                  "remark": memoValue,
+                  "sell_mappings": [],
+                },
+                stockData: {
+                  "id": selectedStockInfo!.id,
+                  "ticker": selectedStockInfo!.ticker,
+                  "exchange": selectedStockInfo!.exchange,
+                  "name": selectedStockInfo!.name,
+                  "currency": selectedStockInfo!.currency,
+                  "country": selectedStockInfo!.country,
+                  "status": selectedStockInfo!.status,
+                  "last_price": selectedStockInfo!.lastPrice,
+                  "lastPriceAt": selectedStockInfo!.lastPriceAt,
+                  "nameUs": selectedStockInfo!.nameUs,
+                  "sectorIndustryId": selectedStockInfo!.sectorIndustryId,
+                  "logo": selectedStockInfo!.logo,
+                },
+              );
+            } else {
+              success = await dataSync.createOrUpdateAsset(
+                'edit',
+                userId: GlobalStore().userId!,
+                assetData: {
+                  "id": tradeId,
+                  "account_id": GlobalStore().accountId!,
+                  "trade_date": tradeDate,
+                  "trade_type": tradeTypeCode,
+                  "quantity": quantityValue,
+                  "price": unitPriceValue,
+                  "leverage": null,
+                  "swap_amount": null,
+                  "swap_currency": null,
+                  "fee_amount": commissionValue,
+                  "fee_currency": commissionCurrency,
+                  "manual_rate_input": false,
+                  "remark": memoValue,
+                  "sell_mappings": [],
+                },
+                stockData: null,
+              );
+            }
           }
           // 卖出
-          else if (tradeAction == 'sell') {
-            success = await dataSync.createAsset(
-              userId: GlobalStore().userId!,
-              assetData: {
-                "account_id": GlobalStore().accountId!,
-                "asset_type": "stock",
-                "asset_id": selectedSellStockId,
-                "asset_code": selectedSellStockCode,
-                "trade_date": tradeDate,
-                "exchange": selectedSellStockExchange,
-                "action": tradeAction,
-                "trade_type": null,
-                "position_type": null,
-                "quantity": sellTotalQty,
-                "price": sellUnitPrice,
-                "leverage": null,
-                "swap_amount": null,
-                "swap_currency": null,
-                "fee_amount": sellCommissionValue,
-                "fee_currency": sellCommissionCurrency,
-                "manual_rate_input": false,
-                "remark": sellMemoValue,
-                "sell_mappings": sellBatches
-                    .where(
-                      (b) =>
-                          (b['sell'] ?? 0) != 0 &&
-                          b['sell'] != null &&
-                          b['sell'].toString() != '',
-                    )
-                    .map((b) => {"buy_id": b['id'], "quantity": b['sell']})
-                    .toList(),
-              },
-              stockData: null,
-            );
+          else if (tradeAction == ActionType.sell) {
+            if (widget.mode == 'add') {
+              success = await dataSync.createOrUpdateAsset(
+                'add',
+                userId: GlobalStore().userId!,
+                assetData: {
+                  "account_id": GlobalStore().accountId!,
+                  "asset_type": "stock",
+                  "asset_id": selectedSellStockId,
+                  "asset_code": selectedSellStockCode,
+                  "trade_date": tradeDate,
+                  "exchange": selectedSellStockExchange,
+                  "action": 'sell',
+                  "trade_type": null,
+                  "position_type": null,
+                  "quantity": sellTotalQty,
+                  "price": sellUnitPrice,
+                  "leverage": null,
+                  "swap_amount": null,
+                  "swap_currency": null,
+                  "fee_amount": sellCommissionValue,
+                  "fee_currency": sellCommissionCurrency,
+                  "manual_rate_input": false,
+                  "remark": sellMemoValue,
+                  "sell_mappings": sellBatches
+                      .where(
+                        (b) =>
+                            (b['sell'] ?? 0) != 0 &&
+                            b['sell'] != null &&
+                            b['sell'].toString() != '',
+                      )
+                      .map((b) => {"buy_id": b['id'], "quantity": b['sell']})
+                      .toList(),
+                },
+                stockData: null,
+              );
+            } else {
+              success = await dataSync.createOrUpdateAsset(
+                'edit',
+                userId: GlobalStore().userId!,
+                assetData: {
+                  "id": tradeId,
+                  "account_id": GlobalStore().accountId!,
+                  "trade_date": tradeDate,
+                  "quantity": sellTotalQty,
+                  "price": sellUnitPrice,
+                  "leverage": null,
+                  "swap_amount": null,
+                  "swap_currency": null,
+                  "fee_amount": sellCommissionValue,
+                  "fee_currency": sellCommissionCurrency,
+                  "manual_rate_input": false,
+                  "remark": sellMemoValue,
+                  "sell_mappings": sellBatches
+                      .where(
+                        (b) =>
+                            (b['sell'] ?? 0) != 0 &&
+                            b['sell'] != null &&
+                            b['sell'].toString() != '',
+                      )
+                      .map((b) => {"buy_id": b['id'], "quantity": b['sell']})
+                      .toList(),
+                },
+                stockData: null,
+              );
+            }
           }
         }
         // 计算并保存资产总额历史到本地
@@ -1809,20 +1978,66 @@ class _TradeAddPageState extends State<TradeAddPage> {
         final dataSync = Provider.of<DataSyncService>(context, listen: false);
         // 刷新股票价格
         await dataSync.getStockPricesByYHFinanceAPI();
-
-        if (!mounted) return; // 页面可能已被销毁，检查 mounted
         // 刷新全局数据
         await AppUtils().calculateAndSavePortfolio(
           widget.db,
           GlobalStore().userId!,
           GlobalStore().accountId!,
         );
-        await _showSuccessDialog();
+        //await _showSuccessDialog();
 
         if (!mounted) return; // 页面可能已被销毁，检查 mounted
-        widget.onClose != null
-            ? widget.onClose!()
-            : Navigator.pop(context, true);
+        await AppUtils().showSuccessHUD(context, message: '保存しました');
+        if (!mounted) return;
+        if (widget.mode == 'add') {
+          Navigator.pop(context, true);
+        } else {
+          // 金额格式
+          final currency = widget.record.currency;
+          final stockPrices = GlobalStore().currentStockPrices;
+          final quantity = tradeAction == ActionType.buy
+              ? quantityValue!
+              : sellTotalQty;
+          final price = tradeAction == ActionType.buy
+              ? unitPriceValue!
+              : sellUnitPrice!;
+          final feeAmount = tradeAction == ActionType.buy
+              ? commissionValue
+              : sellCommissionValue;
+          final feeCurrency = tradeAction == ActionType.buy
+              ? commissionCurrency
+              : sellCommissionCurrency;
+          final amount =
+              quantity * price -
+              (feeAmount ?? 0) *
+                  (widget.record.action == ActionType.sell ? 1 : -1) *
+                  (stockPrices['${feeCurrency == 'USD' ? '' : feeCurrency}$currency=X'] ??
+                      1);
+          final amountStr =
+              '${widget.record.action == ActionType.dividend ? '+' : ''}${AppUtils().formatMoney(amount.toDouble(), currency)}';
+          // 明细
+          final formatter = NumberFormat("#,##0.##");
+          final detail =
+              '${formatter.format(quantity)}株 * ${AppUtils().formatMoney(price.toDouble(), currency)}';
+
+          TradeRecordDisplay rtl = TradeRecordDisplay(
+            id: widget.record.id,
+            action: widget.record.action,
+            tradeDate: tradeDate!,
+            tradeType: widget.record.tradeType,
+            amount: amountStr,
+            detail: detail,
+            assetType: widget.record.assetType,
+            price: price.toDouble(),
+            quantity: quantity.toDouble(),
+            currency: widget.record.currency,
+            feeAmount: feeAmount!.toDouble(),
+            feeCurrency: feeCurrency,
+            remark: tradeAction == ActionType.buy ? memoValue! : sellMemoValue!,
+            stockInfo: widget.record.stockInfo,
+          );
+          Navigator.pop(context, rtl);
+        }
       } else {
         showDialog(
           context: context,

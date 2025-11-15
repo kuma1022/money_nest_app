@@ -425,7 +425,8 @@ async function handleCreateAsset(userId, body) {
     }
   }
   try {
-    const { data, error } = await supabase.rpc('insert_asset_with_mappings', {
+    // Call the new RPC which returns TABLE(trade_id, account_updated_at)
+    const { data, error } = await supabase.rpc('insert_trade_and_update_account', {
       p_user_id: userId,
       p_account_id: body.account_id ?? null,
       p_asset_type: body.asset_type,
@@ -453,105 +454,158 @@ async function handleCreateAsset(userId, body) {
         status: 500
       });
     }
-    // supabase-js may return data as [{ insert_asset: <id> }] or raw value; handle common shapes
-    let insertedId = null;
-    if (data === null || data === undefined) {
-      insertedId = null;
+
+    // Normalize RPC response shapes (array / single object)
+    let tradeId = null;
+    let accountUpdatedAt = null;
+    if (Array.isArray(data) && data.length > 0) {
+      tradeId = data[0]?.trade_id ?? null;
+      accountUpdatedAt = data[0]?.account_updated_at ?? data[0]?.updated_at ?? null;
+    } else if (data && typeof data === 'object') {
+      tradeId = data.trade_id ?? null;
+      accountUpdatedAt = data.account_updated_at ?? data.updated_at ?? null;
     } else {
-      insertedId = data;
+      // fallback: sometimes supabase RPC returns scalar
+      tradeId = data ?? null;
     }
-    // If sell, insert mappings into trade_sell_mappings
-    let mappings = [];
-    if (String(body.action).toLowerCase() === 'sell') {
-      if (!insertedId) {
-        return new Response(JSON.stringify({
-          error: 'Failed to resolve inserted sell id'
-        }), {
-          status: 500
-        });
-      }
-      mappings = body.sell_mappings.map((m)=>({
-          sell_id: insertedId,
-          buy_id: m.buy_id,
-          quantity: m.quantity
-        }));
+
+    if (!tradeId) {
+      return new Response(JSON.stringify({
+        error: 'Failed to create trade record'
+      }), {
+        status: 500
+      });
     }
-    // `data` format depends on supabase-js version and RPC. It may return the raw value or an array.
-    // Return the raw data to the caller for convenience.
+
+    // Return created trade id and updated account timestamp
     return new Response(JSON.stringify({
       success: true,
-      asset_id: data,
-      sell_mappings: mappings
+      trade_id: tradeId,
+      account_updated_at: accountUpdatedAt
     }), {
-      status: 201
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
     });
   } catch (err) {
+    console.error('handleCreateAsset error:', err);
     return new Response(JSON.stringify({
-      error: err && err.message || String(err)
-    }), {
-      status: 500
-    });
+        error: 'Failed to create trade record'
+      }), {
+        status: 500
+      });
   }
 }
 
 // 更新资产交易记录
 async function handleUpdateAsset(userId, body) {
-  const { data, error } = await supabase.rpc('update_asset_with_mappings', {
-    p_user_id: userId,
-    p_account_id: body.account_id ?? null,
-    p_id: body.id,
-    p_trade_date: body.trade_date,
-    p_trade_type: body.trade_type ?? null,
-    p_quantity: body.quantity,
-    p_price: body.price,
-    p_leverage: body.leverage ?? null,
-    p_swap_amount: body.swap_amount ?? null,
-    p_swap_currency: body.swap_currency ?? null,
-    p_fee_amount: body.fee_amount ?? null,
-    p_fee_currency: body.fee_currency ?? null,
-    p_manual_rate_input: body.manual_rate_input ?? null,
-    p_remark: body.remark ?? null,
-    p_sell_mappings: body.sell_mappings ?? []
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  if (!data) return new Response(JSON.stringify({
-    error: 'No data returned from update'
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true
-  }), {
-    status: 200
-  });
+  try {
+    const { data, error } = await supabase.rpc('update_trade_and_update_account', {
+      p_user_id: userId,
+      p_account_id: body.account_id ?? null,
+      p_id: body.id,
+      p_trade_date: body.trade_date,
+      p_trade_type: body.trade_type ?? null,
+      p_quantity: body.quantity,
+      p_price: body.price,
+      p_leverage: body.leverage ?? null,
+      p_swap_amount: body.swap_amount ?? null,
+      p_swap_currency: body.swap_currency ?? null,
+      p_fee_amount: body.fee_amount ?? null,
+      p_fee_currency: body.fee_currency ?? null,
+      p_manual_rate_input: body.manual_rate_input ?? null,
+      p_remark: body.remark ?? null,
+      p_sell_mappings: body.sell_mappings ?? []
+    });
+    if (error) return new Response(JSON.stringify({
+      error: error.message
+    }), {
+      status: 500
+    });
+
+    // Normalize RPC response shapes (array / single object)
+    let accountUpdatedAt = null;
+    if (Array.isArray(data) && data.length > 0) {
+      accountUpdatedAt = data[0]?.account_updated_at ?? data[0]?.updated_at ?? null;
+    } else if (data && typeof data === 'object') {
+      accountUpdatedAt = data.account_updated_at ?? data.updated_at ?? null;
+    } else {
+      // fallback: sometimes supabase RPC returns scalar
+      accountUpdatedAt = data ?? null;
+    }
+
+    if (!accountUpdatedAt) {
+      return new Response(JSON.stringify({
+        error: 'Failed to update trade record'
+      }), {
+        status: 500
+      });
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      account_updated_at: accountUpdatedAt
+    }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (err) {
+    console.error('handleUpdateAsset error:', err);
+    return new Response(JSON.stringify({
+        error: 'Failed to update trade record'
+      }), {
+        status: 500
+      });
+  }
 }
 
 // 删除资产交易记录
 async function handleDeleteAsset(userId, body) {
-  const { data, error } = await supabase.rpc('delete_asset_with_mappings', {
-    p_user_id: userId,
-    p_account_id: body.account_id ?? null,
-    p_id: body.id
-  });
-  if (error) return new Response(JSON.stringify({
-    error: error.message
-  }), {
-    status: 500
-  });
-  if (!data) return new Response(JSON.stringify({
-    error: 'No data returned from delete'
-  }), {
-    status: 500
-  });
-  return new Response(JSON.stringify({
-    success: true
-  }), {
-    status: 200
-  });
+  try {
+    const { data, error } = await supabase.rpc('delete_trade_and_update_account', {
+      p_user_id: userId,
+      p_account_id: body.account_id ?? null,
+      p_trade_id: body.id
+    });
+    if (error) return new Response(JSON.stringify({
+      error: error.message
+    }), {
+      status: 500
+    });
+
+    // Normalize RPC response shapes (array / single object)
+    let accountUpdatedAt = null;
+    if (Array.isArray(data) && data.length > 0) {
+      accountUpdatedAt = data[0]?.account_updated_at ?? data[0]?.updated_at ?? null;
+    } else if (data && typeof data === 'object') {
+      accountUpdatedAt = data.account_updated_at ?? data.updated_at ?? null;
+    } else {
+      // fallback: sometimes supabase RPC returns scalar
+      accountUpdatedAt = data ?? null;
+    }
+
+    if (!accountUpdatedAt) {
+      return new Response(JSON.stringify({
+        error: 'Failed to delete trade record'
+      }), {
+        status: 500
+      });
+    }
+    
+    return new Response(JSON.stringify({
+      success: true,
+      account_updated_at: accountUpdatedAt
+    }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (err) {
+    console.error('handleDeleteAsset error:', err);
+    return new Response(JSON.stringify({
+        error: 'Failed to delete trade record'
+      }), {
+        status: 500
+      });
+  }
 }
 
 // ------------------- 用户摘要 -------------------

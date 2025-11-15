@@ -1,22 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/categories.dart';
+import 'package:money_nest_app/pages/trade_history/trade_add_edit_page.dart';
+import 'package:money_nest_app/pages/trade_history/trade_history_tab_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
+import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/app_utils.dart';
-import 'trade_history_tab_page.dart'; // 导入 TradeRecord/TradeType
+import 'package:money_nest_app/util/global_store.dart';
+import 'package:provider/provider.dart';
 
-class TradeDetailPage extends StatelessWidget {
-  final TradeRecord record;
-  const TradeDetailPage({required this.record, super.key});
+class TradeDetailPage extends StatefulWidget {
+  final AppDatabase db;
+  final TradeRecordDisplay record;
+
+  const TradeDetailPage({required this.db, required this.record, super.key});
+
+  @override
+  TradeDetailPageState createState() => TradeDetailPageState();
+}
+
+class TradeDetailPageState extends State<TradeDetailPage> {
+  late TradeRecordDisplay recordData;
+
+  // 初始化处理
+  @override
+  void initState() {
+    super.initState();
+    setState(() {
+      recordData = widget.record;
+    });
+  }
 
   String get category => Categories.values
       .firstWhere(
-        (sub) => sub.code == record.assetType,
+        (sub) => sub.code == recordData.assetType,
         orElse: () => Categories.otherAsset,
       )
       .name;
 
   Color get typeColor {
-    switch (record.type) {
+    switch (recordData.action) {
       case ActionType.buy:
         return AppColors.appUpGreen;
       case ActionType.sell:
@@ -27,7 +50,7 @@ class TradeDetailPage extends StatelessWidget {
   }
 
   IconData get typeIcon {
-    switch (record.type) {
+    switch (recordData.action) {
       case ActionType.buy:
         return Icons.add_outlined;
       case ActionType.sell:
@@ -38,7 +61,7 @@ class TradeDetailPage extends StatelessWidget {
   }
 
   String get typeLabel {
-    switch (record.type) {
+    switch (recordData.action) {
       case ActionType.buy:
         return '買い';
       case ActionType.sell:
@@ -114,7 +137,7 @@ class TradeDetailPage extends StatelessWidget {
                         Icon(typeIcon, color: typeColor, size: 28),
                         const SizedBox(width: 8),
                         Text(
-                          '${record.code} - ${record.name}',
+                          '${recordData.stockInfo.ticker} - ${recordData.stockInfo.name}',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
@@ -138,7 +161,7 @@ class TradeDetailPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                record.date,
+                                recordData.tradeDate,
                                 style: const TextStyle(fontSize: 16),
                               ),
                             ],
@@ -181,7 +204,7 @@ class TradeDetailPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${record.quantity}株',
+                                '${recordData.quantity}株',
                                 style: const TextStyle(fontSize: 16),
                               ),
                             ],
@@ -201,8 +224,8 @@ class TradeDetailPage extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 AppUtils().formatMoney(
-                                  record.price,
-                                  record.currency,
+                                  recordData.price,
+                                  recordData.currency,
                                 ),
                                 style: const TextStyle(fontSize: 16),
                               ),
@@ -228,8 +251,8 @@ class TradeDetailPage extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 AppUtils().formatMoney(
-                                  record.quantity * record.price,
-                                  record.currency,
+                                  recordData.quantity * recordData.price,
+                                  recordData.currency,
                                 ),
                                 style: const TextStyle(fontSize: 16),
                               ),
@@ -250,8 +273,8 @@ class TradeDetailPage extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 AppUtils().formatMoney(
-                                  record.feeAmount,
-                                  record.feeCurrency,
+                                  recordData.feeAmount,
+                                  recordData.feeCurrency,
                                 ),
                                 style: const TextStyle(fontSize: 16),
                               ),
@@ -272,7 +295,7 @@ class TradeDetailPage extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          record.amount,
+                          recordData.amount,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
@@ -291,19 +314,35 @@ class TradeDetailPage extends StatelessWidget {
                       style: OutlinedButton.styleFrom(
                         backgroundColor: const Color(0xFFF5F6FA),
                         foregroundColor: Colors.black87,
-                        side: const BorderSide(color: Color(0xFFF5F6FA)),
+                        side: const BorderSide(color: AppColors.appGrey),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         // 跳转到编辑页面
-                        //Navigator.of(context).push(
-                        //  MaterialPageRoute(
-                        //    builder: (_) => TradeAddPage(record: record),
-                        //  ),
-                        //);
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TradeAddEditPage(
+                              record: recordData,
+                              db: widget.db,
+                              mode: 'edit',
+                              type: 'asset',
+                            ),
+                          ),
+                        );
+                        if (result != null && result is TradeRecordDisplay) {
+                          if (!context.mounted) return;
+                          await AppUtils().showSuccessHUD(
+                            context,
+                            message: '取引記録が更新されました',
+                          );
+                          setState(() {
+                            recordData = result;
+                          });
+                        }
                       },
                       child: const Text(
                         '編集',
@@ -339,7 +378,19 @@ class TradeDetailPage extends StatelessWidget {
                                 child: const Text('キャンセル'),
                               ),
                               TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
+                                onPressed: () async {
+                                  final dataSync = Provider.of<DataSyncService>(
+                                    context,
+                                    listen: false,
+                                  );
+                                  final success = await dataSync.deleteAsset(
+                                    userId: GlobalStore().userId!,
+                                    accountId: GlobalStore().accountId!,
+                                    tradeId: widget.record.id,
+                                  );
+                                  if (!ctx.mounted) return;
+                                  Navigator.pop(ctx, success);
+                                },
                                 child: const Text(
                                   '削除',
                                   style: TextStyle(color: Color(0xFFE53935)),
@@ -348,11 +399,29 @@ class TradeDetailPage extends StatelessWidget {
                             ],
                           ),
                         );
+
                         if (result == true) {
-                          // 删除后返回上一页
-                          Navigator.of(context).pop();
-                          // 可以加上删除逻辑
+                          // 刷新全局数据
+                          await AppUtils().calculateAndSavePortfolio(
+                            widget.db,
+                            GlobalStore().userId!,
+                            GlobalStore().accountId!,
+                          );
+                          if (!context.mounted) return;
+                          await AppUtils().showSuccessHUD(
+                            context,
+                            message: '取引記録が削除されました',
+                          );
+                        } else {
+                          if (!context.mounted) return;
+                          await AppUtils().showSuccessHUD(
+                            context,
+                            message: '取引記録の削除に失敗しました',
+                          );
                         }
+
+                        if (!context.mounted) return;
+                        Navigator.pop(context, result);
                       },
                       child: const Text(
                         '削除',

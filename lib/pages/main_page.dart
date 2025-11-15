@@ -13,7 +13,7 @@ import 'package:money_nest_app/pages/assets/assets_tab_page.dart';
 import 'package:money_nest_app/pages/asset_analysis/asset_analysis_tab_page.dart';
 import 'package:money_nest_app/pages/home/home_tab_page.dart';
 import 'package:money_nest_app/pages/setting/setting_tab_page.dart';
-import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
+import 'package:money_nest_app/pages/trade_history/trade_add_edit_page.dart';
 import 'package:money_nest_app/pages/trade_history/trade_history_tab_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 
@@ -79,7 +79,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
   void _showTradeAddPage() {
     setState(() {
-      _overlayPage = TradeAddPage(
+      _overlayPage = TradeAddEditPage(
         onClose: () {
           _headerAnimController.reverse();
           setState(() {
@@ -87,6 +87,33 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
           });
         },
         db: widget.db,
+        mode: 'add',
+        type: 'asset',
+        record: TradeRecordDisplay(
+          id: 0,
+          action: ActionType.buy,
+          tradeDate: '',
+          tradeType: '',
+          amount: '',
+          detail: '',
+          assetType: '',
+          price: 0.0,
+          quantity: 0.0,
+          currency: '',
+          feeAmount: 0.0,
+          feeCurrency: '',
+          remark: '',
+          stockInfo: Stock(
+            id: 0,
+            name: '',
+            nameUs: '',
+            exchange: 'JP',
+            logo: '',
+            currency: '',
+            country: '',
+            status: '',
+          ),
+        ),
       );
     });
     _headerAnimController.forward(from: 0);

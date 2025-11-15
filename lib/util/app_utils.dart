@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:drift/drift.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:money_nest_app/components/hud_message.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/currency.dart';
 import 'package:money_nest_app/services/data_sync_service.dart';
@@ -374,6 +376,27 @@ class AppUtils {
     // -------------------------------------------------
     GlobalStore().historicalPortfolio = historicalPortfolio;
     await GlobalStore().saveHistoricalPortfolioToPrefs();
+  }
+
+  // -------------------------------------------------
+  // 显示成功 HUD 提示
+  // -------------------------------------------------
+  Future<void> showSuccessHUD(
+    BuildContext context, {
+    String message = '保存しました',
+    Duration duration = const Duration(milliseconds: 1200),
+  }) async {
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (_) => HUDMessage(message: message, duration: duration),
+    );
+
+    overlay.insert(overlayEntry);
+
+    await Future.delayed(duration);
+    overlayEntry.remove();
   }
 
   // -------------------------------------------------

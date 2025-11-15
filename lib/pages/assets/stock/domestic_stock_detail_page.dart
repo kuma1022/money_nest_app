@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_tab.dart';
 import 'package:money_nest_app/db/app_database.dart';
-import 'package:money_nest_app/pages/trade_history/trade_add_page.dart';
+import 'package:money_nest_app/pages/trade_history/trade_add_edit_page.dart';
+import 'package:money_nest_app/pages/trade_history/trade_history_tab_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:intl/intl.dart';
@@ -320,7 +321,38 @@ class _DomesticStockDetailPageState extends State<DomesticStockDetailPage> {
               // 添加交易记录
               final result = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => TradeAddPage(db: widget.db)),
+                MaterialPageRoute(
+                  builder: (_) => TradeAddEditPage(
+                    db: widget.db,
+                    mode: 'add',
+                    record: TradeRecordDisplay(
+                      id: 0,
+                      action: ActionType.buy,
+                      tradeDate: '',
+                      tradeType: '',
+                      amount: '',
+                      detail: '',
+                      assetType: '',
+                      price: 0.0,
+                      quantity: 0.0,
+                      currency: '',
+                      feeAmount: 0.0,
+                      feeCurrency: '',
+                      remark: '',
+                      stockInfo: Stock(
+                        id: 0,
+                        name: '',
+                        nameUs: '',
+                        exchange: 'JP',
+                        logo: '',
+                        currency: '',
+                        country: '',
+                        status: '',
+                      ),
+                    ),
+                    type: 'asset',
+                  ),
+                ),
               );
 
               if (result == true) {

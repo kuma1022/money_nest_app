@@ -7,6 +7,7 @@ class CustomInputFormFieldBySuggestion extends StatelessWidget {
   final List<dynamic> suggestions;
   final bool loading;
   final String notFoundText;
+  final bool disabled;
   final void Function(String) onChanged;
   final void Function(bool) onFocusChange;
   final void Function(dynamic) onSuggestionTap;
@@ -22,6 +23,7 @@ class CustomInputFormFieldBySuggestion extends StatelessWidget {
     required this.onChanged,
     required this.onFocusChange,
     required this.onSuggestionTap,
+    this.disabled = false,
   });
 
   @override
@@ -47,6 +49,7 @@ class CustomInputFormFieldBySuggestion extends StatelessWidget {
               ),
             ),
             onChanged: onChanged,
+            enabled: !disabled,
           ),
           if (focusNode.hasFocus)
             Material(
