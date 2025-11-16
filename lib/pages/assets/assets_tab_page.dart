@@ -5,7 +5,6 @@ import 'package:money_nest_app/components/custom_line_chart.dart';
 import 'package:money_nest_app/components/custom_tab.dart';
 import 'package:money_nest_app/components/summary_category_card.dart';
 import 'package:money_nest_app/db/app_database.dart';
-import 'package:money_nest_app/models/categories.dart';
 import 'package:money_nest_app/pages/assets/crypto/crypto_detail_page.dart';
 import 'package:money_nest_app/pages/assets/fund/fund_detail_page.dart';
 import 'package:money_nest_app/pages/assets/stock/stock_detail_page.dart';
@@ -34,12 +33,11 @@ class AssetsTabPage extends StatefulWidget {
 }
 
 class AssetsTabPageState extends State<AssetsTabPage> {
-  bool isLoading = false;
+  bool _isInitializing = false;
   final RefreshController _refreshController = RefreshController();
   RefreshController get refreshController => _refreshController;
   final GlobalKey<CryptoDetailPageState> cryptoDetailPageKey =
       GlobalKey<CryptoDetailPageState>();
-  int _tabIndex = 0; // 0:概要 1:日本株 2:米国株 3:その他
   int _selectedTransitionIndex = 0; // 0:资产, 1:负債
   double totalAssets = 0;
   double totalCosts = 0;
@@ -67,7 +65,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
     if (!mounted) return;
 
     setState(() {
-      isLoading = true;
+      _isInitializing = true;
     });
 
     final dataSync = Provider.of<DataSyncService>(context, listen: false);
@@ -109,7 +107,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       }
       if (mounted) {
         setState(() {
-          isLoading = false;
+          _isInitializing = false;
         });
       }
     } catch (e) {
@@ -117,7 +115,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       // 发生错误时设置默认值
       if (mounted) {
         setState(() {
-          isLoading = false;
+          _isInitializing = false;
           totalAssets = 0;
           totalCosts = 0;
         });
@@ -263,6 +261,14 @@ class AssetsTabPageState extends State<AssetsTabPage> {
               ),
             ),
           ),
+          // 全屏加载层
+          if (_isInitializing)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withOpacity(0.6),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+            ),
         ],
       ),
     );
@@ -369,99 +375,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   }
 
   Widget createAssetList() {
-    final stockData = GlobalStore().totalAssetsAndCostsMap['stock'];
-    final cryptoData = GlobalStore().totalAssetsAndCostsMap['crypto'];
-
-    final double stockTotalValue = stockData?['totalAssets']?.toDouble() ?? 0.0;
-    final double stockTotalCost = stockData?['totalCosts']?.toDouble() ?? 0.0;
-    final double stockTotalProfit = stockTotalValue - stockTotalCost;
-    final double stockTotalNetRate = stockTotalCost == 0
-        ? 0.0
-        : (stockTotalProfit / stockTotalCost) * 100;
-
-    final double cryptoTotalValue =
-        cryptoData?['totalAssets']?.toDouble() ?? 0.0;
-    final double cryptoTotalCost = cryptoData?['totalCosts']?.toDouble() ?? 0.0;
-    final double cryptoTotalProfit = cryptoTotalValue - cryptoTotalCost;
-    final double cryptoTotalNetRate = cryptoTotalCost == 0
-        ? 0.0
-        : (cryptoTotalProfit / cryptoTotalCost) * 100;
-    double total = 0.0;
-
-    print('cryptoData: $cryptoData');
-
-    final List categories = Categories.values
-        .where((cat) => cat.type == 'asset')
-        .map((category) {
-          Color dotColor;
-          double value = 0.0;
-          double profit = 0.0;
-          double profitRate = 0.0;
-          switch (category.code) {
-            case 'stock':
-              dotColor = AppColors.appChartGreen;
-              value = stockTotalValue;
-              profit = stockTotalProfit;
-              profitRate = stockTotalNetRate;
-              break;
-            case 'fund':
-              dotColor = AppColors.appDarkGrey;
-              break;
-            case 'fx':
-              dotColor = AppColors.appChartBlue;
-              break;
-            case 'crypto':
-              dotColor = AppColors.appChartPurple;
-              value = cryptoTotalValue;
-              profit = cryptoTotalProfit;
-              profitRate = cryptoTotalNetRate;
-              break;
-            case 'metal':
-              dotColor = AppColors.appChartOrange;
-              break;
-            case 'other_asset':
-              dotColor = AppColors.appChartLightBlue;
-              break;
-            default:
-              dotColor = AppColors.appGrey;
-          }
-
-          total += value;
-
-          return {
-            'label': category.name,
-            'dotColor': dotColor,
-            'rateLabel': '0%',
-            'value': value,
-            'valueLabel': AppUtils().formatMoney(
-              value,
-              GlobalStore().selectedCurrencyCode ?? 'JPY',
-            ),
-            'profitText': AppUtils().formatMoney(
-              profit,
-              GlobalStore().selectedCurrencyCode ?? 'JPY',
-            ),
-            'profitRateText':
-                '(${AppUtils().formatNumberByTwoDigits(profitRate)}%)',
-            'profitColor': profit > 0
-                ? AppColors.appUpGreen
-                : profit < 0
-                ? AppColors.appDownRed
-                : AppColors.appGrey,
-            'subCategories': [],
-            'displayOrder': category.displayOrder,
-            'categoryCode': category.code, // 添加 category.code
-          };
-        })
-        .toList();
-
-    // 计算各个资产类别的占比
-    for (var category in categories) {
-      final rate = total == 0 ? 0.0 : (category['value'] / total) * 100;
-      category['rateLabel'] = '${AppUtils().formatNumberByTwoDigits(rate)}%';
-    }
-    // 按照 displayOrder 排序
-    categories.sort((a, b) => a['displayOrder'].compareTo(b['displayOrder']));
+    final List categories = AppUtils().getAssetsHoldingList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -504,7 +418,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
             label: category['label'],
             dotColor: category['dotColor'],
             rateLabel: category['rateLabel'],
-            value: category['valueLabel'],
+            value: category['value'],
             profitText: category['profitText'],
             profitRateText: category['profitRateText'],
             profitColor: category['profitColor'],
@@ -630,17 +544,12 @@ class AssetsTabPageState extends State<AssetsTabPage> {
               ),
             ),
           ),
-        if (isLoading)
-          const SizedBox(
-            height: 200,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-        if (!isLoading && datas.isNotEmpty)
+        if (datas.isNotEmpty)
           _TransitionAssetChart(
             datas: datas,
-            currencyCode: GlobalStore().selectedCurrencyCode ?? 'JPY',
+            currencyCode: GlobalStore().selectedCurrencyCode,
           ),
-        if (!isLoading && datas.isEmpty)
+        if (datas.isEmpty)
           const SizedBox(height: 200, child: Center(child: Text('データがありません'))),
       ],
     );

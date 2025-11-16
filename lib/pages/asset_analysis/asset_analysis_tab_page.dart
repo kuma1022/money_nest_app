@@ -1,117 +1,164 @@
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/total_asset_analysis_card.dart';
 import 'package:money_nest_app/pages/asset_analysis/ranking_list_page.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 
 class AssetAnalysisPage extends StatefulWidget {
+  final ValueChanged<double>? onScroll;
+  final ScrollController? scrollController;
+
+  const AssetAnalysisPage({super.key, this.onScroll, this.scrollController});
+
   @override
   State<AssetAnalysisPage> createState() => _AssetAnalysisPageState();
 }
 
 class _AssetAnalysisPageState extends State<AssetAnalysisPage> {
+  bool _isInitializing = false;
   int tabIndex = 0; // 0: 資産分析, 1: 損益分析
   int stockTab = 0; // 0: 日本株, 1: 米国株
   int calendarTab = 0; // 0: 月別, 1: 年別
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = const Color(0xFFF7F8FA);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Tab切换
-            Container(
-              margin: const EdgeInsets.only(top: 8, bottom: 16),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F6FA), // 浅灰底
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFE5E6EA)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => tabIndex = 0),
-                      child: Container(
-                        height: 30,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: tabIndex == 0
-                              ? Colors.white
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '資産分析',
-                          style: TextStyle(
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => tabIndex = 1),
-                      child: Container(
-                        height: 30,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: tabIndex == 1
-                              ? Colors.white
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '損益分析',
-                          style: TextStyle(
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.appBackground, AppColors.appBackground],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
-            if (tabIndex == 0) ...[
-              // Pie Chart & Asset Trend
-              // 资产总览卡片
-              TotalAssetAnalysisCard(isAssetAnalysisBtnDisplay: false),
-              const SizedBox(height: 18),
-              _AssetTrendCard(),
-              const SizedBox(height: 18),
-              _ProfitTrendCard(),
-              const SizedBox(height: 18),
-              _ProfitCalendarCard(
-                tab: calendarTab,
-                onTabChanged: (i) => setState(() => calendarTab = i),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPadding),
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                double pixels = 0.0;
+                if (notification is ScrollUpdateNotification ||
+                    notification is OverscrollNotification) {
+                  pixels = notification.metrics.pixels;
+                  if (pixels < 0) pixels = 0; // 只允许正数（如需overscroll缩放可不处理）
+                  widget.onScroll?.call(pixels);
+                }
+                return false;
+              },
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Tab切换
+                    Container(
+                      margin: const EdgeInsets.only(top: 8, bottom: 16),
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F6FA), // 浅灰底
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFE5E6EA)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => tabIndex = 0),
+                              child: Container(
+                                height: 30,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: tabIndex == 0
+                                      ? Colors.white
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '資産分析',
+                                  style: TextStyle(
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => tabIndex = 1),
+                              child: Container(
+                                height: 30,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: tabIndex == 1
+                                      ? Colors.white
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '損益分析',
+                                  style: TextStyle(
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (tabIndex == 0) ...[
+                      // Pie Chart & Asset Trend
+                      // 资产总览卡片
+                      TotalAssetAnalysisCard(isAssetAnalysisBtnDisplay: false),
+                      const SizedBox(height: 18),
+                      _AssetTrendCard(),
+                      const SizedBox(height: 18),
+                      _ProfitTrendCard(),
+                      const SizedBox(height: 18),
+                      _ProfitCalendarCard(
+                        tab: calendarTab,
+                        onTabChanged: (i) => setState(() => calendarTab = i),
+                      ),
+                    ] else ...[
+                      // 損益分析
+                      _StockTabSwitcher(
+                        selected: stockTab,
+                        onChanged: (i) => setState(() => stockTab = i),
+                      ),
+                      const SizedBox(height: 14),
+                      _ProfitSummaryCard(isJapan: stockTab == 0),
+                      const SizedBox(height: 18),
+                      _ProfitTop5Card(isJapan: stockTab == 0),
+                      const SizedBox(height: 18),
+                      _LossTop5Card(isJapan: stockTab == 0),
+                    ],
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
-            ] else ...[
-              // 損益分析
-              _StockTabSwitcher(
-                selected: stockTab,
-                onChanged: (i) => setState(() => stockTab = i),
+            ),
+          ),
+          // 全屏加载层
+          if (_isInitializing)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withOpacity(0.6),
+                child: const Center(child: CircularProgressIndicator()),
               ),
-              const SizedBox(height: 14),
-              _ProfitSummaryCard(isJapan: stockTab == 0),
-              const SizedBox(height: 18),
-              _ProfitTop5Card(isJapan: stockTab == 0),
-              const SizedBox(height: 18),
-              _LossTop5Card(isJapan: stockTab == 0),
-            ],
-            const SizedBox(height: 32),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

@@ -1,33 +1,88 @@
 // カテゴリ（資産・負債共通）
 import 'dart:convert';
+import 'dart:ui';
+
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 
 enum Categories {
-  stock(id: 1, code: 'stock', name: '株式', type: 'asset', displayOrder: 1),
-  fund(id: 2, code: 'fund', name: '投資信託', type: 'asset', displayOrder: 2),
-  fx(id: 3, code: 'fx', name: 'FX（為替）', type: 'asset', displayOrder: 3),
-  crypto(id: 4, code: 'crypto', name: '暗号資産', type: 'asset', displayOrder: 4),
-  metal(id: 5, code: 'metal', name: '貴金属', type: 'asset', displayOrder: 5),
+  stock(
+    id: 1,
+    code: 'stock',
+    name: '株式',
+    type: 'asset',
+    displayOrder: 1,
+    dotColor: AppColors.appChartGreen,
+  ),
+  fund(
+    id: 2,
+    code: 'fund',
+    name: '投資信託',
+    type: 'asset',
+    displayOrder: 2,
+    dotColor: AppColors.appDarkGrey,
+  ),
+  fx(
+    id: 3,
+    code: 'fx',
+    name: 'FX（為替）',
+    type: 'asset',
+    displayOrder: 3,
+    dotColor: AppColors.appChartBlue,
+  ),
+  crypto(
+    id: 4,
+    code: 'crypto',
+    name: '暗号資産',
+    type: 'asset',
+    displayOrder: 4,
+    dotColor: AppColors.appChartPurple,
+  ),
+  metal(
+    id: 5,
+    code: 'metal',
+    name: '貴金属',
+    type: 'asset',
+    displayOrder: 5,
+    dotColor: AppColors.appChartOrange,
+  ),
   otherAsset(
     id: 6,
     code: 'other_asset',
     name: 'その他資産',
     type: 'asset',
     displayOrder: 6,
+    dotColor: AppColors.appChartLightBlue,
   ),
-  loan(id: 7, code: 'loan', name: 'ローン', type: 'liability', displayOrder: 7),
-  debt(id: 8, code: 'debt', name: '借金', type: 'liability', displayOrder: 8);
+  loan(
+    id: 7,
+    code: 'loan',
+    name: 'ローン',
+    type: 'liability',
+    displayOrder: 7,
+    dotColor: AppColors.appDarkGrey,
+  ),
+  debt(
+    id: 8,
+    code: 'debt',
+    name: '借金',
+    type: 'liability',
+    displayOrder: 8,
+    dotColor: AppColors.appDarkGrey,
+  );
 
   final int id;
   final String code;
   final String name;
   final String type;
   final int displayOrder;
+  final Color dotColor;
   const Categories({
     required this.id,
     required this.code,
     required this.name,
     required this.type,
     required this.displayOrder,
+    required this.dotColor,
   });
 }
 

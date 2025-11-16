@@ -71,8 +71,8 @@ class GlobalStore extends ChangeNotifier {
   Map<String, DateTime> cryptoLastSyncTime = {};
   // 虚拟货币交易所的余额和历史数据的缓存
   Map<String, Map<String, List<dynamic>>> cryptoBalanceDataCache = {};
-  // 最新的总资产和总成本，key 是 'stock' 或 'crypto'，value 是 {'totalAssets': num, 'totalCosts': num}
-  Map<String, Map<String, double>> totalAssetsAndCostsMap = {};
+  // 最新的总资产和总成本，key 是 'stock' 或 'crypto'，value 是 {'totalAssets': num, 'totalCosts': num, 'details': {}}
+  Map<String, dynamic> totalAssetsAndCostsMap = {};
 
   // -------------------------------------------------
   // 从 SharedPreferences 加载数据
@@ -138,20 +138,23 @@ class GlobalStore extends ChangeNotifier {
     final totalAssetsAndCostsMapJson = jsonDecode(
       prefs.getString('totalAssetsAndCostsMap') ?? '{}',
     );
-    totalAssetsAndCostsMap = {};
-    if (totalAssetsAndCostsMapJson is Map) {
-      totalAssetsAndCostsMapJson.forEach((key, value) {
-        if (key is String && value is Map) {
-          final Map<String, double> assetMap = {};
-          value.forEach((subKey, subValue) {
-            if (subKey is String && subValue is num) {
-              assetMap[subKey] = subValue.toDouble();
-            }
-          });
-          totalAssetsAndCostsMap[key] = assetMap;
+    totalAssetsAndCostsMap = totalAssetsAndCostsMapJson is Map
+        ? _parseMap(totalAssetsAndCostsMapJson)
+        : {};
+  }
+
+  Map<String, dynamic> _parseMap(Map<dynamic, dynamic> jsonMap) {
+    final result = <String, dynamic>{};
+    jsonMap.forEach((key, value) {
+      if (key is String) {
+        if (value is num) {
+          result[key] = value.toDouble();
+        } else if (value is Map) {
+          result[key] = _parseMap(value);
         }
-      });
-    }
+      }
+    });
+    return result;
   }
 
   // -------------------------------------------------
@@ -279,10 +282,39 @@ class GlobalStore extends ChangeNotifier {
   // -------------------------------------------------
   Future<void> saveTotalAssetsAndCostsMapToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setString(
-      'totalAssetsAndCostsMap',
-      jsonEncode(totalAssetsAndCostsMap),
-    );
+
+    // 统一转换数字类型
+    final normalizedMap = _normalizeMap(totalAssetsAndCostsMap);
+
+    final jsonString = jsonEncode(normalizedMap);
+
+    final success = await prefs.setString('totalAssetsAndCostsMap', jsonString);
+    if (!success) {
+      throw Exception('保存 totalAssetsAndCostsMap 到 SharedPreferences 失败');
+    }
+  }
+
+  /// 递归将 Map 中的数字转换为 double
+  Map<String, dynamic> _normalizeMap(Map<dynamic, dynamic> map) {
+    final result = <String, dynamic>{};
+    map.forEach((key, value) {
+      if (key is String) {
+        if (value is num) {
+          result[key] = value.toDouble();
+        } else if (value is Map) {
+          result[key] = _normalizeMap(value);
+        } else if (value is List) {
+          result[key] = value.map((e) {
+            if (e is num) return e.toDouble();
+            if (e is Map) return _normalizeMap(e);
+            return e;
+          }).toList();
+        } else {
+          result[key] = value;
+        }
+      }
+    });
+    return result;
   }
 
   // 清除用户ID

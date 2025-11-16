@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:money_nest_app/components/hud_dialog.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/models/categories.dart';
 import 'package:money_nest_app/pages/trade_history/trade_add_edit_page.dart';
@@ -21,6 +22,7 @@ class TradeDetailPage extends StatefulWidget {
 
 class TradeDetailPageState extends State<TradeDetailPage> {
   late TradeRecordDisplay recordData;
+  bool updated = false;
 
   // 初始化处理
   @override
@@ -85,7 +87,7 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(context, updated),
                   ),
                   const Text(
                     '戻る',
@@ -339,6 +341,7 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                             context,
                             message: '取引記録が更新されました',
                           );
+                          updated = true;
                           setState(() {
                             recordData = result;
                           });
@@ -366,15 +369,19 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                         elevation: 0,
                       ),
                       onPressed: () async {
+                        final dataSync = Provider.of<DataSyncService>(
+                          context,
+                          listen: false,
+                        );
                         // 弹窗确认
-                        final result = await showDialog<bool>(
+                        /*final result = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
                             title: const Text('削除確認'),
                             content: const Text('この取引記録を削除しますか？'),
                             actions: [
                               TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
+                                onPressed: () => Navigator.pop(ctx),
                                 child: const Text('キャンセル'),
                               ),
                               TextButton(
@@ -398,6 +405,40 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                               ),
                             ],
                           ),
+                        );*/
+                        final result = await HudDialog.show<bool>(
+                          context: context,
+                          title: '削除確認',
+                          content: const Text(
+                            'この取引記録を削除しますか？',
+                            textAlign: TextAlign.center,
+                          ),
+                          actions: [
+                            HudDialogButton<bool>(
+                              text: 'キャンセル',
+                              onPressed: () async {
+                                return null; // 点击返回 null
+                              },
+                            ),
+                            HudDialogButton<bool>(
+                              text: '削除',
+                              color: const Color(
+                                0xFFE53935,
+                              ), // 如果你想要红色才传，如果不要红色就不传
+                              onPressed: () async {
+                                final dataSync = Provider.of<DataSyncService>(
+                                  context,
+                                  listen: false,
+                                );
+                                final success = await dataSync.deleteAsset(
+                                  userId: GlobalStore().userId!,
+                                  accountId: GlobalStore().accountId!,
+                                  tradeId: widget.record.id,
+                                );
+                                return success; // 返回 success (true/false)
+                              },
+                            ),
+                          ],
                         );
 
                         if (result == true) {
@@ -407,21 +448,27 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                             GlobalStore().userId!,
                             GlobalStore().accountId!,
                           );
+                          // 刷新总资产和总成本
+                          await AppUtils().refreshTotalAssetsAndCosts(
+                            dataSync,
+                            forcedUpdate: true,
+                          );
                           if (!context.mounted) return;
                           await AppUtils().showSuccessHUD(
                             context,
                             message: '取引記録が削除されました',
                           );
-                        } else {
+                        } else if (result == false) {
                           if (!context.mounted) return;
                           await AppUtils().showSuccessHUD(
                             context,
                             message: '取引記録の削除に失敗しました',
                           );
                         }
-
-                        if (!context.mounted) return;
-                        Navigator.pop(context, result);
+                        if (result != null) {
+                          if (!context.mounted) return;
+                          Navigator.pop(context, result);
+                        }
                       },
                       child: const Text(
                         '削除',

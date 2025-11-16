@@ -37,6 +37,8 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       GlobalKey<HomeTabPageState>();
   final GlobalKey<AssetsTabPageState> assetsTabPageKey =
       GlobalKey<AssetsTabPageState>();
+  final GlobalKey<TradeHistoryPageState> tradeHistoryPageKey =
+      GlobalKey<TradeHistoryPageState>();
   double _scrollPixels = 0.0;
 
   late final List<Widget> _pages = [
@@ -70,10 +72,24 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       scrollController: ScrollController(),
     ),
     TradeHistoryPage(
-      onAddPressed: _showTradeAddPage, // 传递回调
       db: widget.db,
+      key: tradeHistoryPageKey,
+      onAddPressed: _showTradeAddPage,
+      onScroll: (pixels) {
+        setState(() {
+          _scrollPixels = pixels;
+        });
+      },
+      scrollController: ScrollController(),
     ),
-    AssetAnalysisPage(),
+    AssetAnalysisPage(
+      onScroll: (pixels) {
+        setState(() {
+          _scrollPixels = pixels;
+        });
+      },
+      scrollController: ScrollController(),
+    ),
     SettingsTabPage(db: widget.db),
   ];
 
@@ -401,6 +417,10 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                             WidgetsBinding.instance.addPostFrameCallback((_) {
                               assetsTabPageKey.currentState?.onRefresh();
                             });
+                          } else if (index == 2) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              tradeHistoryPageKey.currentState?.onRefresh();
+                            });
                           }
                         },
                         isDark: isDark,
@@ -458,172 +478,6 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
             },
             isDark: isDark,
           ),*/
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSafeLiquidGlass({
-    required Widget child,
-    required BorderRadius borderRadius,
-  }) {
-    // 检查是否支持 shader filter
-    if (!ImageFilter.isShaderFilterSupported) {
-      //print('Shader filters not supported, falling back to BackdropFilter');
-      return ClipRRect(
-        borderRadius: borderRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: borderRadius,
-              border: Border.all(
-                color: Colors.white.withOpacity(0.3),
-                width: 1.0,
-              ),
-            ),
-            child: child,
-          ),
-        ),
-      );
-    }
-
-    return LiquidGlass(
-      shape: LiquidRoundedSuperellipse(borderRadius: borderRadius.topLeft),
-      child: child,
-    );
-  }
-
-  Widget _buildGlassEffect({
-    required Widget child,
-    required BorderRadius borderRadius,
-    bool isDark = false,
-  }) {
-    if (!Platform.isIOS) {
-      // Android 测试：简化版，只在 FakeGlass 基础上增加轻微的边框增强
-      return LiquidStretch(
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: borderRadius,
-            // 只加一个轻微的外边框
-            border: Border.all(
-              color: Colors.white.withOpacity(0.4),
-              width: 1.0,
-            ),
-            // 轻微的外阴影
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                spreadRadius: 1,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: borderRadius,
-            child: FakeGlass(
-              shape: LiquidRoundedSuperellipse(
-                borderRadius: borderRadius.topLeft,
-              ),
-              child: child,
-            ),
-          ),
-        ),
-      );
-    } else {
-      // iOS 使用 LiquidGlass
-      return LiquidGlass(
-        shape: LiquidRoundedSuperellipse(borderRadius: borderRadius.topLeft),
-        child: child,
-      );
-    }
-  }
-
-  Widget _buildBottomBar(BuildContext context) {
-    // 保证在 iOS 的 home indicator 之上显示
-    // 外层加一个半透明容器（或调试色），确保在 iOS 上会被绘制
-    return SafeArea(
-      top: false,
-      bottom: true,
-      child: Padding(
-        padding: EdgeInsets.only(left: 12, right: 12, bottom: 6),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            // debug: 用明显色确认位置（发布时可调整为更透明或移除）
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white.withOpacity(0.04)
-                : Colors.white.withOpacity(0.85),
-            // 强制 icon/text 颜色，排查“可点击但不可见”问题
-            child: Builder(
-              builder: (ctx) {
-                final bool isDark = Theme.of(ctx).brightness == Brightness.dark;
-                return IconTheme(
-                  data: IconThemeData(
-                    color: isDark ? Colors.white : Colors.black87,
-                    size: 24,
-                  ),
-                  child: DefaultTextStyle(
-                    style: TextStyle(
-                      color: isDark ? Colors.white : Colors.black87,
-                      fontSize: 12,
-                    ),
-                    child: LiquidGlassBottomBar(
-                      extraButton: LiquidGlassBottomBarExtraButton(
-                        icon: CupertinoIcons.add_circled,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            CupertinoPageRoute(
-                              builder: (context) => const CupertinoPageScaffold(
-                                child: SizedBox(),
-                                navigationBar: CupertinoNavigationBar.large(),
-                              ),
-                            ),
-                          );
-                        },
-                        label: '',
-                      ),
-                      tabs: [
-                        LiquidGlassBottomBarTab(
-                          label: AppLocalizations.of(context)!.mainPageTopTitle,
-                          icon: CupertinoIcons.home,
-                        ),
-                        const LiquidGlassBottomBarTab(
-                          label: '資産',
-                          icon: CupertinoIcons.chart_pie,
-                        ),
-                        LiquidGlassBottomBarTab(
-                          label: AppLocalizations.of(
-                            context,
-                          )!.mainPageTradeTitle,
-                          icon: CupertinoIcons.list_bullet,
-                        ),
-                        const LiquidGlassBottomBarTab(
-                          label: '資産分析',
-                          icon: CupertinoIcons.add,
-                        ),
-                        LiquidGlassBottomBarTab(
-                          label: AppLocalizations.of(
-                            context,
-                          )!.mainPageMoreTitle,
-                          icon: CupertinoIcons.settings,
-                        ),
-                      ],
-                      selectedIndex: _currentIndex,
-                      onTabSelected: (index) {
-                        setState(() {
-                          _currentIndex = index.clamp(0, _pages.length - 1);
-                          _overlayPage = null;
-                        });
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
         ),
       ),
     );

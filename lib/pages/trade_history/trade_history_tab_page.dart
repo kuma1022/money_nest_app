@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/components/card_section.dart';
+import 'package:money_nest_app/components/floating_button.dart';
 import 'package:money_nest_app/pages/trade_history/trade_add_edit_page.dart';
 import 'package:money_nest_app/pages/trade_history/trade_detail_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
@@ -8,256 +9,52 @@ import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
 import 'package:intl/intl.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class TradeHistoryPage extends StatefulWidget {
   final VoidCallback? onAddPressed;
+  final ValueChanged<double>? onScroll;
+  final ScrollController? scrollController;
   final AppDatabase db;
 
-  const TradeHistoryPage({super.key, this.onAddPressed, required this.db});
+  const TradeHistoryPage({
+    super.key,
+    this.onAddPressed,
+    this.onScroll,
+    this.scrollController,
+    required this.db,
+  });
 
   @override
-  State<TradeHistoryPage> createState() => _TradeHistoryPageState();
+  State<TradeHistoryPage> createState() => TradeHistoryPageState();
 }
 
-class _TradeHistoryPageState extends State<TradeHistoryPage> {
-  final GlobalKey<_TradeRecordListState> _listKey =
-      GlobalKey<_TradeRecordListState>();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.appBackground,
-      body: SafeArea(
-        top: true,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 顶部栏
-              Row(
-                children: [
-                  const Text(
-                    '取引履歴',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const Spacer(),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1976D2),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: () async {
-                      //widget.onAddPressed, // 用回调
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TradeAddEditPage(
-                            db: widget.db,
-                            mode: 'add',
-                            type: 'asset',
-                            record: TradeRecordDisplay(
-                              id: 0,
-                              action: ActionType.buy,
-                              tradeDate: '',
-                              tradeType: '',
-                              amount: '',
-                              detail: '',
-                              assetType: '',
-                              price: 0.0,
-                              quantity: 0.0,
-                              currency: '',
-                              feeAmount: 0.0,
-                              feeCurrency: '',
-                              remark: '',
-                              stockInfo: Stock(
-                                id: 0,
-                                name: '',
-                                nameUs: '',
-                                exchange: 'JP',
-                                logo: '',
-                                currency: '',
-                                country: '',
-                                status: '',
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-
-                      if (result == true) {
-                        // 刷新数据
-                        // 调用子组件的刷新方法
-                        _listKey.currentState?._fetchRecords();
-                      }
-                    },
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('追加'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // 筛选卡片
-              CardSection(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(
-                          Icons.filter_alt_outlined,
-                          size: 18,
-                          color: Colors.black54,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          'フィルター',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // 搜索框
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.appBackground,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: const TextField(
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          hintText: '銘柄名・コードで検索',
-                          hintStyle: TextStyle(color: Colors.grey),
-                          icon: Icon(Icons.search, color: Colors.grey),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // 下拉筛选
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _FilterDropdown(
-                            items: const ['all', '買い', '売り', '配当'],
-                            value: 'all',
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _FilterDropdown(
-                            items: const [
-                              'all',
-                              '株式',
-                              'FX（為替）',
-                              '暗号資産',
-                              '貴金属',
-                              'その他資産',
-                            ],
-                            value: 'all',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    // 日期筛选
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today,
-                          size: 18,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '年 / 月 / 日',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // 交易记录列表
-              _TradeRecordList(db: widget.db, key: _listKey),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// 筛选下拉
-class _FilterDropdown extends StatelessWidget {
-  final List<String> items;
-  final String value;
-  const _FilterDropdown({required this.items, required this.value});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.appBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: DropdownButton<String>(
-        value: value,
-        underline: const SizedBox(),
-        isExpanded: true,
-        icon: const Icon(Icons.expand_more),
-        items: items
-            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-            .toList(),
-        onChanged: (_) {},
-      ),
-    );
-  }
-}
-
-// 交易记录列表
-class _TradeRecordList extends StatefulWidget {
-  final AppDatabase db;
-
-  const _TradeRecordList({required this.db, super.key});
-
-  @override
-  State<_TradeRecordList> createState() => _TradeRecordListState();
-}
-
-class _TradeRecordListState extends State<_TradeRecordList> {
+class TradeHistoryPageState extends State<TradeHistoryPage> {
+  final RefreshController _refreshController = RefreshController();
+  RefreshController get refreshController => _refreshController;
   List<TradeRecordDisplay> records = [];
-  bool loading = true;
+  bool _isInitializing = false; // 添加初始化状态
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchRecords();
+  // 异步初始化数据的方法
+  Future<void> _initializeData() async {
+    await _fetchRecords();
   }
 
   Future<void> _fetchRecords() async {
-    print('Fetching trade records...');
-    final db = AppDatabase();
+    print('TradeHistoryTabPage: _fetchRecords()');
+
+    setState(() {
+      _isInitializing = true;
+    });
+
+    final db = widget.db;
     final userId = GlobalStore().userId;
     final accountId = GlobalStore().accountId;
 
     if (userId == null || accountId == null) {
       setState(() {
         records = [];
-        loading = false;
+        _isInitializing = false;
       });
       return;
     }
@@ -335,26 +132,222 @@ class _TradeRecordListState extends State<_TradeRecordList> {
 
     setState(() {
       records = result;
-      loading = false;
+      _isInitializing = false;
     });
+  }
+
+  // 手动刷新数据
+  Future<void> onRefresh() async {
+    await _initializeData();
+    _refreshController.refreshCompleted();
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (loading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 32),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (records.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 32),
-        child: Center(child: Text('データがありません')),
-      );
-    }
-    return Column(
-      children: records.map((r) => buildTradeRecordCard(r)).toList(),
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.appBackground, AppColors.appBackground],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPadding),
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                double pixels = 0.0;
+                if (notification is ScrollUpdateNotification ||
+                    notification is OverscrollNotification) {
+                  pixels = notification.metrics.pixels;
+                  if (pixels < 0) pixels = 0; // 只允许正数（如需overscroll缩放可不处理）
+                  widget.onScroll?.call(pixels);
+                }
+                return false;
+              },
+              child: SingleChildScrollView(
+                controller: widget.scrollController,
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 16),
+                    // 筛选卡片
+                    CardSection(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(
+                                Icons.filter_alt_outlined,
+                                size: 18,
+                                color: Colors.black54,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'フィルター',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // 搜索框
+                          Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.appBackground,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: const TextField(
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: '銘柄名・コードで検索',
+                                hintStyle: TextStyle(color: Colors.grey),
+                                icon: Icon(Icons.search, color: Colors.grey),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // 下拉筛选
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _FilterDropdown(
+                                  items: const ['all', '買い', '売り', '配当'],
+                                  value: 'all',
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _FilterDropdown(
+                                  items: const [
+                                    'all',
+                                    '株式',
+                                    'FX（為替）',
+                                    '暗号資産',
+                                    '貴金属',
+                                    'その他資産',
+                                  ],
+                                  value: 'all',
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          // 日期筛选
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.calendar_today,
+                                size: 18,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '年 / 月 / 日',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 交易记录列表
+                    if (records.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child: Center(child: Text('データがありません')),
+                      ),
+                    if (records.isNotEmpty)
+                      Column(
+                        children: records
+                            .map((r) => buildTradeRecordCard(r))
+                            .toList(),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // 全屏加载层
+          if (_isInitializing)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withOpacity(0.6),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+            ),
+          // 浮动追加按钮
+          Positioned(
+            right: 16,
+            bottom: 16 + bottomPadding + 70,
+            child: FloatingButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TradeAddEditPage(
+                      db: widget.db,
+                      mode: 'add',
+                      type: 'asset',
+                      record: TradeRecordDisplay(
+                        id: 0,
+                        action: ActionType.buy,
+                        tradeDate: '',
+                        tradeType: '',
+                        amount: '',
+                        detail: '',
+                        assetType: '',
+                        price: 0.0,
+                        quantity: 0.0,
+                        currency: '',
+                        feeAmount: 0.0,
+                        feeCurrency: '',
+                        remark: '',
+                        stockInfo: Stock(
+                          id: 0,
+                          name: '',
+                          nameUs: '',
+                          exchange: 'JP',
+                          logo: '',
+                          currency: '',
+                          country: '',
+                          status: '',
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+
+                if (result == true) {
+                  await onRefresh();
+                }
+              },
+              icon: Icon(Icons.add, color: Colors.white, size: 28),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -384,12 +377,10 @@ class _TradeRecordListState extends State<_TradeRecordList> {
             builder: (_) => TradeDetailPage(db: widget.db, record: record),
           ),
         );
-        print('Returned from TradeDetailPage with result: $result');
 
         if (result == true) {
-          // 刷新数据
-          // 调用子组件的刷新方法
-          _fetchRecords();
+          // 刷新数据 调用刷新方法
+          await onRefresh();
         }
       },
       child: Container(
@@ -498,6 +489,33 @@ class _TradeRecordListState extends State<_TradeRecordList> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// 筛选下拉
+class _FilterDropdown extends StatelessWidget {
+  final List<String> items;
+  final String value;
+  const _FilterDropdown({required this.items, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.appBackground,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButton<String>(
+        value: value,
+        underline: const SizedBox(),
+        isExpanded: true,
+        icon: const Icon(Icons.expand_more),
+        items: items
+            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+            .toList(),
+        onChanged: (_) {},
       ),
     );
   }

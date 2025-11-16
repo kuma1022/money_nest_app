@@ -1964,7 +1964,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
           }
         }
         // 计算并保存资产总额历史到本地
-        await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs(widget.db);
+        //await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs(widget.db);
       } else {
         // 負債tab保存逻辑
         // ...
@@ -1984,7 +1984,11 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
           GlobalStore().userId!,
           GlobalStore().accountId!,
         );
-        //await _showSuccessDialog();
+        // 刷新总资产和总成本
+        await AppUtils().refreshTotalAssetsAndCosts(
+          dataSync,
+          forcedUpdate: true,
+        );
 
         if (!mounted) return; // 页面可能已被销毁，检查 mounted
         await AppUtils().showSuccessHUD(context, message: '保存しました');

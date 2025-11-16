@@ -963,18 +963,18 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
   Future<void> _performCompleteInitialization() async {
     try {
       final dataSync = Provider.of<DataSyncService>(context, listen: false);
-      // 初始化数据库和基础数据
+      // 初始化应用数据（login）
       await AppUtils().initializeAppData(dataSync, true);
-
-      // Step 3: 如果有其他需要初始化的数据，在这里添加
-
-      // 可以添加更多初始化步骤，比如：
-      // - 同步云端数据
-      // - 加载用户设置
-      // - 初始化通知设置等
-
-      // 示例：如果需要从服务器同步数据
-      // await _syncUserDataFromServer();
+      // 刷新股票价格
+      //await dataSync.getStockPricesByYHFinanceAPI();
+      // 刷新全局数据
+      await AppUtils().calculateAndSavePortfolio(
+        widget.db,
+        GlobalStore().userId!,
+        GlobalStore().accountId!,
+      );
+      // 刷新总资产和总成本
+      //await AppUtils().refreshTotalAssetsAndCosts(dataSync, forcedUpdate: true);
     } catch (e) {
       print('Error in complete initialization: $e');
       // 重新抛出异常以便上层处理

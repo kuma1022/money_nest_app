@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:money_nest_app/components/hud_message.dart';
 import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/models/categories.dart';
 import 'package:money_nest_app/models/currency.dart';
+import 'package:money_nest_app/models/subcategories.dart';
+import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/services/bitflyer_api.dart';
 import 'package:money_nest_app/util/global_store.dart';
@@ -40,6 +43,7 @@ class AppUtils {
       if (!isLogin) {
         // 冷启动或前台启动时，校验是否需要同步数据
         needSync = await dataSync.checkIfNeedSyncUserData(userId, accountId);
+        print('needSync: $needSync');
       }
 
       if (isLogin || needSync) {
@@ -126,7 +130,10 @@ class AppUtils {
   // 刷新总资产和总成本
   // (切换页面时/手动触发)
   // -------------------------------------------------
-  Future<void> refreshTotalAssetsAndCosts(DataSyncService dataSync) async {
+  Future<void> refreshTotalAssetsAndCosts(
+    DataSyncService dataSync, {
+    bool forcedUpdate = false,
+  }) async {
     try {
       print('开始刷新总资产和总成本...');
 
@@ -158,6 +165,7 @@ class AppUtils {
       final assetsAndCostsMap = await _getTotalAssetsAndCostsValue(
         dataSync,
         dbCryptoInfos,
+        forcedUpdate: forcedUpdate,
       );
 
       GlobalStore().totalAssetsAndCostsMap = assetsAndCostsMap;
@@ -433,6 +441,16 @@ class AppUtils {
   }
 
   // -------------------------------------------------
+  // 将货币金额转为数值
+  // -------------------------------------------------
+  double parseMoneySimple(String moneyStr) {
+    if (moneyStr.isEmpty) return 0.0;
+    // 去掉非数字、非小数点、非负号字符
+    final cleaned = moneyStr.replaceAll(RegExp(r'[^\d.-]'), '');
+    return double.tryParse(cleaned) ?? 0.0;
+  }
+
+  // -------------------------------------------------
   // 判断两个日期是否为同一天
   // -------------------------------------------------
   bool isSameDate(DateTime date1, DateTime date2) {
@@ -446,20 +464,25 @@ class AppUtils {
   // -------------------------------------------------
   // 计算最新的总资产和总成本
   // -------------------------------------------------
-  Future<Map<String, Map<String, double>>> _getTotalAssetsAndCostsValue(
+  Future<Map<String, dynamic>> _getTotalAssetsAndCostsValue(
     DataSyncService dataSync,
-    List<CryptoInfoData> dbCryptoInfos,
-  ) async {
+    List<CryptoInfoData> dbCryptoInfos, {
+    bool forcedUpdate = false,
+  }) async {
     print('=== getTotalAssetsAndCostsValue 开始 ===');
 
     double stockTotalAssets = 0.0;
     double stockTotalCosts = 0.0;
+    double jpStockTotalAssets = 0.0;
+    double jpStockTotalCosts = 0.0;
+    double usStockTotalAssets = 0.0;
+    double usStockTotalCosts = 0.0;
     final selectedCurrencyCode = GlobalStore().selectedCurrencyCode;
 
     // 获取最新股票价格
     try {
       final updated = await dataSync.getStockPricesByYHFinanceAPI();
-      if (!updated) {
+      if (!updated && !forcedUpdate) {
         print('获取股票价格失败或无更新，返回缓存的总资产和总成本');
         return GlobalStore().totalAssetsAndCostsMap;
       }
@@ -490,9 +513,19 @@ class AppUtils {
               ? '$code.T'
               : code] ??
           buyPrice;
+      final asset = qty * currentPrice * rate;
+      final cost = qty * buyPrice * rate + fee * feeRate;
 
-      stockTotalAssets += qty * currentPrice * rate;
-      stockTotalCosts += qty * buyPrice * rate + fee * feeRate;
+      stockTotalAssets += asset;
+      stockTotalCosts += cost;
+      if (exchange == 'JP') {
+        jpStockTotalAssets += asset;
+        jpStockTotalCosts += cost;
+      }
+      if (exchange == 'US') {
+        usStockTotalAssets += asset;
+        usStockTotalCosts += cost;
+      }
     }
 
     // 计算加密资产总资产和总成本
@@ -581,10 +614,30 @@ class AppUtils {
     }
 
     final result = {
-      'stock': {'totalAssets': stockTotalAssets, 'totalCosts': stockTotalCosts},
+      'stock': {
+        'totalAssets': stockTotalAssets,
+        'totalCosts': stockTotalCosts,
+        'details': {
+          'jp_stock': {
+            'totalAssets': jpStockTotalAssets,
+            'totalCosts': jpStockTotalCosts,
+          },
+          'us_stock': {
+            'totalAssets': usStockTotalAssets,
+            'totalCosts': usStockTotalCosts,
+          },
+          'other_stock': {'totalAssets': 0.0, 'totalCosts': 0.0},
+        },
+      },
       'crypto': {
         'totalAssets': cryptoTotalAssets,
         'totalCosts': cryptoTotalCosts,
+        'details': {
+          'crypto': {
+            'totalAssets': cryptoTotalAssets,
+            'totalCosts': cryptoTotalAssets,
+          },
+        },
       },
     };
 
@@ -745,5 +798,103 @@ class AppUtils {
     rates['JPYUSD'] = 1 / rates['USDJPY']!;
 
     return rates;
+  }
+
+  // -------------------------------------------------
+  // 取得各类资产的当前持仓List
+  // -------------------------------------------------
+  List<dynamic> getAssetsHoldingList() {
+    double total = 0.0;
+
+    final List
+    categories = Categories.values.where((cat) => cat.type == 'asset').map((
+      category,
+    ) {
+      final data = GlobalStore().totalAssetsAndCostsMap[category.code];
+      final details = data?['details'] ?? {};
+      final double value = data?['totalAssets']?.toDouble() ?? 0.0;
+      final double cost = data?['totalCosts']?.toDouble() ?? 0.0;
+      final double profit = value - cost;
+      final double profitRate = cost == 0 ? 0.0 : (profit / cost) * 100;
+
+      total += value;
+
+      return {
+        'label': category.name,
+        'dotColor': category.dotColor,
+        'rateLabel': '0%',
+        'value': AppUtils().formatMoney(
+          value,
+          GlobalStore().selectedCurrencyCode,
+        ),
+        'profitText': AppUtils().formatMoney(
+          profit,
+          GlobalStore().selectedCurrencyCode,
+        ),
+        'profitRateText':
+            '(${AppUtils().formatNumberByTwoDigits(profitRate)}%)',
+        'profitColor': profit > 0
+            ? AppColors.appUpGreen
+            : profit < 0
+            ? AppColors.appDownRed
+            : AppColors.appGrey,
+        'subCategories': Subcategories.values
+            .where((sub) => sub.categoryId == category.id)
+            .map((subcategory) {
+              final subData = details[subcategory.code];
+              final double subValue =
+                  subData?['totalAssets']?.toDouble() ?? 0.0;
+              final double subCost = subData?['totalCosts']?.toDouble() ?? 0.0;
+              final double subProfit = subValue - subCost;
+              final double subProfitRate = subCost == 0
+                  ? 0.0
+                  : (subProfit / subCost) * 100;
+              final subRate = value == 0 ? 0.0 : (subValue / value) * 100;
+
+              return {
+                'label': subcategory.name,
+                'rateLabel': '${AppUtils().formatNumberByTwoDigits(subRate)}%',
+                'value': AppUtils().formatMoney(
+                  subValue,
+                  GlobalStore().selectedCurrencyCode,
+                ),
+                'profitText': AppUtils().formatMoney(
+                  subProfit,
+                  GlobalStore().selectedCurrencyCode,
+                ),
+                'profitRateText':
+                    '(${AppUtils().formatNumberByTwoDigits(subProfitRate)}%)',
+                'profitColor': subProfit > 0
+                    ? AppColors.appUpGreen
+                    : subProfit < 0
+                    ? AppColors.appDownRed
+                    : AppColors.appGrey,
+              };
+            })
+            .toList(),
+        'displayOrder': category.displayOrder,
+        'categoryCode': category.code, // 添加 category.code
+      };
+    }).toList();
+
+    // 计算各个资产类别的占比
+    for (var category in categories) {
+      final v = parseMoneySimple(category['value']);
+      final rate = total == 0 ? 0.0 : (v / total) * 100;
+      category['rateLabel'] = '${AppUtils().formatNumberByTwoDigits(rate)}%';
+    }
+
+    // 按照 displayOrder 排序，并且总市值为0的排到后面
+    categories.sort((a, b) {
+      bool aPositive = parseMoneySimple(a['value']) > 0;
+      bool bPositive = parseMoneySimple(b['value']) > 0;
+
+      if (aPositive && !bPositive) return -1; // a 在前
+      if (!aPositive && bPositive) return 1; // b 在前
+
+      return a['displayOrder'].compareTo(b['displayOrder']);
+    });
+
+    return categories;
   }
 }

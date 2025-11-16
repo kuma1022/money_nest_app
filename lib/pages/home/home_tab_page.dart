@@ -42,6 +42,7 @@ class HomeTabPageState extends State<HomeTabPage> {
   bool showAddTransaction = false;
   bool _isInitializing = true; // 添加初始化状态
   bool _hasData = false; // 数据是否已加载
+  List assetCategories = [];
 
   // 动画用 sections
   List<Map<String, dynamic>> _pieSections = [];
@@ -63,9 +64,6 @@ class HomeTabPageState extends State<HomeTabPage> {
 
     final dataSync = Provider.of<DataSyncService>(context, listen: false);
     try {
-      // 等待数据库完全初始化
-      //await _waitForDatabaseReady();
-
       // 刷新总资产和总成本
       await AppUtils().refreshTotalAssetsAndCosts(dataSync);
 
@@ -86,6 +84,9 @@ class HomeTabPageState extends State<HomeTabPage> {
                 ((GlobalStore().totalAssetsAndCostsMap[key]?['totalCosts'] ?? 0)
                     .toDouble()),
           );
+
+          // 取得各类资产的当前持仓List
+          assetCategories = AppUtils().getAssetsHoldingList();
           print('计算得到总资产: $totalAssets, 总成本: $totalCosts');
         });
       }
@@ -112,31 +113,6 @@ class HomeTabPageState extends State<HomeTabPage> {
     }
   }
 
-  // 等待数据库准备就绪
-  Future<void> _waitForDatabaseReady() async {
-    int attempts = 0;
-    const maxAttempts = 10;
-    const delay = Duration(milliseconds: 500);
-
-    while (attempts < maxAttempts) {
-      try {
-        // 尝试简单的数据库查询来验证数据库是否可用
-        await widget.db.select(widget.db.cryptoInfo).get();
-        print('Database is ready after $attempts attempts');
-        return;
-      } catch (e) {
-        print('Database not ready, attempt ${attempts + 1}: $e');
-        attempts++;
-        if (attempts >= maxAttempts) {
-          throw Exception(
-            'Database initialization timeout after $maxAttempts attempts',
-          );
-        }
-        await Future.delayed(delay);
-      }
-    }
-  }
-
   // 手动刷新数据
   Future<void> onRefresh() async {
     await _initializeData();
@@ -147,33 +123,28 @@ class HomeTabPageState extends State<HomeTabPage> {
   void _animatePieChart() {
     if (mounted) {
       setState(() {
-        _pieSections = [
-          {
-            'color': AppColors.appChartGreen,
-            'value': 11.9,
-            'title': '株式 11.9%',
-          },
-          {
-            'color': AppColors.appChartBlue,
-            'value': 0.7,
-            'title': 'FX（為替） 0.7%',
-          },
-          {
-            'color': AppColors.appChartPurple,
-            'value': 1.1,
-            'title': '暗号資産 1.1%',
-          },
-          {
-            'color': AppColors.appChartOrange,
-            'value': 0.7,
-            'title': '貴金属 0.7%',
-          },
-          {
-            'color': AppColors.appChartLightBlue,
-            'value': 85.6,
-            'title': 'その他 85.6%',
-          },
-        ];
+        _pieSections = assetCategories
+            .where(
+              (cat) =>
+                  cat['dotColor'] != null &&
+                  cat['label'] != null &&
+                  cat['rateLabel'] != null &&
+                  (cat['value'] != null &&
+                      AppUtils().parseMoneySimple(cat['value']) > 0),
+            )
+            .map((cat) {
+              final color = cat['dotColor'] as Color;
+              final label = cat['label'] as String;
+              final rateLabel = cat['rateLabel'] as String;
+              final rate = double.parse(rateLabel.replaceAll('%', ''));
+
+              return {
+                'color': color,
+                'value': rate,
+                'title': '$label $rateLabel',
+              };
+            })
+            .toList();
       });
     }
   }
@@ -248,27 +219,17 @@ class HomeTabPageState extends State<HomeTabPage> {
                                     ),
                                   ),
                                   const SizedBox(height: 6),
-                                  // 显示加载状态或数据
-                                  _isInitializing
-                                      ? const SizedBox(
-                                          height: 40,
-                                          child: Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                        )
-                                      : Text(
-                                          AppUtils().formatMoney(
-                                            totalAssets.toDouble(),
-                                            GlobalStore()
-                                                    .selectedCurrencyCode ??
-                                                'JPY',
-                                          ),
-                                          style: const TextStyle(
-                                            fontSize: AppTexts.fontSizeHuge,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1,
-                                          ),
-                                        ),
+                                  Text(
+                                    AppUtils().formatMoney(
+                                      totalAssets.toDouble(),
+                                      GlobalStore().selectedCurrencyCode,
+                                    ),
+                                    style: const TextStyle(
+                                      fontSize: AppTexts.fontSizeHuge,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
                                   const SizedBox(height: 6),
                                   // 最近同步时间显示
                                   Text(
@@ -400,41 +361,43 @@ class HomeTabPageState extends State<HomeTabPage> {
                           ),
                         ),
                       ),
-                      GlassTab(
-                        borderRadius: 24,
-                        margin: const EdgeInsets.only(
-                          left: 0,
-                          right: 0,
-                          bottom: 18,
-                        ),
-                        tabs: const ['資産', '負債'],
-                        // 监听tab切换
-                        onTabChanged: (index) {
-                          _tabIndex = index;
-                          if (index == assetTabIndex) {
-                            _animatePieChart();
-                          } else {
-                            if (mounted) {
-                              setState(() {
-                                _pieSections = [];
-                              });
-                            }
-                          }
-                        },
-                        tabBarContentList: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 8),
-                              createPieChart(),
-                              const SizedBox(height: 8),
-                              createTabBarContentForAsset(),
-                              const SizedBox(height: 8),
-                            ],
+                      if (!_isInitializing && _pieSections.isNotEmpty ||
+                          _tabIndex == 1)
+                        GlassTab(
+                          borderRadius: 24,
+                          margin: const EdgeInsets.only(
+                            left: 0,
+                            right: 0,
+                            bottom: 18,
                           ),
-                          const SizedBox.shrink(),
-                        ],
-                      ),
+                          tabs: const ['資産', '負債'],
+                          // 监听tab切换
+                          onTabChanged: (index) {
+                            _tabIndex = index;
+                            if (index == assetTabIndex) {
+                              _animatePieChart();
+                            } else {
+                              if (mounted) {
+                                setState(() {
+                                  _pieSections = [];
+                                });
+                              }
+                            }
+                          },
+                          tabBarContentList: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 8),
+                                createPieChart(),
+                                const SizedBox(height: 8),
+                                createTabBarContentForAsset(),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                            const SizedBox.shrink(),
+                          ],
+                        ),
                       const SizedBox(height: 80),
                     ],
                   ),
@@ -442,6 +405,15 @@ class HomeTabPageState extends State<HomeTabPage> {
               ),
             ),
           ),
+
+          // 全屏加载层
+          if (_isInitializing)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withOpacity(0.6),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+            ),
         ],
       ),
     );
@@ -452,215 +424,9 @@ class HomeTabPageState extends State<HomeTabPage> {
   }
 
   Widget createTabBarContentForAsset() {
-    final List categories = [
-      {
-        'label': '株式',
-        'dotColor': AppColors.appChartGreen,
-        'rateLabel': '11.9%',
-        'value': '¥1,350,000',
-        'profitText': '¥125,000',
-        'profitRateText': '(+10.2%)',
-        'profitColor': AppColors.appUpGreen,
-        'subCategories': [
-          {
-            'label': '国内株式（ETF含む）',
-            'rateLabel': '48.1%',
-            'value': '¥650,000',
-            'profitText': '¥65,000',
-            'profitRateText': '(+11.1%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-          {
-            'label': '米国株式（ETF含む）',
-            'rateLabel': '35.6%',
-            'value': '¥480,000',
-            'profitText': '¥48,000',
-            'profitRateText': '(+11.1%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-          {
-            'label': 'その他（海外株式など）',
-            'rateLabel': '16.3%',
-            'value': '¥220,000',
-            'profitText': '¥12,000',
-            'profitRateText': '(+5.8%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-        ],
-      },
-      {
-        'label': 'FX（為替）',
-        'dotColor': AppColors.appChartBlue,
-        'rateLabel': '0.7%',
-        'value': '¥85,000',
-        'profitText': '¥5,000',
-        'profitRateText': '(-5.6%)',
-        'profitColor': AppColors.appDownRed,
-        'subCategories': [
-          {
-            'label': 'USD/JPY',
-            'rateLabel': '52.9%',
-            'value': '¥45,000',
-            'profitText': '¥2,000',
-            'profitRateText': '(-4.3%)',
-            'profitColor': AppColors.appDownRed,
-          },
-          {
-            'label': 'EUR/JPY',
-            'rateLabel': '29.4%',
-            'value': '¥25,000',
-            'profitText': '¥1,500',
-            'profitRateText': '(-5.7%)',
-            'profitColor': AppColors.appDownRed,
-          },
-          {
-            'label': 'その他通貨ペア',
-            'rateLabel': '17.6%',
-            'value': '¥15,000',
-            'profitText': '¥1,500',
-            'profitRateText': '(-9.1%)',
-            'profitColor': AppColors.appDownRed,
-          },
-        ],
-      },
-      {
-        'label': '暗号資産',
-        'dotColor': AppColors.appChartPurple,
-        'rateLabel': '1.1%',
-        'value': '¥120,000',
-        'profitText': '¥15,000',
-        'profitRateText': '(+14.3%)',
-        'profitColor': AppColors.appUpGreen,
-        'subCategories': [
-          {
-            'label': 'ビットコイン',
-            'rateLabel': '62.5%',
-            'value': '¥75,000',
-            'profitText': '¥12,000',
-            'profitRateText': '(+19%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-          {
-            'label': 'イーサリアム',
-            'rateLabel': '25%',
-            'value': '¥30,000',
-            'profitText': '¥2,000',
-            'profitRateText': '(+7.1%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-          {
-            'label': 'その他',
-            'rateLabel': '12.5%',
-            'value': '¥15,000',
-            'profitText': '¥1,000',
-            'profitRateText': '(+7.1%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-        ],
-      },
-      {
-        'label': '貴金属',
-        'dotColor': AppColors.appChartOrange,
-        'rateLabel': '0.7%',
-        'value': '¥150,000',
-        'profitText': '¥10,000',
-        'profitRateText': '(+7.1%)',
-        'profitColor': AppColors.appUpGreen,
-        'subCategories': [
-          {
-            'label': '金',
-            'rateLabel': '70.6%',
-            'value': '¥60,000',
-            'profitText': '¥4,000',
-            'profitRateText': '(+7.1%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-          {
-            'label': '銀',
-            'rateLabel': '17.6%',
-            'value': '¥15,000',
-            'profitText': '¥500',
-            'profitRateText': '(+3.4%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-          {
-            'label': 'プラチナ',
-            'rateLabel': '11.8%',
-            'value': '¥10,000',
-            'profitText': '¥1,000',
-            'profitRateText': '(+11.1%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-        ],
-      },
-      {
-        'label': 'その他資産',
-        'dotColor': AppColors.appChartLightBlue,
-        'rateLabel': '85.6%',
-        'value': '¥9,725,000',
-        'profitText': '¥0',
-        'profitRateText': '(+0%)',
-        'profitColor': AppColors.appUpGreen,
-        'subCategories': [
-          {
-            'label': '銀行預金',
-            'rateLabel': '97.7%',
-            'value': '¥9,500,000',
-            'profitText': '¥0',
-            'profitRateText': '(+0%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-          {
-            'label': '現金',
-            'rateLabel': '2.3%',
-            'value': '¥225,000',
-            'profitText': '¥0',
-            'profitRateText': '(+0%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-
-          {
-            'label': '不動産',
-            'rateLabel': '0%',
-            'value': '¥0',
-            'profitText': '¥0',
-            'profitRateText': '(+0%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-
-          {
-            'label': '投資信託',
-            'rateLabel': '0%',
-            'value': '¥0',
-            'profitText': '¥0',
-            'profitRateText': '(+0%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-
-          {
-            'label': '債券',
-            'rateLabel': '0%',
-            'value': '¥0',
-            'profitText': '¥0',
-            'profitRateText': '(+0%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-
-          {
-            'label': 'その他',
-            'rateLabel': '0%',
-            'value': '¥0',
-            'profitText': '¥0',
-            'profitRateText': '(+0%)',
-            'profitColor': AppColors.appUpGreen,
-          },
-        ],
-      },
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: categories.map((category) {
+      children: assetCategories.map((category) {
         return SummaryCategoryCard(
           label: category['label'],
           dotColor: category['dotColor'],
@@ -670,6 +436,11 @@ class HomeTabPageState extends State<HomeTabPage> {
           profitRateText: category['profitRateText'],
           profitColor: category['profitColor'],
           subCategories: (category['subCategories'] as List)
+              .where(
+                (e) =>
+                    e['value'] != null &&
+                    AppUtils().parseMoneySimple(e['value']) > 0,
+              )
               .map(
                 (subCat) => SummarySubCategoryCard(
                   label: subCat['label'],
