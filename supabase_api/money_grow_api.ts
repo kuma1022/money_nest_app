@@ -37,7 +37,7 @@ Deno.serve(async (req: { url: string | URL; method: any; headers: { get: (arg0: 
       if (action === 'register') return handleRegister(body);
       // 购买/激活订阅
       if (action === 'subscriptions') return handlePurchaseSubscription(body);
-      // 新增交易记录
+      // 新增股票交易记录
       if (action === 'user-assets') {
         const userId = url.searchParams.get('user_id');
         return handleCreateAsset(userId, body);
@@ -46,6 +46,11 @@ Deno.serve(async (req: { url: string | URL; method: any; headers: { get: (arg0: 
       if (action === 'user-cryptoInfo') {
         const userId = url.searchParams.get('user_id');
         return handleCreateOrUpdateCryptoInfo(userId, body);
+      }
+      // 新增基金交易记录
+      if (action === 'user-fund') {
+        const userId = url.searchParams.get('user_id');
+        return handleCreateFund(userId, body);
       }
     }
 
@@ -89,7 +94,12 @@ Deno.serve(async (req: { url: string | URL; method: any; headers: { get: (arg0: 
         const accountId = url.searchParams.get('account_id');
         return handleGetLastSyncTime(userId, accountId);
       }
-
+      // Fund搜索
+      if (action === 'fund-search') {
+        const q = (url.searchParams.get('q') || '').trim();
+        const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '20', 10), 1), 200);
+        return handleFundSearch(q, limit);
+      }
     }
 
     // PUT actions
@@ -169,6 +179,47 @@ async function handleStockSearch(q: string, exchange: string | null, limit: numb
   return new Response(JSON.stringify({
     query: q,
     exchange,
+    count: data?.length || 0,
+    results: data || []
+  }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });  
+}
+
+// ------------------- 股票搜索 -------------------
+async function handleFundSearch(q: string, limit: number) {
+  if (!q) {
+    return new Response(JSON.stringify({
+      error: 'Missing parameter: q'
+    }), {
+      status: 400,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+       
+  const { data, error } = await supabase.rpc('search_funds', {
+    search_query: q,
+    row_limit: limit
+  });
+  
+  if (error) {
+    return new Response(JSON.stringify({
+      error: 'Database error'
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+  
+  return new Response(JSON.stringify({
+    query: q,
     count: data?.length || 0,
     results: data || []
   }), {
@@ -602,6 +653,122 @@ async function handleDeleteAsset(userId, body) {
     console.error('handleDeleteAsset error:', err);
     return new Response(JSON.stringify({
         error: 'Failed to delete trade record'
+      }), {
+        status: 500
+      });
+  }
+}
+
+// ------------------- 基金交易处理 -------------------
+async function handleCreateFund(userId, body) {
+  // Basic validation
+  if (!userId) {
+    return new Response(JSON.stringify({
+      error: 'Missing userId'
+    }), {
+      status: 400
+    });
+  }
+  if (!body) {
+    return new Response(JSON.stringify({
+      error: 'Missing body'
+    }), {
+      status: 400
+    });
+  }
+  const required = [
+    'account_id',
+    'fund_id',
+    'trade_date',
+    'action',
+    'trade_type',
+    'account_type'
+  ];
+  for (const f of required){
+    if (body[f] === undefined || body[f] === null) {
+      return new Response(JSON.stringify({
+        error: `${f} is required`
+      }), {
+        status: 400
+      });
+    }
+  }
+  // If action is sell, require sell_mappings non-empty 
+  //if (String(body.action).toLowerCase() === 'sell') {
+  //  if (!Array.isArray(body.sell_mappings) || body.sell_mappings.length === 0) {
+  //    return new Response(JSON.stringify({
+  //      error: 'sell_mappings is required for sell action'
+  //    }), {
+  //      status: 400
+  //    });
+  //  }
+  //}
+  try {
+    // Call the new RPC which returns TABLE(trade_id, account_updated_at)
+    const { data, error } = await supabase.rpc('add_fund_transaction', {
+      p_user_id: userId,
+      p_account_id: body.account_id,
+      p_fund_id: body.fund_id,
+      p_trade_date: body.trade_date,
+      p_action: body.action,
+      p_trade_type: body.trade_type,
+      p_account_type: body.account_type,
+      p_amount: body.amount ?? null,
+      p_quantity: body.quantity ?? null,
+      p_price: body.price ?? null,
+      p_fee_amount: body.fee_amount ?? null,
+      p_fee_currency: body.fee_currency ?? null,
+      p_recurring_frequency_type: body.recurring_frequency_type ?? null,
+      p_recurring_frequency_config: body.recurring_frequency_config ?? null,
+      p_recurring_start_date: body.recurring_start_date ?? null,
+      p_recurring_end_date: body.recurring_end_date ?? null,
+      p_recurring_status: body.recurring_status ?? null,
+      p_remark: body.remark ?? null,
+    });
+    if (error) {
+      // RPC error
+      return new Response(JSON.stringify({
+        error: error.message
+      }), {
+        status: 500
+      });
+    }
+
+    // Normalize RPC response shapes (array / single object)
+    let transactionId = null;
+    let accountUpdatedAt = null;
+    if (Array.isArray(data) && data.length > 0) {
+      transactionId = data[0]?.transaction_id ?? null;
+      accountUpdatedAt = data[0]?.account_updated_at ?? data[0]?.updated_at ?? null;
+    } else if (data && typeof data === 'object') {
+      transactionId = data.trade_id ?? null;
+      accountUpdatedAt = data.account_updated_at ?? data.updated_at ?? null;
+    } else {
+      // fallback: sometimes supabase RPC returns scalar
+      transactionId = data ?? null;
+    }
+
+    if (!transactionId) {
+      return new Response(JSON.stringify({
+        error: 'Failed to create trade record'
+      }), {
+        status: 500
+      });
+    }
+
+    // Return created trade id and updated account timestamp
+    return new Response(JSON.stringify({
+      success: true,
+      transaction_id: transactionId,
+      account_updated_at: accountUpdatedAt
+    }), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (err) {
+    console.error('handleCreateFund error:', err);
+    return new Response(JSON.stringify({
+        error: 'Failed to create fund trade record'
       }), {
         status: 500
       });

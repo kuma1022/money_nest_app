@@ -459,6 +459,13 @@ class AppUtils {
         date1.day == date2.day;
   }
 
+  // -------------------------------------------------
+  // 日期格式化
+  // -------------------------------------------------
+  String formatDate(DateTime date) {
+    return '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+  }
+
   // --------- 以下为私有方法 ---------
 
   // -------------------------------------------------

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
@@ -44,6 +45,10 @@ class TradeAddEditPage extends StatefulWidget {
 class _TradeAddEditPageState extends State<TradeAddEditPage> {
   // 共通 State
   int tabIndex = 0; // 0: 資産, 1: 負債
+  final List<dynamic> tradeTypes = TradeType.values
+      .map((e) => {'code': e.code, 'name': e.displayName})
+      .toList();
+  String? tradeDate; // 取引日
 
   // ##### 0. 資産 #####
   late final int tradeId; // 编辑模式下的交易ID
@@ -70,12 +75,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
   String selectedStockCode = '';
   String selectedStockName = '';
   // 取引詳細
-  // 取引日
-  String? tradeDate;
   // 口座区分
-  final List<dynamic> tradeTypes = TradeType.values
-      .map((e) => {'code': e.code, 'name': e.displayName})
-      .toList();
   late String tradeTypeCode = tradeTypes.first['code'];
   // 数量・単価・金額
   final _numberFormatter = NumberFormat("#,##0.####");
@@ -129,6 +129,60 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
   // 売却メモ
   String? sellMemoValue;
   final TextEditingController _sellMemoController = TextEditingController();
+
+  // ----- 0-3. 投資信託 -----
+  String selectedPurchaseType = 'saving-plan';
+  // 账户类型
+  late String fundSelectedAccountType = tradeTypes.first['code'];
+  // 基金搜索相关状态
+  final TextEditingController fundNameController = TextEditingController();
+  Fund? selectedFund;
+  List<Map<String, dynamic>> fundSearchResults = [];
+  OverlayEntry? _fundOverlayEntry;
+  bool isSearching = false;
+  String searchQuery = '';
+  Timer? _fundDebounceTimer;
+  bool _fundSelectedFromDropdown = false;
+  String _lastQueriedFundValue = '';
+  final FocusNode _fundCodeFocusNode = FocusNode();
+  List<Fund> _fundSuggestions = [];
+  bool _fundLoading = false;
+  // 频率
+  String fundSelectedFrequencyType =
+      'monthly'; // daily, weekly, monthly, bimonthly
+  Map<String, dynamic> fundFrequencyConfig = {
+    'type': 'monthly',
+    'days': [1],
+  };
+  // 选项列表
+  final List<Map<String, String>> frequencyTypes = [
+    {'value': 'daily', 'label': '毎日'},
+    {'value': 'weekly', 'label': '毎週'},
+    {'value': 'monthly', 'label': '毎月'},
+    {'value': 'bimonthly', 'label': '隔月'},
+  ];
+  // 周几的选项
+  final List<Map<String, dynamic>> fundWeekDays = [
+    {'value': 1, 'label': '月曜日'},
+    {'value': 2, 'label': '火曜日'},
+    {'value': 3, 'label': '水曜日'},
+    {'value': 4, 'label': '木曜日'},
+    {'value': 5, 'label': '金曜日'},
+    {'value': 6, 'label': '土曜日'},
+    {'value': 7, 'label': '日曜日'},
+  ];
+  // 金额
+  final TextEditingController fundRecurringAmountController =
+      TextEditingController();
+  final FocusNode fundRecurringAmountFocusNode = FocusNode();
+  num fundRecurringAmount = 0.0;
+  // 状态 用于处理结束日期
+  DateTime fundRecurringStartDate = DateTime.now();
+  DateTime fundRecurringEndDate = DateTime.now();
+  bool fundHasEndDate = false;
+  // memo
+  final TextEditingController fundMemoController = TextEditingController();
+  String? fundMemoValue;
 
   // ##### 1. 負債 #####
   // ----- 1-1. カテゴリ・サブカテゴリ -----
@@ -289,6 +343,12 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
       numberFormatter: _numberFormatter,
       maxDecimal: 4, // 最多4位小数
     );
+    addFocusFormatListener(
+      focusNode: fundRecurringAmountFocusNode,
+      controller: fundRecurringAmountController,
+      numberFormatter: _numberFormatter,
+      maxDecimal: 4, // 最多4位小数
+    );
 
     if (widget.mode == 'add') {
       // 初始化卖出持仓
@@ -327,6 +387,12 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
     }
     _removeOverlay();
     _debounceTimer?.cancel();
+    // 释放积立设定的控制器
+    fundNameController.dispose();
+    _fundCodeFocusNode.dispose();
+    fundMemoController.dispose();
+    fundRecurringAmountController.dispose();
+    fundRecurringAmountFocusNode.dispose();
     super.dispose();
   }
 
@@ -618,6 +684,48 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
     }
   }
 
+  // 显示股票候选项浮层
+  void _showFundOverlay() {
+    _removeFundOverlay();
+    final RenderBox box = context.findRenderObject() as RenderBox;
+    final Offset position = box.localToGlobal(Offset.zero);
+    _fundOverlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        left: position.dx,
+        top: position.dy + box.size.height,
+        width: box.size.width,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(16),
+          child: _fundLoading
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              : _fundSuggestions.isEmpty
+              ? const ListTile(title: Text('該当するファンドが見つかりません'))
+              : ListView(
+                  shrinkWrap: true,
+                  children: _fundSuggestions.map((fund) {
+                    return ListTile(
+                      title: Text(fund.name),
+                      subtitle: Text(fund.code),
+                      onTap: () {
+                        fundNameController.text = fund.name;
+                        _onFundSelected(fund);
+                        _fundSelectedFromDropdown = true;
+                        _removeFundOverlay();
+                        FocusScope.of(context).unfocus();
+                      },
+                    );
+                  }).toList(),
+                ),
+        ),
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_fundOverlayEntry!);
+  }
+
   // 获取持仓数据
   Future<void> _loadSellHoldings({bool notNeedRefresh = false}) async {
     // capture globals/providers synchronously
@@ -696,14 +804,19 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
 
   // 切换资产类型/子类型时，重新加载持仓
   void _onAssetCategoryChanged(String? v) {
+    final subCategories = assetCategoriesWithSub[v] ?? [];
     setState(() {
       assetCategoryCode = v ?? '';
-      assetSubCategoryCode = '';
+      assetSubCategoryCode = subCategories.length == 1
+          ? subCategories[0]['code'] ?? ''
+          : '';
       selectedStockCode = '';
       selectedStockName = '';
       selectedStockInfo = null;
     });
-    _loadSellHoldings();
+    if (tradeAction == ActionType.sell) {
+      _loadSellHoldings();
+    }
   }
 
   // 切换资产子类型时，重新加载持仓
@@ -714,7 +827,9 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
       selectedStockName = '';
       selectedStockInfo = null;
     });
-    _loadSellHoldings();
+    if (tradeAction == ActionType.sell) {
+      _loadSellHoldings();
+    }
   }
 
   // 选择卖出股票
@@ -908,10 +1023,11 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
 
   // 动态生成資産tab下的表单内容
   Widget _buildAssetDynamicFields() {
-    // 这里只举例：株式（国内株式（ETF含む））的买入/卖出
+    // 株式（国内/米国），投資信託 的买入/卖出
     if (assetCategoryCode == 'stock' &&
-        (assetSubCategoryCode == 'jp_stock' ||
-            assetSubCategoryCode == 'us_stock')) {
+            (assetSubCategoryCode == 'jp_stock' ||
+                assetSubCategoryCode == 'us_stock') ||
+        assetCategoryCode == 'fund' && assetSubCategoryCode == 'fund') {
       final children = {
         ActionType.buy: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -960,8 +1076,14 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
               thumbColor: Colors.white,
             ),
             const SizedBox(height: 16),
-            if (tradeAction == ActionType.buy) _buildBuyFields(),
-            if (tradeAction == ActionType.sell) _buildSellFields(),
+            if (tradeAction == ActionType.buy && assetCategoryCode == 'stock')
+              _buildBuyFieldsForStock(),
+            if (tradeAction == ActionType.sell && assetCategoryCode == 'stock')
+              _buildSellFieldsForStock(),
+            if (tradeAction == ActionType.buy && assetCategoryCode == 'fund')
+              _buildBuyFieldsForFund(),
+            //if (tradeAction == ActionType.sell && assetCategoryCode == 'fund')
+            //  _buildSellFieldsForFund(),
           ],
         ),
       );
@@ -971,7 +1093,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
   }
 
   // 生成买入表单内容
-  Widget _buildBuyFields() {
+  Widget _buildBuyFieldsForStock() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -982,18 +1104,23 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
           labelText: '銘柄コード',
           controller: _stockCodeController,
           focusNode: _stockCodeFocusNode,
-          suggestions: [..._stockSuggestions],
+          suggestions: _stockSuggestions.map((e) {
+            return ListTile(
+              title: Text(e.ticker!),
+              subtitle: Text(e.name),
+              onTap: () {
+                _stockCodeController.text = e.ticker!;
+                _onStockSelected(e);
+                _selectedFromDropdown = true;
+                _removeOverlay();
+                FocusScope.of(context).unfocus();
+              },
+            );
+          }).toList(),
           loading: _stockLoading,
           notFoundText: '該当する銘柄が見つかりません',
           onChanged: _onStockCodeChanged,
           onFocusChange: _onStockCodeFocusChange,
-          onSuggestionTap: (stock) {
-            _stockCodeController.text = stock.ticker!;
-            _onStockSelected(stock);
-            _selectedFromDropdown = true;
-            _removeOverlay();
-            FocusScope.of(context).unfocus();
-          },
           disabled: widget.mode == 'edit',
         ),
         const SizedBox(height: 12),
@@ -1278,7 +1405,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
   }
 
   // 生成卖出表单内容
-  Widget _buildSellFields() {
+  Widget _buildSellFieldsForStock() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1602,6 +1729,1032 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
     );
   }
 
+  // 生成买入表单内容
+  Widget _buildBuyFieldsForFund() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '購入種別',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _buildPurchaseTypeButtonForFund('saving-plan', '積立購入'),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildPurchaseTypeButtonForFund('one-time', '個別購入'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '投資信託情報',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '取引するファンドを選択してください',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            //const Text(
+            //  'ファンド名',
+            //  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            //),
+            const SizedBox(height: 8),
+
+            // ファンド名（自动补全）
+            CustomInputFormFieldBySuggestion(
+              labelText: selectedFund != null || _fundCodeFocusNode.hasFocus
+                  ? '協会コード／ファンド名'
+                  : '協会コードまたはファンド名を入力ください',
+              controller: fundNameController,
+              focusNode: _fundCodeFocusNode,
+              suggestions: _fundSuggestions.map((e) {
+                return ListTile(
+                  title: Text(e.name),
+                  subtitle: Text(e.code),
+                  onTap: () {
+                    fundNameController.text = e.name;
+                    _onFundSelected(e);
+                    _fundSelectedFromDropdown = true;
+                    _removeFundOverlay();
+                    FocusScope.of(context).unfocus();
+                  },
+                );
+              }).toList(),
+              loading: _fundLoading,
+              notFoundText: '該当するファンドが見つかりません',
+              onChanged: _onFundCodeChanged,
+              onFocusChange: _onFundCodeFocusChange,
+              disabled: widget.mode == 'edit',
+            ),
+
+            // 显示选中的基金信息
+            if (selectedFund != null) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.appUpGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.appUpGreen.withOpacity(0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      selectedFund!.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${selectedFund!.code} • ${selectedFund!.name}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // 只有选择了基金后才显示后续项目
+        if (selectedFund != null) ...[
+          // 积立购入的设定
+          if (selectedPurchaseType == 'saving-plan') ...[
+            _buildRecurringSettings(),
+            const SizedBox(height: 20),
+          ],
+
+          // 个别购入的设定
+          if (selectedPurchaseType == 'one-time') ...[
+            //_buildAccountTypeSelector(),
+            const SizedBox(height: 20),
+            //_buildPurchaseDetails(),
+            //const SizedBox(height: 20),
+          ],
+
+          // 备注
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'メモ（任意）',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextFormField(
+                  controller: fundMemoController,
+                  decoration: InputDecoration(
+                    hintText: selectedPurchaseType == 'savting-plan'
+                        ? '積立に関するメモを入力'
+                        : '購入に関するメモを入力',
+                    filled: true,
+                    fillColor: const Color(0xFFF5F6FA),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                  ),
+                  maxLines: 2,
+                  onChanged: (value) {
+                    setState(() {
+                      fundMemoValue = value;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  // 积立设定
+  Widget _buildRecurringSettings() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.repeat, size: 18, color: AppColors.appUpGreen),
+              SizedBox(width: 8),
+              Text(
+                '積立設定',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 预金区分（编辑模式下禁用）
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '預かり区分',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: fundSelectedAccountType,
+                    isExpanded: true,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down,
+                      //color: widget.isEditMode ? Colors.grey.shade500 : null,
+                    ),
+                    items: tradeTypes.map((type) {
+                      return DropdownMenuItem<String>(
+                        value: type['code'],
+                        child: Text(
+                          type['name'],
+                          style: TextStyle(color: Colors.black),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() => fundSelectedAccountType = newValue);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 频度类型和金额
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '積立頻度',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: fundSelectedFrequencyType,
+                          isExpanded: true,
+                          isDense: true,
+                          icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                          items: frequencyTypes.map((Map<String, String> freq) {
+                            return DropdownMenuItem<String>(
+                              value: freq['value'],
+                              child: Text(
+                                freq['label']!,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                fundSelectedFrequencyType = newValue;
+                                _initializeFrequencyConfig(newValue);
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '積立金額',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: CustomTextFormField(
+                        controller: fundRecurringAmountController,
+                        focusNode: fundRecurringAmountFocusNode,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,4}'),
+                          ),
+                          TextInputFormatter.withFunction((oldValue, newValue) {
+                            final text = newValue.text;
+                            // 不能以小数点开头
+                            if (text.startsWith('.')) return oldValue;
+                            // 只允许一个小数点
+                            if ('.'.allMatches(text).length > 1) {
+                              return oldValue;
+                            }
+                            return newValue;
+                          }),
+                        ],
+                        hintText: '例: 100',
+                        onChanged: (value) {
+                          final amount = num.tryParse(
+                            value.replaceAll(',', ''),
+                          );
+                          setState(() {
+                            fundRecurringAmount = amount!;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 频度详细设定
+          _buildFrequencyDetailSettings(),
+          const SizedBox(height: 16),
+
+          // 日期范围
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '開始日',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => _selectStartDate(0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                AppUtils().formatDate(fundRecurringStartDate),
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.calendar_today,
+                              color: Colors.grey,
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '終了日（任意）',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => _selectEndDate(0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                fundHasEndDate
+                                    ? AppUtils().formatDate(
+                                        fundRecurringEndDate,
+                                      )
+                                    : '継続',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ),
+                            const Icon(
+                              Icons.calendar_today,
+                              color: Colors.grey,
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 选择基金候选项的处理
+  void _onFundSelected(Fund? fund) {
+    setState(() {
+      if (fund != null) {
+        //selectedFundCode = fund['code']!.toString();
+        //selectedFundName = fund['name']!.toString();
+        selectedFund = fund;
+      } else {
+        //selectedFundCode = '';
+        //selectedFundName = '';
+        selectedFund = null;
+      }
+    });
+  }
+
+  // 输入基金代码变化的处理
+  void _onFundCodeChanged(String value) {
+    _lastQueriedFundValue = value;
+    if (value.isEmpty) {
+      setState(() => _fundSuggestions = []);
+      _removeFundOverlay();
+      _onFundSelected(null);
+      return;
+    }
+    _fetchSuggestionsForFund(value);
+  }
+
+  // 基金输入框失去焦点的处理
+  void _onFundCodeFocusChange(bool hasFocus) {
+    if (!hasFocus) {
+      _fundDebounceTimer?.cancel();
+      _removeOverlay();
+
+      // 如果是从候选项中选中的，就不清空输入
+      if (_fundSelectedFromDropdown) {
+        _fundSelectedFromDropdown = false;
+        return;
+      }
+
+      final inputName = fundNameController.text.trim();
+
+      // 如果候选项中有完全匹配的，选中它
+      for (var fund in _fundSuggestions) {
+        if (fund.name == inputName) {
+          fundNameController.text = fund.name;
+          _onFundSelected(fund);
+          return;
+        }
+      }
+
+      // 否则清空输入
+      fundNameController.clear();
+      _onFundSelected(null);
+    }
+  }
+
+  // 通过输入基金名称获取股票候选项
+  Future<void> _fetchSuggestionsForFund(String value) async {
+    setState(() {
+      _fundLoading = true;
+      _fundSuggestions = [];
+    });
+    _showFundOverlay();
+
+    final dataSync = Provider.of<DataSyncService>(context, listen: false);
+    final lastQueried = value;
+    List<Fund> result = await dataSync.fetchFundSuggestions(value);
+
+    // 页面可能已被销毁，检查 mounted
+    if (!mounted) return;
+
+    // 只处理最后一次输入的结果
+    if (_lastQueriedFundValue != lastQueried) return;
+
+    setState(() {
+      _fundLoading = false;
+      _fundSuggestions = result;
+    });
+    _showFundOverlay();
+  }
+
+  // 关闭股票候选项浮层
+  void _removeFundOverlay() {
+    _fundOverlayEntry?.remove();
+    _fundOverlayEntry = null;
+  }
+
+  Widget _buildPurchaseTypeButtonForFund(String type, String label) {
+    final isSelected = selectedPurchaseType == type;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedPurchaseType = type;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.appUpGreen : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? AppColors.appUpGreen : Colors.grey.shade300,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: isSelected ? Colors.white : Colors.black,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 初始化频度配置
+  void _initializeFrequencyConfig(String frequencyType) {
+    switch (frequencyType) {
+      case 'daily':
+        fundFrequencyConfig = {'type': 'daily'};
+        break;
+      case 'weekly':
+        fundFrequencyConfig = {
+          'type': 'weekly',
+          'days': [1],
+        }; // 默认周一
+        break;
+      case 'monthly':
+        fundFrequencyConfig = {
+          'type': 'monthly',
+          'days': [1],
+        }; // 默认每月1号
+        break;
+      case 'bimonthly':
+        fundFrequencyConfig = {
+          'type': 'bimonthly',
+          'months': 'odd',
+          'days': [1],
+        }; // 默认奇数月1号
+        break;
+    }
+  }
+
+  // 频度详细设定UI
+  Widget _buildFrequencyDetailSettings() {
+    switch (fundSelectedFrequencyType) {
+      case 'daily':
+        return _buildDailySettings();
+      case 'weekly':
+        return _buildWeeklySettings();
+      case 'monthly':
+        return _buildMonthlySettings();
+      case 'bimonthly':
+        return _buildBimonthlySettings();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  // 每日设定（无需额外设定）
+  Widget _buildDailySettings() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.appUpGreen.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline, size: 16, color: AppColors.appUpGreen),
+          SizedBox(width: 8),
+          Text(
+            '毎日積立が実行されます',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.appUpGreen,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 每周设定
+  Widget _buildWeeklySettings() {
+    final selectedDays = List<int>.from(fundFrequencyConfig['days'] ?? [1]);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '実行曜日を選択',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: fundWeekDays.map((day) {
+            final isSelected = selectedDays.contains(day['value']);
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (isSelected) {
+                    if (selectedDays.length > 1) {
+                      selectedDays.remove(day['value']);
+                    }
+                  } else {
+                    selectedDays.add(day['value']);
+                  }
+                  fundFrequencyConfig['days'] = selectedDays;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.appUpGreen : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppColors.appUpGreen
+                        : Colors.grey.shade300,
+                  ),
+                ),
+                child: Text(
+                  day['label'],
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isSelected ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  // 每月设定
+  Widget _buildMonthlySettings() {
+    final selectedDays = List<int>.from(fundFrequencyConfig['days'] ?? [1]);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '実行日を選択（複数選択可能）',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Column(
+            children: [
+              // 快速选择按钮
+              Row(
+                children: [
+                  _buildQuickSelectButton('1日', [1], selectedDays),
+                  const SizedBox(width: 8),
+                  _buildQuickSelectButton('15日', [15], selectedDays),
+                  const SizedBox(width: 8),
+                  _buildQuickSelectButton('月末', [31], selectedDays),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        fundFrequencyConfig['days'] = [];
+                      });
+                    },
+                    child: const Text('クリア', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // 日期网格
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  mainAxisSpacing: 4,
+                  crossAxisSpacing: 4,
+                  childAspectRatio: 1,
+                ),
+                itemCount: 31,
+                itemBuilder: (context, index) {
+                  final day = index + 1;
+                  final isSelected = selectedDays.contains(day);
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          if (selectedDays.length > 1) {
+                            selectedDays.remove(day);
+                          }
+                        } else {
+                          selectedDays.add(day);
+                        }
+                        fundFrequencyConfig['days'] = selectedDays;
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.appUpGreen : Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.appUpGreen
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          day.toString(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isSelected ? Colors.white : Colors.black,
+                            fontWeight: isSelected
+                                ? FontWeight.w500
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 隔月设定
+  Widget _buildBimonthlySettings() {
+    final selectedMonths = fundFrequencyConfig['months'] ?? 'odd';
+    final selectedDays = List<int>.from(fundFrequencyConfig['days'] ?? [1]);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 月份选择
+        const Text(
+          '対象月を選択',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    fundFrequencyConfig['months'] = 'odd';
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selectedMonths == 'odd'
+                        ? AppColors.appUpGreen
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: selectedMonths == 'odd'
+                          ? AppColors.appUpGreen
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '奇数月',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: selectedMonths == 'odd'
+                            ? Colors.white
+                            : Colors.black,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    fundFrequencyConfig['months'] = 'even';
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selectedMonths == 'even'
+                        ? AppColors.appUpGreen
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: selectedMonths == 'even'
+                          ? AppColors.appUpGreen
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '偶数月',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: selectedMonths == 'even'
+                            ? Colors.white
+                            : Colors.black,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // 复用每月设定的日期选择
+        _buildMonthlySettings(),
+      ],
+    );
+  }
+
+  // 添加缺失的开始日期选择方法
+  Future<void> _selectStartDate(int index) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: fundRecurringStartDate,
+      firstDate: DateTime.parse('2020-01-01'), //DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      locale: const Locale('ja', 'JP'),
+    );
+    if (picked != null) {
+      setState(() {
+        fundRecurringStartDate = picked;
+      });
+    }
+  }
+
+  // 添加缺失的结束日期选择方法
+  Future<void> _selectEndDate(int index) async {
+    final startDate = fundRecurringStartDate;
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: fundHasEndDate
+          ? fundRecurringEndDate
+          : startDate.add(const Duration(days: 365)),
+      firstDate: startDate,
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      locale: const Locale('ja', 'JP'),
+    );
+    if (picked != null) {
+      setState(() {
+        fundRecurringEndDate = picked;
+        fundHasEndDate = true;
+      });
+    } else {
+      // 用户可能想要清除结束日期
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('終了日'),
+          content: const Text('終了日を設定しませんか？'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  fundHasEndDate = false;
+                  fundRecurringEndDate = DateTime.now();
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text('継続'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('キャンセル'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  // 快速选择按钮
+  Widget _buildQuickSelectButton(
+    String label,
+    List<int> days,
+    List<int> selectedDays,
+  ) {
+    final isSelected = days.every((day) => selectedDays.contains(day));
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (isSelected) {
+            for (final day in days) {
+              selectedDays.remove(day);
+            }
+          } else {
+            for (final day in days) {
+              if (!selectedDays.contains(day)) {
+                selectedDays.add(day);
+              }
+            }
+          }
+          if (selectedDays.isEmpty) {
+            selectedDays.add(1); // 至少保留一个日期
+          }
+          fundFrequencyConfig['days'] = selectedDays;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.appUpGreen : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.appUpGreen : Colors.grey.shade300,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: isSelected ? Colors.white : Colors.black,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
   // 获取用户持有的股票列表及其批次信息
   Future<List<Map<String, dynamic>>> getMyHoldingStocks(
     String assetType,
@@ -1792,6 +2945,34 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                 sellUnitPrice != null;
           }
         }
+        // 投資信託
+        else if (assetCategoryCode == 'fund' &&
+            assetSubCategoryCode == 'fund') {
+          // 積み立て
+          if (selectedPurchaseType == 'saving-plan') {
+            // 購入
+            if (tradeAction == ActionType.buy) {
+              canSave =
+                  fundSelectedAccountType.isNotEmpty &&
+                  selectedFund != null &&
+                  fundSelectedFrequencyType.isNotEmpty &&
+                  (fundSelectedFrequencyType == 'daily' ||
+                      fundFrequencyConfig.containsKey('type') &&
+                          fundFrequencyConfig.containsKey('days') &&
+                          fundFrequencyConfig['days'] is List &&
+                          fundSelectedFrequencyType ==
+                              fundFrequencyConfig['type'].toString() &&
+                          (fundFrequencyConfig['days'] as List).isNotEmpty) &&
+                  fundRecurringAmount > 0 &&
+                  (!fundHasEndDate ||
+                      fundRecurringStartDate.isBefore(fundRecurringEndDate) ||
+                      AppUtils().isSameDate(
+                        fundRecurringStartDate,
+                        fundRecurringEndDate,
+                      ));
+            }
+          }
+        }
       } else {
         // 負債tab
         canSave =
@@ -1831,7 +3012,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
           // 买入
           if (tradeAction == ActionType.buy) {
             if (widget.mode == 'add') {
-              success = await dataSync.createOrUpdateAsset(
+              success = await dataSync.createOrUpdateStockTrade(
                 'add',
                 userId: GlobalStore().userId!,
                 assetData: {
@@ -1871,7 +3052,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                 },
               );
             } else {
-              success = await dataSync.createOrUpdateAsset(
+              success = await dataSync.createOrUpdateStockTrade(
                 'edit',
                 userId: GlobalStore().userId!,
                 assetData: {
@@ -1897,7 +3078,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
           // 卖出
           else if (tradeAction == ActionType.sell) {
             if (widget.mode == 'add') {
-              success = await dataSync.createOrUpdateAsset(
+              success = await dataSync.createOrUpdateStockTrade(
                 'add',
                 userId: GlobalStore().userId!,
                 assetData: {
@@ -1932,7 +3113,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                 stockData: null,
               );
             } else {
-              success = await dataSync.createOrUpdateAsset(
+              success = await dataSync.createOrUpdateStockTrade(
                 'edit',
                 userId: GlobalStore().userId!,
                 assetData: {
@@ -1963,8 +3144,43 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
             }
           }
         }
-        // 计算并保存资产总额历史到本地
-        //await AppUtils().calculateAndSaveHistoricalPortfolioToPrefs(widget.db);
+        // 投資信託
+        if (assetCategoryCode == 'fund' && assetSubCategoryCode == 'fund') {
+          // 積み立て
+          if (selectedPurchaseType == 'saving-plan') {
+            // 購入
+            if (tradeAction == ActionType.buy) {
+              if (widget.mode == 'add') {
+                success = await dataSync.createOrUpdateFundTrade(
+                  'add',
+                  userId: GlobalStore().userId!,
+                  fundTransactionData: {
+                    "account_id": GlobalStore().accountId!,
+                    "fund_id": selectedFund!.id,
+                    "trade_date": AppUtils().formatDate(fundRecurringStartDate),
+                    "action": 'buy',
+                    "trade_type": 'recurring',
+                    "account_type": fundSelectedAccountType,
+                    "amount": fundRecurringAmount.toDouble(),
+                    "recurring_frequency_type": fundSelectedFrequencyType,
+                    "recurring_frequency_config": jsonEncode(
+                      fundFrequencyConfig,
+                    ),
+                    "recurring_start_date": AppUtils().formatDate(
+                      fundRecurringStartDate,
+                    ),
+                    "recurring_end_date": fundHasEndDate
+                        ? AppUtils().formatDate(fundRecurringEndDate)
+                        : null,
+                    "recurring_status": 'active',
+                    "remark": fundMemoValue,
+                  },
+                  fundData: selectedFund,
+                );
+              }
+            }
+          }
+        }
       } else {
         // 負債tab保存逻辑
         // ...

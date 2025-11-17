@@ -1811,6 +1811,1662 @@ class StocksCompanion extends UpdateCompanion<Stock> {
   }
 }
 
+class $FundsTable extends Funds with TableInfo<$FundsTable, Fund> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FundsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _codeMeta = const VerificationMeta('code');
+  @override
+  late final GeneratedColumn<String> code = GeneratedColumn<String>(
+    'code',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 20,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 255,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameUsMeta = const VerificationMeta('nameUs');
+  @override
+  late final GeneratedColumn<String> nameUs = GeneratedColumn<String>(
+    'name_us',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _managementCompanyMeta = const VerificationMeta(
+    'managementCompany',
+  );
+  @override
+  late final GeneratedColumn<String> managementCompany =
+      GeneratedColumn<String>(
+        'management_company',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _foundationDateMeta = const VerificationMeta(
+    'foundationDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> foundationDate =
+      GeneratedColumn<DateTime>(
+        'foundation_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _tsumitateFlagMeta = const VerificationMeta(
+    'tsumitateFlag',
+  );
+  @override
+  late final GeneratedColumn<bool> tsumitateFlag = GeneratedColumn<bool>(
+    'tsumitate_flag',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("tsumitate_flag" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _isinCdMeta = const VerificationMeta('isinCd');
+  @override
+  late final GeneratedColumn<String> isinCd = GeneratedColumn<String>(
+    'isin_cd',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    code,
+    name,
+    nameUs,
+    managementCompany,
+    foundationDate,
+    tsumitateFlag,
+    isinCd,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'funds';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Fund> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('code')) {
+      context.handle(
+        _codeMeta,
+        code.isAcceptableOrUnknown(data['code']!, _codeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_codeMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('name_us')) {
+      context.handle(
+        _nameUsMeta,
+        nameUs.isAcceptableOrUnknown(data['name_us']!, _nameUsMeta),
+      );
+    }
+    if (data.containsKey('management_company')) {
+      context.handle(
+        _managementCompanyMeta,
+        managementCompany.isAcceptableOrUnknown(
+          data['management_company']!,
+          _managementCompanyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('foundation_date')) {
+      context.handle(
+        _foundationDateMeta,
+        foundationDate.isAcceptableOrUnknown(
+          data['foundation_date']!,
+          _foundationDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('tsumitate_flag')) {
+      context.handle(
+        _tsumitateFlagMeta,
+        tsumitateFlag.isAcceptableOrUnknown(
+          data['tsumitate_flag']!,
+          _tsumitateFlagMeta,
+        ),
+      );
+    }
+    if (data.containsKey('isin_cd')) {
+      context.handle(
+        _isinCdMeta,
+        isinCd.isAcceptableOrUnknown(data['isin_cd']!, _isinCdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => const {};
+  @override
+  Fund map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Fund(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      code: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}code'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      nameUs: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name_us'],
+      ),
+      managementCompany: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}management_company'],
+      ),
+      foundationDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}foundation_date'],
+      ),
+      tsumitateFlag: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}tsumitate_flag'],
+      ),
+      isinCd: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}isin_cd'],
+      ),
+    );
+  }
+
+  @override
+  $FundsTable createAlias(String alias) {
+    return $FundsTable(attachedDatabase, alias);
+  }
+}
+
+class Fund extends DataClass implements Insertable<Fund> {
+  final int id;
+  final String code;
+  final String name;
+  final String? nameUs;
+  final String? managementCompany;
+  final DateTime? foundationDate;
+  final bool? tsumitateFlag;
+  final String? isinCd;
+  const Fund({
+    required this.id,
+    required this.code,
+    required this.name,
+    this.nameUs,
+    this.managementCompany,
+    this.foundationDate,
+    this.tsumitateFlag,
+    this.isinCd,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['code'] = Variable<String>(code);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || nameUs != null) {
+      map['name_us'] = Variable<String>(nameUs);
+    }
+    if (!nullToAbsent || managementCompany != null) {
+      map['management_company'] = Variable<String>(managementCompany);
+    }
+    if (!nullToAbsent || foundationDate != null) {
+      map['foundation_date'] = Variable<DateTime>(foundationDate);
+    }
+    if (!nullToAbsent || tsumitateFlag != null) {
+      map['tsumitate_flag'] = Variable<bool>(tsumitateFlag);
+    }
+    if (!nullToAbsent || isinCd != null) {
+      map['isin_cd'] = Variable<String>(isinCd);
+    }
+    return map;
+  }
+
+  FundsCompanion toCompanion(bool nullToAbsent) {
+    return FundsCompanion(
+      id: Value(id),
+      code: Value(code),
+      name: Value(name),
+      nameUs: nameUs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nameUs),
+      managementCompany: managementCompany == null && nullToAbsent
+          ? const Value.absent()
+          : Value(managementCompany),
+      foundationDate: foundationDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(foundationDate),
+      tsumitateFlag: tsumitateFlag == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tsumitateFlag),
+      isinCd: isinCd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(isinCd),
+    );
+  }
+
+  factory Fund.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Fund(
+      id: serializer.fromJson<int>(json['id']),
+      code: serializer.fromJson<String>(json['code']),
+      name: serializer.fromJson<String>(json['name']),
+      nameUs: serializer.fromJson<String?>(json['nameUs']),
+      managementCompany: serializer.fromJson<String?>(
+        json['managementCompany'],
+      ),
+      foundationDate: serializer.fromJson<DateTime?>(json['foundationDate']),
+      tsumitateFlag: serializer.fromJson<bool?>(json['tsumitateFlag']),
+      isinCd: serializer.fromJson<String?>(json['isinCd']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'code': serializer.toJson<String>(code),
+      'name': serializer.toJson<String>(name),
+      'nameUs': serializer.toJson<String?>(nameUs),
+      'managementCompany': serializer.toJson<String?>(managementCompany),
+      'foundationDate': serializer.toJson<DateTime?>(foundationDate),
+      'tsumitateFlag': serializer.toJson<bool?>(tsumitateFlag),
+      'isinCd': serializer.toJson<String?>(isinCd),
+    };
+  }
+
+  Fund copyWith({
+    int? id,
+    String? code,
+    String? name,
+    Value<String?> nameUs = const Value.absent(),
+    Value<String?> managementCompany = const Value.absent(),
+    Value<DateTime?> foundationDate = const Value.absent(),
+    Value<bool?> tsumitateFlag = const Value.absent(),
+    Value<String?> isinCd = const Value.absent(),
+  }) => Fund(
+    id: id ?? this.id,
+    code: code ?? this.code,
+    name: name ?? this.name,
+    nameUs: nameUs.present ? nameUs.value : this.nameUs,
+    managementCompany: managementCompany.present
+        ? managementCompany.value
+        : this.managementCompany,
+    foundationDate: foundationDate.present
+        ? foundationDate.value
+        : this.foundationDate,
+    tsumitateFlag: tsumitateFlag.present
+        ? tsumitateFlag.value
+        : this.tsumitateFlag,
+    isinCd: isinCd.present ? isinCd.value : this.isinCd,
+  );
+  Fund copyWithCompanion(FundsCompanion data) {
+    return Fund(
+      id: data.id.present ? data.id.value : this.id,
+      code: data.code.present ? data.code.value : this.code,
+      name: data.name.present ? data.name.value : this.name,
+      nameUs: data.nameUs.present ? data.nameUs.value : this.nameUs,
+      managementCompany: data.managementCompany.present
+          ? data.managementCompany.value
+          : this.managementCompany,
+      foundationDate: data.foundationDate.present
+          ? data.foundationDate.value
+          : this.foundationDate,
+      tsumitateFlag: data.tsumitateFlag.present
+          ? data.tsumitateFlag.value
+          : this.tsumitateFlag,
+      isinCd: data.isinCd.present ? data.isinCd.value : this.isinCd,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Fund(')
+          ..write('id: $id, ')
+          ..write('code: $code, ')
+          ..write('name: $name, ')
+          ..write('nameUs: $nameUs, ')
+          ..write('managementCompany: $managementCompany, ')
+          ..write('foundationDate: $foundationDate, ')
+          ..write('tsumitateFlag: $tsumitateFlag, ')
+          ..write('isinCd: $isinCd')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    code,
+    name,
+    nameUs,
+    managementCompany,
+    foundationDate,
+    tsumitateFlag,
+    isinCd,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Fund &&
+          other.id == this.id &&
+          other.code == this.code &&
+          other.name == this.name &&
+          other.nameUs == this.nameUs &&
+          other.managementCompany == this.managementCompany &&
+          other.foundationDate == this.foundationDate &&
+          other.tsumitateFlag == this.tsumitateFlag &&
+          other.isinCd == this.isinCd);
+}
+
+class FundsCompanion extends UpdateCompanion<Fund> {
+  final Value<int> id;
+  final Value<String> code;
+  final Value<String> name;
+  final Value<String?> nameUs;
+  final Value<String?> managementCompany;
+  final Value<DateTime?> foundationDate;
+  final Value<bool?> tsumitateFlag;
+  final Value<String?> isinCd;
+  final Value<int> rowid;
+  const FundsCompanion({
+    this.id = const Value.absent(),
+    this.code = const Value.absent(),
+    this.name = const Value.absent(),
+    this.nameUs = const Value.absent(),
+    this.managementCompany = const Value.absent(),
+    this.foundationDate = const Value.absent(),
+    this.tsumitateFlag = const Value.absent(),
+    this.isinCd = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FundsCompanion.insert({
+    required int id,
+    required String code,
+    required String name,
+    this.nameUs = const Value.absent(),
+    this.managementCompany = const Value.absent(),
+    this.foundationDate = const Value.absent(),
+    this.tsumitateFlag = const Value.absent(),
+    this.isinCd = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       code = Value(code),
+       name = Value(name);
+  static Insertable<Fund> custom({
+    Expression<int>? id,
+    Expression<String>? code,
+    Expression<String>? name,
+    Expression<String>? nameUs,
+    Expression<String>? managementCompany,
+    Expression<DateTime>? foundationDate,
+    Expression<bool>? tsumitateFlag,
+    Expression<String>? isinCd,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (code != null) 'code': code,
+      if (name != null) 'name': name,
+      if (nameUs != null) 'name_us': nameUs,
+      if (managementCompany != null) 'management_company': managementCompany,
+      if (foundationDate != null) 'foundation_date': foundationDate,
+      if (tsumitateFlag != null) 'tsumitate_flag': tsumitateFlag,
+      if (isinCd != null) 'isin_cd': isinCd,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FundsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? code,
+    Value<String>? name,
+    Value<String?>? nameUs,
+    Value<String?>? managementCompany,
+    Value<DateTime?>? foundationDate,
+    Value<bool?>? tsumitateFlag,
+    Value<String?>? isinCd,
+    Value<int>? rowid,
+  }) {
+    return FundsCompanion(
+      id: id ?? this.id,
+      code: code ?? this.code,
+      name: name ?? this.name,
+      nameUs: nameUs ?? this.nameUs,
+      managementCompany: managementCompany ?? this.managementCompany,
+      foundationDate: foundationDate ?? this.foundationDate,
+      tsumitateFlag: tsumitateFlag ?? this.tsumitateFlag,
+      isinCd: isinCd ?? this.isinCd,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (code.present) {
+      map['code'] = Variable<String>(code.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (nameUs.present) {
+      map['name_us'] = Variable<String>(nameUs.value);
+    }
+    if (managementCompany.present) {
+      map['management_company'] = Variable<String>(managementCompany.value);
+    }
+    if (foundationDate.present) {
+      map['foundation_date'] = Variable<DateTime>(foundationDate.value);
+    }
+    if (tsumitateFlag.present) {
+      map['tsumitate_flag'] = Variable<bool>(tsumitateFlag.value);
+    }
+    if (isinCd.present) {
+      map['isin_cd'] = Variable<String>(isinCd.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FundsCompanion(')
+          ..write('id: $id, ')
+          ..write('code: $code, ')
+          ..write('name: $name, ')
+          ..write('nameUs: $nameUs, ')
+          ..write('managementCompany: $managementCompany, ')
+          ..write('foundationDate: $foundationDate, ')
+          ..write('tsumitateFlag: $tsumitateFlag, ')
+          ..write('isinCd: $isinCd, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FundTransactionsTable extends FundTransactions
+    with TableInfo<$FundTransactionsTable, FundTransaction> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FundTransactionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fundIdMeta = const VerificationMeta('fundId');
+  @override
+  late final GeneratedColumn<int> fundId = GeneratedColumn<int>(
+    'fund_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tradeDateMeta = const VerificationMeta(
+    'tradeDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> tradeDate = GeneratedColumn<DateTime>(
+    'trade_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actionMeta = const VerificationMeta('action');
+  @override
+  late final GeneratedColumn<String> action = GeneratedColumn<String>(
+    'action',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tradeTypeMeta = const VerificationMeta(
+    'tradeType',
+  );
+  @override
+  late final GeneratedColumn<String> tradeType = GeneratedColumn<String>(
+    'trade_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountTypeMeta = const VerificationMeta(
+    'accountType',
+  );
+  @override
+  late final GeneratedColumn<String> accountType = GeneratedColumn<String>(
+    'account_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _quantityMeta = const VerificationMeta(
+    'quantity',
+  );
+  @override
+  late final GeneratedColumn<double> quantity = GeneratedColumn<double>(
+    'quantity',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _priceMeta = const VerificationMeta('price');
+  @override
+  late final GeneratedColumn<double> price = GeneratedColumn<double>(
+    'price',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _feeAmountMeta = const VerificationMeta(
+    'feeAmount',
+  );
+  @override
+  late final GeneratedColumn<double> feeAmount = GeneratedColumn<double>(
+    'fee_amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _feeCurrencyMeta = const VerificationMeta(
+    'feeCurrency',
+  );
+  @override
+  late final GeneratedColumn<String> feeCurrency = GeneratedColumn<String>(
+    'fee_currency',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _recurringFrequencyTypeMeta =
+      const VerificationMeta('recurringFrequencyType');
+  @override
+  late final GeneratedColumn<String> recurringFrequencyType =
+      GeneratedColumn<String>(
+        'recurring_frequency_type',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _recurringFrequencyConfigMeta =
+      const VerificationMeta('recurringFrequencyConfig');
+  @override
+  late final GeneratedColumn<String> recurringFrequencyConfig =
+      GeneratedColumn<String>(
+        'recurring_frequency_config',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _recurringStartDateMeta =
+      const VerificationMeta('recurringStartDate');
+  @override
+  late final GeneratedColumn<DateTime> recurringStartDate =
+      GeneratedColumn<DateTime>(
+        'recurring_start_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _recurringEndDateMeta = const VerificationMeta(
+    'recurringEndDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> recurringEndDate =
+      GeneratedColumn<DateTime>(
+        'recurring_end_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _recurringStatusMeta = const VerificationMeta(
+    'recurringStatus',
+  );
+  @override
+  late final GeneratedColumn<String> recurringStatus = GeneratedColumn<String>(
+    'recurring_status',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _remarkMeta = const VerificationMeta('remark');
+  @override
+  late final GeneratedColumn<String> remark = GeneratedColumn<String>(
+    'remark',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    accountId,
+    fundId,
+    tradeDate,
+    action,
+    tradeType,
+    accountType,
+    amount,
+    quantity,
+    price,
+    feeAmount,
+    feeCurrency,
+    recurringFrequencyType,
+    recurringFrequencyConfig,
+    recurringStartDate,
+    recurringEndDate,
+    recurringStatus,
+    remark,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'fund_transactions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FundTransaction> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('fund_id')) {
+      context.handle(
+        _fundIdMeta,
+        fundId.isAcceptableOrUnknown(data['fund_id']!, _fundIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fundIdMeta);
+    }
+    if (data.containsKey('trade_date')) {
+      context.handle(
+        _tradeDateMeta,
+        tradeDate.isAcceptableOrUnknown(data['trade_date']!, _tradeDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tradeDateMeta);
+    }
+    if (data.containsKey('action')) {
+      context.handle(
+        _actionMeta,
+        action.isAcceptableOrUnknown(data['action']!, _actionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_actionMeta);
+    }
+    if (data.containsKey('trade_type')) {
+      context.handle(
+        _tradeTypeMeta,
+        tradeType.isAcceptableOrUnknown(data['trade_type']!, _tradeTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tradeTypeMeta);
+    }
+    if (data.containsKey('account_type')) {
+      context.handle(
+        _accountTypeMeta,
+        accountType.isAcceptableOrUnknown(
+          data['account_type']!,
+          _accountTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_accountTypeMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
+    if (data.containsKey('quantity')) {
+      context.handle(
+        _quantityMeta,
+        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
+      );
+    }
+    if (data.containsKey('price')) {
+      context.handle(
+        _priceMeta,
+        price.isAcceptableOrUnknown(data['price']!, _priceMeta),
+      );
+    }
+    if (data.containsKey('fee_amount')) {
+      context.handle(
+        _feeAmountMeta,
+        feeAmount.isAcceptableOrUnknown(data['fee_amount']!, _feeAmountMeta),
+      );
+    }
+    if (data.containsKey('fee_currency')) {
+      context.handle(
+        _feeCurrencyMeta,
+        feeCurrency.isAcceptableOrUnknown(
+          data['fee_currency']!,
+          _feeCurrencyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recurring_frequency_type')) {
+      context.handle(
+        _recurringFrequencyTypeMeta,
+        recurringFrequencyType.isAcceptableOrUnknown(
+          data['recurring_frequency_type']!,
+          _recurringFrequencyTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recurring_frequency_config')) {
+      context.handle(
+        _recurringFrequencyConfigMeta,
+        recurringFrequencyConfig.isAcceptableOrUnknown(
+          data['recurring_frequency_config']!,
+          _recurringFrequencyConfigMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recurring_start_date')) {
+      context.handle(
+        _recurringStartDateMeta,
+        recurringStartDate.isAcceptableOrUnknown(
+          data['recurring_start_date']!,
+          _recurringStartDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recurring_end_date')) {
+      context.handle(
+        _recurringEndDateMeta,
+        recurringEndDate.isAcceptableOrUnknown(
+          data['recurring_end_date']!,
+          _recurringEndDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recurring_status')) {
+      context.handle(
+        _recurringStatusMeta,
+        recurringStatus.isAcceptableOrUnknown(
+          data['recurring_status']!,
+          _recurringStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remark')) {
+      context.handle(
+        _remarkMeta,
+        remark.isAcceptableOrUnknown(data['remark']!, _remarkMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => const {};
+  @override
+  FundTransaction map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FundTransaction(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      )!,
+      fundId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fund_id'],
+      )!,
+      tradeDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}trade_date'],
+      )!,
+      action: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}action'],
+      )!,
+      tradeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trade_type'],
+      )!,
+      accountType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_type'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      ),
+      quantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}quantity'],
+      ),
+      price: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}price'],
+      ),
+      feeAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}fee_amount'],
+      ),
+      feeCurrency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fee_currency'],
+      ),
+      recurringFrequencyType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurring_frequency_type'],
+      ),
+      recurringFrequencyConfig: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurring_frequency_config'],
+      ),
+      recurringStartDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}recurring_start_date'],
+      ),
+      recurringEndDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}recurring_end_date'],
+      ),
+      recurringStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurring_status'],
+      ),
+      remark: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remark'],
+      ),
+    );
+  }
+
+  @override
+  $FundTransactionsTable createAlias(String alias) {
+    return $FundTransactionsTable(attachedDatabase, alias);
+  }
+}
+
+class FundTransaction extends DataClass implements Insertable<FundTransaction> {
+  final int id;
+  final String userId;
+  final int accountId;
+  final int fundId;
+  final DateTime tradeDate;
+  final String action;
+  final String tradeType;
+  final String accountType;
+  final double? amount;
+  final double? quantity;
+  final double? price;
+  final double? feeAmount;
+  final String? feeCurrency;
+  final String? recurringFrequencyType;
+  final String? recurringFrequencyConfig;
+  final DateTime? recurringStartDate;
+  final DateTime? recurringEndDate;
+  final String? recurringStatus;
+  final String? remark;
+  const FundTransaction({
+    required this.id,
+    required this.userId,
+    required this.accountId,
+    required this.fundId,
+    required this.tradeDate,
+    required this.action,
+    required this.tradeType,
+    required this.accountType,
+    this.amount,
+    this.quantity,
+    this.price,
+    this.feeAmount,
+    this.feeCurrency,
+    this.recurringFrequencyType,
+    this.recurringFrequencyConfig,
+    this.recurringStartDate,
+    this.recurringEndDate,
+    this.recurringStatus,
+    this.remark,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['account_id'] = Variable<int>(accountId);
+    map['fund_id'] = Variable<int>(fundId);
+    map['trade_date'] = Variable<DateTime>(tradeDate);
+    map['action'] = Variable<String>(action);
+    map['trade_type'] = Variable<String>(tradeType);
+    map['account_type'] = Variable<String>(accountType);
+    if (!nullToAbsent || amount != null) {
+      map['amount'] = Variable<double>(amount);
+    }
+    if (!nullToAbsent || quantity != null) {
+      map['quantity'] = Variable<double>(quantity);
+    }
+    if (!nullToAbsent || price != null) {
+      map['price'] = Variable<double>(price);
+    }
+    if (!nullToAbsent || feeAmount != null) {
+      map['fee_amount'] = Variable<double>(feeAmount);
+    }
+    if (!nullToAbsent || feeCurrency != null) {
+      map['fee_currency'] = Variable<String>(feeCurrency);
+    }
+    if (!nullToAbsent || recurringFrequencyType != null) {
+      map['recurring_frequency_type'] = Variable<String>(
+        recurringFrequencyType,
+      );
+    }
+    if (!nullToAbsent || recurringFrequencyConfig != null) {
+      map['recurring_frequency_config'] = Variable<String>(
+        recurringFrequencyConfig,
+      );
+    }
+    if (!nullToAbsent || recurringStartDate != null) {
+      map['recurring_start_date'] = Variable<DateTime>(recurringStartDate);
+    }
+    if (!nullToAbsent || recurringEndDate != null) {
+      map['recurring_end_date'] = Variable<DateTime>(recurringEndDate);
+    }
+    if (!nullToAbsent || recurringStatus != null) {
+      map['recurring_status'] = Variable<String>(recurringStatus);
+    }
+    if (!nullToAbsent || remark != null) {
+      map['remark'] = Variable<String>(remark);
+    }
+    return map;
+  }
+
+  FundTransactionsCompanion toCompanion(bool nullToAbsent) {
+    return FundTransactionsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      accountId: Value(accountId),
+      fundId: Value(fundId),
+      tradeDate: Value(tradeDate),
+      action: Value(action),
+      tradeType: Value(tradeType),
+      accountType: Value(accountType),
+      amount: amount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amount),
+      quantity: quantity == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quantity),
+      price: price == null && nullToAbsent
+          ? const Value.absent()
+          : Value(price),
+      feeAmount: feeAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(feeAmount),
+      feeCurrency: feeCurrency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(feeCurrency),
+      recurringFrequencyType: recurringFrequencyType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurringFrequencyType),
+      recurringFrequencyConfig: recurringFrequencyConfig == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurringFrequencyConfig),
+      recurringStartDate: recurringStartDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurringStartDate),
+      recurringEndDate: recurringEndDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurringEndDate),
+      recurringStatus: recurringStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurringStatus),
+      remark: remark == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remark),
+    );
+  }
+
+  factory FundTransaction.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FundTransaction(
+      id: serializer.fromJson<int>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      accountId: serializer.fromJson<int>(json['accountId']),
+      fundId: serializer.fromJson<int>(json['fundId']),
+      tradeDate: serializer.fromJson<DateTime>(json['tradeDate']),
+      action: serializer.fromJson<String>(json['action']),
+      tradeType: serializer.fromJson<String>(json['tradeType']),
+      accountType: serializer.fromJson<String>(json['accountType']),
+      amount: serializer.fromJson<double?>(json['amount']),
+      quantity: serializer.fromJson<double?>(json['quantity']),
+      price: serializer.fromJson<double?>(json['price']),
+      feeAmount: serializer.fromJson<double?>(json['feeAmount']),
+      feeCurrency: serializer.fromJson<String?>(json['feeCurrency']),
+      recurringFrequencyType: serializer.fromJson<String?>(
+        json['recurringFrequencyType'],
+      ),
+      recurringFrequencyConfig: serializer.fromJson<String?>(
+        json['recurringFrequencyConfig'],
+      ),
+      recurringStartDate: serializer.fromJson<DateTime?>(
+        json['recurringStartDate'],
+      ),
+      recurringEndDate: serializer.fromJson<DateTime?>(
+        json['recurringEndDate'],
+      ),
+      recurringStatus: serializer.fromJson<String?>(json['recurringStatus']),
+      remark: serializer.fromJson<String?>(json['remark']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'userId': serializer.toJson<String>(userId),
+      'accountId': serializer.toJson<int>(accountId),
+      'fundId': serializer.toJson<int>(fundId),
+      'tradeDate': serializer.toJson<DateTime>(tradeDate),
+      'action': serializer.toJson<String>(action),
+      'tradeType': serializer.toJson<String>(tradeType),
+      'accountType': serializer.toJson<String>(accountType),
+      'amount': serializer.toJson<double?>(amount),
+      'quantity': serializer.toJson<double?>(quantity),
+      'price': serializer.toJson<double?>(price),
+      'feeAmount': serializer.toJson<double?>(feeAmount),
+      'feeCurrency': serializer.toJson<String?>(feeCurrency),
+      'recurringFrequencyType': serializer.toJson<String?>(
+        recurringFrequencyType,
+      ),
+      'recurringFrequencyConfig': serializer.toJson<String?>(
+        recurringFrequencyConfig,
+      ),
+      'recurringStartDate': serializer.toJson<DateTime?>(recurringStartDate),
+      'recurringEndDate': serializer.toJson<DateTime?>(recurringEndDate),
+      'recurringStatus': serializer.toJson<String?>(recurringStatus),
+      'remark': serializer.toJson<String?>(remark),
+    };
+  }
+
+  FundTransaction copyWith({
+    int? id,
+    String? userId,
+    int? accountId,
+    int? fundId,
+    DateTime? tradeDate,
+    String? action,
+    String? tradeType,
+    String? accountType,
+    Value<double?> amount = const Value.absent(),
+    Value<double?> quantity = const Value.absent(),
+    Value<double?> price = const Value.absent(),
+    Value<double?> feeAmount = const Value.absent(),
+    Value<String?> feeCurrency = const Value.absent(),
+    Value<String?> recurringFrequencyType = const Value.absent(),
+    Value<String?> recurringFrequencyConfig = const Value.absent(),
+    Value<DateTime?> recurringStartDate = const Value.absent(),
+    Value<DateTime?> recurringEndDate = const Value.absent(),
+    Value<String?> recurringStatus = const Value.absent(),
+    Value<String?> remark = const Value.absent(),
+  }) => FundTransaction(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    accountId: accountId ?? this.accountId,
+    fundId: fundId ?? this.fundId,
+    tradeDate: tradeDate ?? this.tradeDate,
+    action: action ?? this.action,
+    tradeType: tradeType ?? this.tradeType,
+    accountType: accountType ?? this.accountType,
+    amount: amount.present ? amount.value : this.amount,
+    quantity: quantity.present ? quantity.value : this.quantity,
+    price: price.present ? price.value : this.price,
+    feeAmount: feeAmount.present ? feeAmount.value : this.feeAmount,
+    feeCurrency: feeCurrency.present ? feeCurrency.value : this.feeCurrency,
+    recurringFrequencyType: recurringFrequencyType.present
+        ? recurringFrequencyType.value
+        : this.recurringFrequencyType,
+    recurringFrequencyConfig: recurringFrequencyConfig.present
+        ? recurringFrequencyConfig.value
+        : this.recurringFrequencyConfig,
+    recurringStartDate: recurringStartDate.present
+        ? recurringStartDate.value
+        : this.recurringStartDate,
+    recurringEndDate: recurringEndDate.present
+        ? recurringEndDate.value
+        : this.recurringEndDate,
+    recurringStatus: recurringStatus.present
+        ? recurringStatus.value
+        : this.recurringStatus,
+    remark: remark.present ? remark.value : this.remark,
+  );
+  FundTransaction copyWithCompanion(FundTransactionsCompanion data) {
+    return FundTransaction(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      fundId: data.fundId.present ? data.fundId.value : this.fundId,
+      tradeDate: data.tradeDate.present ? data.tradeDate.value : this.tradeDate,
+      action: data.action.present ? data.action.value : this.action,
+      tradeType: data.tradeType.present ? data.tradeType.value : this.tradeType,
+      accountType: data.accountType.present
+          ? data.accountType.value
+          : this.accountType,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      price: data.price.present ? data.price.value : this.price,
+      feeAmount: data.feeAmount.present ? data.feeAmount.value : this.feeAmount,
+      feeCurrency: data.feeCurrency.present
+          ? data.feeCurrency.value
+          : this.feeCurrency,
+      recurringFrequencyType: data.recurringFrequencyType.present
+          ? data.recurringFrequencyType.value
+          : this.recurringFrequencyType,
+      recurringFrequencyConfig: data.recurringFrequencyConfig.present
+          ? data.recurringFrequencyConfig.value
+          : this.recurringFrequencyConfig,
+      recurringStartDate: data.recurringStartDate.present
+          ? data.recurringStartDate.value
+          : this.recurringStartDate,
+      recurringEndDate: data.recurringEndDate.present
+          ? data.recurringEndDate.value
+          : this.recurringEndDate,
+      recurringStatus: data.recurringStatus.present
+          ? data.recurringStatus.value
+          : this.recurringStatus,
+      remark: data.remark.present ? data.remark.value : this.remark,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FundTransaction(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('accountId: $accountId, ')
+          ..write('fundId: $fundId, ')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('action: $action, ')
+          ..write('tradeType: $tradeType, ')
+          ..write('accountType: $accountType, ')
+          ..write('amount: $amount, ')
+          ..write('quantity: $quantity, ')
+          ..write('price: $price, ')
+          ..write('feeAmount: $feeAmount, ')
+          ..write('feeCurrency: $feeCurrency, ')
+          ..write('recurringFrequencyType: $recurringFrequencyType, ')
+          ..write('recurringFrequencyConfig: $recurringFrequencyConfig, ')
+          ..write('recurringStartDate: $recurringStartDate, ')
+          ..write('recurringEndDate: $recurringEndDate, ')
+          ..write('recurringStatus: $recurringStatus, ')
+          ..write('remark: $remark')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    accountId,
+    fundId,
+    tradeDate,
+    action,
+    tradeType,
+    accountType,
+    amount,
+    quantity,
+    price,
+    feeAmount,
+    feeCurrency,
+    recurringFrequencyType,
+    recurringFrequencyConfig,
+    recurringStartDate,
+    recurringEndDate,
+    recurringStatus,
+    remark,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FundTransaction &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.accountId == this.accountId &&
+          other.fundId == this.fundId &&
+          other.tradeDate == this.tradeDate &&
+          other.action == this.action &&
+          other.tradeType == this.tradeType &&
+          other.accountType == this.accountType &&
+          other.amount == this.amount &&
+          other.quantity == this.quantity &&
+          other.price == this.price &&
+          other.feeAmount == this.feeAmount &&
+          other.feeCurrency == this.feeCurrency &&
+          other.recurringFrequencyType == this.recurringFrequencyType &&
+          other.recurringFrequencyConfig == this.recurringFrequencyConfig &&
+          other.recurringStartDate == this.recurringStartDate &&
+          other.recurringEndDate == this.recurringEndDate &&
+          other.recurringStatus == this.recurringStatus &&
+          other.remark == this.remark);
+}
+
+class FundTransactionsCompanion extends UpdateCompanion<FundTransaction> {
+  final Value<int> id;
+  final Value<String> userId;
+  final Value<int> accountId;
+  final Value<int> fundId;
+  final Value<DateTime> tradeDate;
+  final Value<String> action;
+  final Value<String> tradeType;
+  final Value<String> accountType;
+  final Value<double?> amount;
+  final Value<double?> quantity;
+  final Value<double?> price;
+  final Value<double?> feeAmount;
+  final Value<String?> feeCurrency;
+  final Value<String?> recurringFrequencyType;
+  final Value<String?> recurringFrequencyConfig;
+  final Value<DateTime?> recurringStartDate;
+  final Value<DateTime?> recurringEndDate;
+  final Value<String?> recurringStatus;
+  final Value<String?> remark;
+  final Value<int> rowid;
+  const FundTransactionsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.fundId = const Value.absent(),
+    this.tradeDate = const Value.absent(),
+    this.action = const Value.absent(),
+    this.tradeType = const Value.absent(),
+    this.accountType = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.price = const Value.absent(),
+    this.feeAmount = const Value.absent(),
+    this.feeCurrency = const Value.absent(),
+    this.recurringFrequencyType = const Value.absent(),
+    this.recurringFrequencyConfig = const Value.absent(),
+    this.recurringStartDate = const Value.absent(),
+    this.recurringEndDate = const Value.absent(),
+    this.recurringStatus = const Value.absent(),
+    this.remark = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FundTransactionsCompanion.insert({
+    required int id,
+    required String userId,
+    required int accountId,
+    required int fundId,
+    required DateTime tradeDate,
+    required String action,
+    required String tradeType,
+    required String accountType,
+    this.amount = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.price = const Value.absent(),
+    this.feeAmount = const Value.absent(),
+    this.feeCurrency = const Value.absent(),
+    this.recurringFrequencyType = const Value.absent(),
+    this.recurringFrequencyConfig = const Value.absent(),
+    this.recurringStartDate = const Value.absent(),
+    this.recurringEndDate = const Value.absent(),
+    this.recurringStatus = const Value.absent(),
+    this.remark = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       accountId = Value(accountId),
+       fundId = Value(fundId),
+       tradeDate = Value(tradeDate),
+       action = Value(action),
+       tradeType = Value(tradeType),
+       accountType = Value(accountType);
+  static Insertable<FundTransaction> custom({
+    Expression<int>? id,
+    Expression<String>? userId,
+    Expression<int>? accountId,
+    Expression<int>? fundId,
+    Expression<DateTime>? tradeDate,
+    Expression<String>? action,
+    Expression<String>? tradeType,
+    Expression<String>? accountType,
+    Expression<double>? amount,
+    Expression<double>? quantity,
+    Expression<double>? price,
+    Expression<double>? feeAmount,
+    Expression<String>? feeCurrency,
+    Expression<String>? recurringFrequencyType,
+    Expression<String>? recurringFrequencyConfig,
+    Expression<DateTime>? recurringStartDate,
+    Expression<DateTime>? recurringEndDate,
+    Expression<String>? recurringStatus,
+    Expression<String>? remark,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (accountId != null) 'account_id': accountId,
+      if (fundId != null) 'fund_id': fundId,
+      if (tradeDate != null) 'trade_date': tradeDate,
+      if (action != null) 'action': action,
+      if (tradeType != null) 'trade_type': tradeType,
+      if (accountType != null) 'account_type': accountType,
+      if (amount != null) 'amount': amount,
+      if (quantity != null) 'quantity': quantity,
+      if (price != null) 'price': price,
+      if (feeAmount != null) 'fee_amount': feeAmount,
+      if (feeCurrency != null) 'fee_currency': feeCurrency,
+      if (recurringFrequencyType != null)
+        'recurring_frequency_type': recurringFrequencyType,
+      if (recurringFrequencyConfig != null)
+        'recurring_frequency_config': recurringFrequencyConfig,
+      if (recurringStartDate != null)
+        'recurring_start_date': recurringStartDate,
+      if (recurringEndDate != null) 'recurring_end_date': recurringEndDate,
+      if (recurringStatus != null) 'recurring_status': recurringStatus,
+      if (remark != null) 'remark': remark,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FundTransactionsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? userId,
+    Value<int>? accountId,
+    Value<int>? fundId,
+    Value<DateTime>? tradeDate,
+    Value<String>? action,
+    Value<String>? tradeType,
+    Value<String>? accountType,
+    Value<double?>? amount,
+    Value<double?>? quantity,
+    Value<double?>? price,
+    Value<double?>? feeAmount,
+    Value<String?>? feeCurrency,
+    Value<String?>? recurringFrequencyType,
+    Value<String?>? recurringFrequencyConfig,
+    Value<DateTime?>? recurringStartDate,
+    Value<DateTime?>? recurringEndDate,
+    Value<String?>? recurringStatus,
+    Value<String?>? remark,
+    Value<int>? rowid,
+  }) {
+    return FundTransactionsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      accountId: accountId ?? this.accountId,
+      fundId: fundId ?? this.fundId,
+      tradeDate: tradeDate ?? this.tradeDate,
+      action: action ?? this.action,
+      tradeType: tradeType ?? this.tradeType,
+      accountType: accountType ?? this.accountType,
+      amount: amount ?? this.amount,
+      quantity: quantity ?? this.quantity,
+      price: price ?? this.price,
+      feeAmount: feeAmount ?? this.feeAmount,
+      feeCurrency: feeCurrency ?? this.feeCurrency,
+      recurringFrequencyType:
+          recurringFrequencyType ?? this.recurringFrequencyType,
+      recurringFrequencyConfig:
+          recurringFrequencyConfig ?? this.recurringFrequencyConfig,
+      recurringStartDate: recurringStartDate ?? this.recurringStartDate,
+      recurringEndDate: recurringEndDate ?? this.recurringEndDate,
+      recurringStatus: recurringStatus ?? this.recurringStatus,
+      remark: remark ?? this.remark,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (fundId.present) {
+      map['fund_id'] = Variable<int>(fundId.value);
+    }
+    if (tradeDate.present) {
+      map['trade_date'] = Variable<DateTime>(tradeDate.value);
+    }
+    if (action.present) {
+      map['action'] = Variable<String>(action.value);
+    }
+    if (tradeType.present) {
+      map['trade_type'] = Variable<String>(tradeType.value);
+    }
+    if (accountType.present) {
+      map['account_type'] = Variable<String>(accountType.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (quantity.present) {
+      map['quantity'] = Variable<double>(quantity.value);
+    }
+    if (price.present) {
+      map['price'] = Variable<double>(price.value);
+    }
+    if (feeAmount.present) {
+      map['fee_amount'] = Variable<double>(feeAmount.value);
+    }
+    if (feeCurrency.present) {
+      map['fee_currency'] = Variable<String>(feeCurrency.value);
+    }
+    if (recurringFrequencyType.present) {
+      map['recurring_frequency_type'] = Variable<String>(
+        recurringFrequencyType.value,
+      );
+    }
+    if (recurringFrequencyConfig.present) {
+      map['recurring_frequency_config'] = Variable<String>(
+        recurringFrequencyConfig.value,
+      );
+    }
+    if (recurringStartDate.present) {
+      map['recurring_start_date'] = Variable<DateTime>(
+        recurringStartDate.value,
+      );
+    }
+    if (recurringEndDate.present) {
+      map['recurring_end_date'] = Variable<DateTime>(recurringEndDate.value);
+    }
+    if (recurringStatus.present) {
+      map['recurring_status'] = Variable<String>(recurringStatus.value);
+    }
+    if (remark.present) {
+      map['remark'] = Variable<String>(remark.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FundTransactionsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('accountId: $accountId, ')
+          ..write('fundId: $fundId, ')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('action: $action, ')
+          ..write('tradeType: $tradeType, ')
+          ..write('accountType: $accountType, ')
+          ..write('amount: $amount, ')
+          ..write('quantity: $quantity, ')
+          ..write('price: $price, ')
+          ..write('feeAmount: $feeAmount, ')
+          ..write('feeCurrency: $feeCurrency, ')
+          ..write('recurringFrequencyType: $recurringFrequencyType, ')
+          ..write('recurringFrequencyConfig: $recurringFrequencyConfig, ')
+          ..write('recurringStartDate: $recurringStartDate, ')
+          ..write('recurringEndDate: $recurringEndDate, ')
+          ..write('recurringStatus: $recurringStatus, ')
+          ..write('remark: $remark, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TradeSellMappingsTable extends TradeSellMappings
     with TableInfo<$TradeSellMappingsTable, TradeSellMapping> {
   @override
@@ -3603,6 +5259,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $TradeRecordsTable tradeRecords = $TradeRecordsTable(this);
   late final $StocksTable stocks = $StocksTable(this);
+  late final $FundsTable funds = $FundsTable(this);
+  late final $FundTransactionsTable fundTransactions = $FundTransactionsTable(
+    this,
+  );
   late final $TradeSellMappingsTable tradeSellMappings =
       $TradeSellMappingsTable(this);
   late final $AccountsTable accounts = $AccountsTable(this);
@@ -3616,6 +5276,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     tradeRecords,
     stocks,
+    funds,
+    fundTransactions,
     tradeSellMappings,
     accounts,
     stockPrices,
@@ -4436,6 +6098,748 @@ typedef $$StocksTableProcessedTableManager =
       $$StocksTableUpdateCompanionBuilder,
       (Stock, BaseReferences<_$AppDatabase, $StocksTable, Stock>),
       Stock,
+      PrefetchHooks Function()
+    >;
+typedef $$FundsTableCreateCompanionBuilder =
+    FundsCompanion Function({
+      required int id,
+      required String code,
+      required String name,
+      Value<String?> nameUs,
+      Value<String?> managementCompany,
+      Value<DateTime?> foundationDate,
+      Value<bool?> tsumitateFlag,
+      Value<String?> isinCd,
+      Value<int> rowid,
+    });
+typedef $$FundsTableUpdateCompanionBuilder =
+    FundsCompanion Function({
+      Value<int> id,
+      Value<String> code,
+      Value<String> name,
+      Value<String?> nameUs,
+      Value<String?> managementCompany,
+      Value<DateTime?> foundationDate,
+      Value<bool?> tsumitateFlag,
+      Value<String?> isinCd,
+      Value<int> rowid,
+    });
+
+class $$FundsTableFilterComposer extends Composer<_$AppDatabase, $FundsTable> {
+  $$FundsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nameUs => $composableBuilder(
+    column: $table.nameUs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get managementCompany => $composableBuilder(
+    column: $table.managementCompany,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get foundationDate => $composableBuilder(
+    column: $table.foundationDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get tsumitateFlag => $composableBuilder(
+    column: $table.tsumitateFlag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get isinCd => $composableBuilder(
+    column: $table.isinCd,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FundsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FundsTable> {
+  $$FundsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nameUs => $composableBuilder(
+    column: $table.nameUs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get managementCompany => $composableBuilder(
+    column: $table.managementCompany,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get foundationDate => $composableBuilder(
+    column: $table.foundationDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get tsumitateFlag => $composableBuilder(
+    column: $table.tsumitateFlag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get isinCd => $composableBuilder(
+    column: $table.isinCd,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FundsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FundsTable> {
+  $$FundsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get code =>
+      $composableBuilder(column: $table.code, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get nameUs =>
+      $composableBuilder(column: $table.nameUs, builder: (column) => column);
+
+  GeneratedColumn<String> get managementCompany => $composableBuilder(
+    column: $table.managementCompany,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get foundationDate => $composableBuilder(
+    column: $table.foundationDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get tsumitateFlag => $composableBuilder(
+    column: $table.tsumitateFlag,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get isinCd =>
+      $composableBuilder(column: $table.isinCd, builder: (column) => column);
+}
+
+class $$FundsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FundsTable,
+          Fund,
+          $$FundsTableFilterComposer,
+          $$FundsTableOrderingComposer,
+          $$FundsTableAnnotationComposer,
+          $$FundsTableCreateCompanionBuilder,
+          $$FundsTableUpdateCompanionBuilder,
+          (Fund, BaseReferences<_$AppDatabase, $FundsTable, Fund>),
+          Fund,
+          PrefetchHooks Function()
+        > {
+  $$FundsTableTableManager(_$AppDatabase db, $FundsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FundsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FundsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FundsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> code = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> nameUs = const Value.absent(),
+                Value<String?> managementCompany = const Value.absent(),
+                Value<DateTime?> foundationDate = const Value.absent(),
+                Value<bool?> tsumitateFlag = const Value.absent(),
+                Value<String?> isinCd = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FundsCompanion(
+                id: id,
+                code: code,
+                name: name,
+                nameUs: nameUs,
+                managementCompany: managementCompany,
+                foundationDate: foundationDate,
+                tsumitateFlag: tsumitateFlag,
+                isinCd: isinCd,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int id,
+                required String code,
+                required String name,
+                Value<String?> nameUs = const Value.absent(),
+                Value<String?> managementCompany = const Value.absent(),
+                Value<DateTime?> foundationDate = const Value.absent(),
+                Value<bool?> tsumitateFlag = const Value.absent(),
+                Value<String?> isinCd = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FundsCompanion.insert(
+                id: id,
+                code: code,
+                name: name,
+                nameUs: nameUs,
+                managementCompany: managementCompany,
+                foundationDate: foundationDate,
+                tsumitateFlag: tsumitateFlag,
+                isinCd: isinCd,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FundsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FundsTable,
+      Fund,
+      $$FundsTableFilterComposer,
+      $$FundsTableOrderingComposer,
+      $$FundsTableAnnotationComposer,
+      $$FundsTableCreateCompanionBuilder,
+      $$FundsTableUpdateCompanionBuilder,
+      (Fund, BaseReferences<_$AppDatabase, $FundsTable, Fund>),
+      Fund,
+      PrefetchHooks Function()
+    >;
+typedef $$FundTransactionsTableCreateCompanionBuilder =
+    FundTransactionsCompanion Function({
+      required int id,
+      required String userId,
+      required int accountId,
+      required int fundId,
+      required DateTime tradeDate,
+      required String action,
+      required String tradeType,
+      required String accountType,
+      Value<double?> amount,
+      Value<double?> quantity,
+      Value<double?> price,
+      Value<double?> feeAmount,
+      Value<String?> feeCurrency,
+      Value<String?> recurringFrequencyType,
+      Value<String?> recurringFrequencyConfig,
+      Value<DateTime?> recurringStartDate,
+      Value<DateTime?> recurringEndDate,
+      Value<String?> recurringStatus,
+      Value<String?> remark,
+      Value<int> rowid,
+    });
+typedef $$FundTransactionsTableUpdateCompanionBuilder =
+    FundTransactionsCompanion Function({
+      Value<int> id,
+      Value<String> userId,
+      Value<int> accountId,
+      Value<int> fundId,
+      Value<DateTime> tradeDate,
+      Value<String> action,
+      Value<String> tradeType,
+      Value<String> accountType,
+      Value<double?> amount,
+      Value<double?> quantity,
+      Value<double?> price,
+      Value<double?> feeAmount,
+      Value<String?> feeCurrency,
+      Value<String?> recurringFrequencyType,
+      Value<String?> recurringFrequencyConfig,
+      Value<DateTime?> recurringStartDate,
+      Value<DateTime?> recurringEndDate,
+      Value<String?> recurringStatus,
+      Value<String?> remark,
+      Value<int> rowid,
+    });
+
+class $$FundTransactionsTableFilterComposer
+    extends Composer<_$AppDatabase, $FundTransactionsTable> {
+  $$FundTransactionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fundId => $composableBuilder(
+    column: $table.fundId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tradeType => $composableBuilder(
+    column: $table.tradeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountType => $composableBuilder(
+    column: $table.accountType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get feeAmount => $composableBuilder(
+    column: $table.feeAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get feeCurrency => $composableBuilder(
+    column: $table.feeCurrency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurringFrequencyType => $composableBuilder(
+    column: $table.recurringFrequencyType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurringFrequencyConfig => $composableBuilder(
+    column: $table.recurringFrequencyConfig,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get recurringStartDate => $composableBuilder(
+    column: $table.recurringStartDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get recurringEndDate => $composableBuilder(
+    column: $table.recurringEndDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurringStatus => $composableBuilder(
+    column: $table.recurringStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remark => $composableBuilder(
+    column: $table.remark,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FundTransactionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FundTransactionsTable> {
+  $$FundTransactionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fundId => $composableBuilder(
+    column: $table.fundId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tradeType => $composableBuilder(
+    column: $table.tradeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountType => $composableBuilder(
+    column: $table.accountType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get feeAmount => $composableBuilder(
+    column: $table.feeAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get feeCurrency => $composableBuilder(
+    column: $table.feeCurrency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recurringFrequencyType => $composableBuilder(
+    column: $table.recurringFrequencyType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recurringFrequencyConfig => $composableBuilder(
+    column: $table.recurringFrequencyConfig,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get recurringStartDate => $composableBuilder(
+    column: $table.recurringStartDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get recurringEndDate => $composableBuilder(
+    column: $table.recurringEndDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recurringStatus => $composableBuilder(
+    column: $table.recurringStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remark => $composableBuilder(
+    column: $table.remark,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FundTransactionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FundTransactionsTable> {
+  $$FundTransactionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<int> get fundId =>
+      $composableBuilder(column: $table.fundId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get tradeDate =>
+      $composableBuilder(column: $table.tradeDate, builder: (column) => column);
+
+  GeneratedColumn<String> get action =>
+      $composableBuilder(column: $table.action, builder: (column) => column);
+
+  GeneratedColumn<String> get tradeType =>
+      $composableBuilder(column: $table.tradeType, builder: (column) => column);
+
+  GeneratedColumn<String> get accountType => $composableBuilder(
+    column: $table.accountType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<double> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<double> get price =>
+      $composableBuilder(column: $table.price, builder: (column) => column);
+
+  GeneratedColumn<double> get feeAmount =>
+      $composableBuilder(column: $table.feeAmount, builder: (column) => column);
+
+  GeneratedColumn<String> get feeCurrency => $composableBuilder(
+    column: $table.feeCurrency,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recurringFrequencyType => $composableBuilder(
+    column: $table.recurringFrequencyType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recurringFrequencyConfig => $composableBuilder(
+    column: $table.recurringFrequencyConfig,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get recurringStartDate => $composableBuilder(
+    column: $table.recurringStartDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get recurringEndDate => $composableBuilder(
+    column: $table.recurringEndDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recurringStatus => $composableBuilder(
+    column: $table.recurringStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remark =>
+      $composableBuilder(column: $table.remark, builder: (column) => column);
+}
+
+class $$FundTransactionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FundTransactionsTable,
+          FundTransaction,
+          $$FundTransactionsTableFilterComposer,
+          $$FundTransactionsTableOrderingComposer,
+          $$FundTransactionsTableAnnotationComposer,
+          $$FundTransactionsTableCreateCompanionBuilder,
+          $$FundTransactionsTableUpdateCompanionBuilder,
+          (
+            FundTransaction,
+            BaseReferences<
+              _$AppDatabase,
+              $FundTransactionsTable,
+              FundTransaction
+            >,
+          ),
+          FundTransaction,
+          PrefetchHooks Function()
+        > {
+  $$FundTransactionsTableTableManager(
+    _$AppDatabase db,
+    $FundTransactionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FundTransactionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FundTransactionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FundTransactionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> accountId = const Value.absent(),
+                Value<int> fundId = const Value.absent(),
+                Value<DateTime> tradeDate = const Value.absent(),
+                Value<String> action = const Value.absent(),
+                Value<String> tradeType = const Value.absent(),
+                Value<String> accountType = const Value.absent(),
+                Value<double?> amount = const Value.absent(),
+                Value<double?> quantity = const Value.absent(),
+                Value<double?> price = const Value.absent(),
+                Value<double?> feeAmount = const Value.absent(),
+                Value<String?> feeCurrency = const Value.absent(),
+                Value<String?> recurringFrequencyType = const Value.absent(),
+                Value<String?> recurringFrequencyConfig = const Value.absent(),
+                Value<DateTime?> recurringStartDate = const Value.absent(),
+                Value<DateTime?> recurringEndDate = const Value.absent(),
+                Value<String?> recurringStatus = const Value.absent(),
+                Value<String?> remark = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FundTransactionsCompanion(
+                id: id,
+                userId: userId,
+                accountId: accountId,
+                fundId: fundId,
+                tradeDate: tradeDate,
+                action: action,
+                tradeType: tradeType,
+                accountType: accountType,
+                amount: amount,
+                quantity: quantity,
+                price: price,
+                feeAmount: feeAmount,
+                feeCurrency: feeCurrency,
+                recurringFrequencyType: recurringFrequencyType,
+                recurringFrequencyConfig: recurringFrequencyConfig,
+                recurringStartDate: recurringStartDate,
+                recurringEndDate: recurringEndDate,
+                recurringStatus: recurringStatus,
+                remark: remark,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int id,
+                required String userId,
+                required int accountId,
+                required int fundId,
+                required DateTime tradeDate,
+                required String action,
+                required String tradeType,
+                required String accountType,
+                Value<double?> amount = const Value.absent(),
+                Value<double?> quantity = const Value.absent(),
+                Value<double?> price = const Value.absent(),
+                Value<double?> feeAmount = const Value.absent(),
+                Value<String?> feeCurrency = const Value.absent(),
+                Value<String?> recurringFrequencyType = const Value.absent(),
+                Value<String?> recurringFrequencyConfig = const Value.absent(),
+                Value<DateTime?> recurringStartDate = const Value.absent(),
+                Value<DateTime?> recurringEndDate = const Value.absent(),
+                Value<String?> recurringStatus = const Value.absent(),
+                Value<String?> remark = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FundTransactionsCompanion.insert(
+                id: id,
+                userId: userId,
+                accountId: accountId,
+                fundId: fundId,
+                tradeDate: tradeDate,
+                action: action,
+                tradeType: tradeType,
+                accountType: accountType,
+                amount: amount,
+                quantity: quantity,
+                price: price,
+                feeAmount: feeAmount,
+                feeCurrency: feeCurrency,
+                recurringFrequencyType: recurringFrequencyType,
+                recurringFrequencyConfig: recurringFrequencyConfig,
+                recurringStartDate: recurringStartDate,
+                recurringEndDate: recurringEndDate,
+                recurringStatus: recurringStatus,
+                remark: remark,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FundTransactionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FundTransactionsTable,
+      FundTransaction,
+      $$FundTransactionsTableFilterComposer,
+      $$FundTransactionsTableOrderingComposer,
+      $$FundTransactionsTableAnnotationComposer,
+      $$FundTransactionsTableCreateCompanionBuilder,
+      $$FundTransactionsTableUpdateCompanionBuilder,
+      (
+        FundTransaction,
+        BaseReferences<_$AppDatabase, $FundTransactionsTable, FundTransaction>,
+      ),
+      FundTransaction,
       PrefetchHooks Function()
     >;
 typedef $$TradeSellMappingsTableCreateCompanionBuilder =
@@ -5438,6 +7842,10 @@ class $AppDatabaseManager {
       $$TradeRecordsTableTableManager(_db, _db.tradeRecords);
   $$StocksTableTableManager get stocks =>
       $$StocksTableTableManager(_db, _db.stocks);
+  $$FundsTableTableManager get funds =>
+      $$FundsTableTableManager(_db, _db.funds);
+  $$FundTransactionsTableTableManager get fundTransactions =>
+      $$FundTransactionsTableTableManager(_db, _db.fundTransactions);
   $$TradeSellMappingsTableTableManager get tradeSellMappings =>
       $$TradeSellMappingsTableTableManager(_db, _db.tradeSellMappings);
   $$AccountsTableTableManager get accounts =>

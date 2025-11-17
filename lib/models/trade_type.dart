@@ -3,7 +3,8 @@ import 'package:drift/drift.dart';
 enum TradeType {
   normal, // 一般
   specific, // 特定
-  nisa, // NISA
+  nisa, // NISA（成長枠）
+  nisaTsumitate, // NISA（積み立て）
 }
 
 extension TradeTypeExtension on TradeType {
@@ -15,6 +16,8 @@ extension TradeTypeExtension on TradeType {
         return 'specific';
       case TradeType.nisa:
         return 'nisa';
+      case TradeType.nisaTsumitate:
+        return 'nisa_tsumitate';
     }
   }
 
@@ -25,7 +28,9 @@ extension TradeTypeExtension on TradeType {
       case TradeType.specific:
         return '特定';
       case TradeType.nisa:
-        return 'NISA';
+        return 'NISA（成長）';
+      case TradeType.nisaTsumitate:
+        return 'NISA（つみたて）';
     }
   }
 }

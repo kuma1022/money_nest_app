@@ -4,13 +4,12 @@ class CustomInputFormFieldBySuggestion extends StatelessWidget {
   final String labelText;
   final TextEditingController controller;
   final FocusNode focusNode;
-  final List<dynamic> suggestions;
+  final List<Widget> suggestions;
   final bool loading;
   final String notFoundText;
   final bool disabled;
   final void Function(String) onChanged;
   final void Function(bool) onFocusChange;
-  final void Function(dynamic) onSuggestionTap;
 
   const CustomInputFormFieldBySuggestion({
     super.key,
@@ -22,7 +21,6 @@ class CustomInputFormFieldBySuggestion extends StatelessWidget {
     required this.notFoundText,
     required this.onChanged,
     required this.onFocusChange,
-    required this.onSuggestionTap,
     this.disabled = false,
   });
 
@@ -51,7 +49,7 @@ class CustomInputFormFieldBySuggestion extends StatelessWidget {
             onChanged: onChanged,
             enabled: !disabled,
           ),
-          if (focusNode.hasFocus)
+          if (focusNode.hasFocus && controller.text.isNotEmpty)
             Material(
               elevation: 4,
               borderRadius: BorderRadius.circular(16),
@@ -62,16 +60,7 @@ class CustomInputFormFieldBySuggestion extends StatelessWidget {
                     )
                   : suggestions.isEmpty
                   ? ListTile(title: Text(notFoundText))
-                  : ListView(
-                      shrinkWrap: true,
-                      children: suggestions.map((e) {
-                        return ListTile(
-                          title: Text(e.ticker!),
-                          subtitle: Text(e.name),
-                          onTap: () => onSuggestionTap(e),
-                        );
-                      }).toList(),
-                    ),
+                  : ListView(shrinkWrap: true, children: suggestions),
             ),
         ],
       ),

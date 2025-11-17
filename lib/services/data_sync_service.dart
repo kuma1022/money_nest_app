@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer' as console;
 import 'package:drift/drift.dart';
 import 'package:intl/intl.dart';
+import 'package:money_nest_app/services/fund_api.dart';
 import 'package:money_nest_app/services/supabase_api.dart';
 import 'package:money_nest_app/services/yahoo_api.dart';
 import 'package:money_nest_app/services/bitflyer_api.dart';
@@ -416,9 +417,66 @@ class DataSyncService {
   }
 
   // -------------------------------------------------
-  // 创建资产（买入或卖出）
+  // 获取基金搜索建议
   // -------------------------------------------------
-  Future<bool> createOrUpdateAsset(
+  /*Future<List<Fund>> fetchFundSuggestions(String value) async {
+    final response = await FundApi.fetchFundList(value);
+
+    List<Fund> result = [];
+    if (response.isNotEmpty) {
+      result = response
+          .map(
+            (item) => Fund(
+              isinCd: item['isinCd'],
+              associFundCd: item['associFundCd'],
+              fundNm: item['fundNm'],
+              nisaFlg: item['nisaFlg'],
+            ),
+          )
+          .toList();
+    }
+
+    return result;
+  }*/
+  Future<List<Fund>> fetchFundSuggestions(String value) async {
+    final response = await supabaseApi.supabaseInvoke(
+      'money_grow_api',
+      queryParameters: {'action': 'fund-search', 'q': value, 'limit': '5'},
+      method: HttpMethod.get,
+    );
+
+    List<Fund> result = [];
+    if (response.status == 200) {
+      final data = response.data is String
+          ? jsonDecode(response.data)
+          : response.data;
+      if (data['results'] is List) {
+        result = (data['results'] as List)
+            .map(
+              (item) => Fund(
+                id: item['id'] as int,
+                code: item['code'] as String,
+                name: item['name'] as String,
+                nameUs: item['name_us'] as String?,
+                managementCompany: item['management_company'] as String?,
+                foundationDate: item['foundation_date'] != null
+                    ? DateTime.tryParse(item['foundation_date'].toString())
+                    : null,
+                tsumitateFlag: item['tsumitate_flag'] as bool?,
+                isinCd: item['isin_cd'] as String?,
+              ),
+            )
+            .toList();
+      }
+    }
+
+    return result;
+  }
+
+  // -------------------------------------------------
+  // 创建股票资产（买入或卖出）
+  // -------------------------------------------------
+  Future<bool> createOrUpdateStockTrade(
     String mode, {
     required String userId,
     required Map<String, dynamic> assetData,
@@ -717,6 +775,152 @@ class DataSyncService {
       }
     } catch (e) {
       print('Error in deleteAsset: $e');
+      print('Stack trace: ${StackTrace.current}');
+      return false;
+    }
+  }
+
+  // -------------------------------------------------
+  // 创建Fund资产（买入或卖出）
+  // -------------------------------------------------
+  Future<bool> createOrUpdateFundTrade(
+    String mode, {
+    required String userId,
+    required Map<String, dynamic> fundTransactionData,
+    required Fund? fundData,
+  }) async {
+    try {
+      final response = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {'action': 'user-fund', 'user_id': userId},
+        body: fundTransactionData,
+        method: mode == 'add' ? HttpMethod.post : HttpMethod.put,
+      );
+
+      if (response.status == 200 || response.status == 201) {
+        // 1. 解析返回的 trade id
+        final data = response.data is String
+            ? jsonDecode(response.data)
+            : response.data;
+        final int? transactionId = mode == 'add'
+            ? (data['transaction_id'] is int
+                  ? data['transaction_id']
+                  : int.tryParse(data['transaction_id']?.toString() ?? ''))
+            : null; //assetData['id'];
+        final DateTime? accountUpdatedAt = DateTime.tryParse(
+          data['account_updated_at'],
+        );
+
+        if (transactionId != null && accountUpdatedAt != null) {
+          if (mode == 'add') {
+            // 插入本地 FundTransactions
+            await db
+                .into(db.fundTransactions)
+                .insert(
+                  FundTransactionsCompanion(
+                    id: Value(transactionId),
+                    userId: Value(userId),
+                    accountId: Value(fundTransactionData['account_id']),
+                    fundId: Value(fundTransactionData['fund_id']),
+                    tradeDate: Value(
+                      DateFormat(
+                        'yyyy/MM/dd',
+                      ).parse(fundTransactionData['trade_date']!),
+                    ),
+                    action: Value(fundTransactionData['action']),
+                    tradeType: Value(fundTransactionData['trade_type']),
+                    accountType: Value(fundTransactionData['account_type']),
+                    amount: Value(
+                      (num.tryParse(fundTransactionData['amount'].toString()) ??
+                              0)
+                          .toDouble(),
+                    ),
+                    quantity: Value(
+                      (num.tryParse(
+                                fundTransactionData['quantity'].toString(),
+                              ) ??
+                              0)
+                          .toDouble(),
+                    ),
+                    price: Value(
+                      (num.tryParse(fundTransactionData['price'].toString()) ??
+                              0)
+                          .toDouble(),
+                    ),
+                    feeAmount: Value(
+                      (num.tryParse(
+                                fundTransactionData['fee_amount']?.toString() ??
+                                    '0',
+                              ) ??
+                              0)
+                          .toDouble(),
+                    ),
+                    feeCurrency: Value(fundTransactionData['fee_currency']),
+                    recurringFrequencyType: Value(
+                      fundTransactionData['recurring_frequency_type'],
+                    ),
+                    recurringFrequencyConfig: Value(
+                      fundTransactionData['recurring_frequency_config'],
+                    ),
+                    recurringStartDate: Value(
+                      DateFormat(
+                        'yyyy/MM/dd',
+                      ).parse(fundTransactionData['recurring_start_date']!),
+                    ),
+                    recurringEndDate: Value(
+                      DateFormat(
+                        'yyyy/MM/dd',
+                      ).parse(fundTransactionData['recurring_end_date']!),
+                    ),
+                    recurringStatus: Value(
+                      fundTransactionData['recurring_status'],
+                    ),
+
+                    remark: Value(fundTransactionData['remark']),
+                  ),
+                );
+          }
+
+          // 3. 插入或更新本地 Funds
+          if (fundData != null) {
+            final fundId = fundData.id;
+            // 检查本地是否已有该基金
+            final existing = await (db.select(
+              db.funds,
+            )..where((tbl) => tbl.id.equals(fundId))).getSingleOrNull();
+
+            final fundCompanion = FundsCompanion(
+              id: Value(fundId),
+              code: Value(fundData.code),
+              name: Value(fundData.name),
+              nameUs: Value(fundData.nameUs),
+              managementCompany: Value(fundData.managementCompany),
+              foundationDate: Value(fundData.foundationDate),
+              tsumitateFlag: Value(fundData.tsumitateFlag),
+              isinCd: Value(fundData.isinCd),
+            );
+
+            if (existing == null) {
+              await db.into(db.funds).insert(fundCompanion);
+            } else {
+              await (db.update(
+                db.funds,
+              )..where((tbl) => tbl.id.equals(fundId))).write(fundCompanion);
+            }
+          }
+
+          // 更新最后同步时间
+          GlobalStore().lastSyncTime = accountUpdatedAt;
+          GlobalStore().saveLastSyncTimeToPrefs();
+          print('更新accountUpdatedAt: $accountUpdatedAt');
+        }
+        return true;
+      } else {
+        print('Create asset failed: ${response.status} ${response.data}');
+        return false;
+      }
+    } catch (e) {
+      print('Error in createOrUpdateFundTrade: $e');
       print('Stack trace: ${StackTrace.current}');
       return false;
     }

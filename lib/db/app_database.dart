@@ -97,6 +97,94 @@ class Stocks extends Table {
   ];
 }
 
+// 投资信托（基金）表
+class Funds extends Table {
+  // ID
+  IntColumn get id => integer()();
+
+  // 基金代码（Supabase: code）
+  TextColumn get code => text().withLength(min: 1, max: 20)();
+
+  // 名称
+  TextColumn get name => text().withLength(min: 1, max: 255)();
+
+  // 英文名称（可选）
+  TextColumn get nameUs => text().nullable()();
+
+  // 管理公司（可选）
+  TextColumn get managementCompany => text().nullable()();
+
+  // 设立日（可选）
+  DateTimeColumn get foundationDate => dateTime().nullable()();
+
+  // 是否为积立NISA对应基金（可选）
+  BoolColumn get tsumitateFlag => boolean().nullable()();
+
+  // ISIN 代码（可选）
+  TextColumn get isinCd => text().nullable()();
+}
+
+// 基金交易表
+class FundTransactions extends Table {
+  // ID
+  IntColumn get id => integer()();
+
+  // 用户ID
+  TextColumn get userId => text()();
+
+  // 账户ID
+  IntColumn get accountId => integer()();
+
+  // 基金ID
+  IntColumn get fundId => integer()();
+
+  // 交易日期
+  DateTimeColumn get tradeDate => dateTime()();
+
+  // 操作：buy / sell
+  TextColumn get action => text()();
+
+  // 交易类型：individual / recurring
+  TextColumn get tradeType => text()();
+
+  // 账户类型：nisaTsumitate, nisa, specific, normal
+  TextColumn get accountType => text()();
+
+  // 金额
+  RealColumn get amount => real().nullable()();
+
+  // 数量
+  RealColumn get quantity => real().nullable()();
+
+  // 单价
+  RealColumn get price => real().nullable()();
+
+  // 手续费金额
+  RealColumn get feeAmount => real().nullable()();
+
+  // 手续费币种
+  TextColumn get feeCurrency => text().nullable()();
+
+  // 定投频率类型：daily, weekly, monthly, bimonthly
+  TextColumn get recurringFrequencyType => text().nullable()();
+
+  // 定投配置JSON
+  TextColumn get recurringFrequencyConfig =>
+      text().nullable()(); // Drift不直接支持jsonb，可存String
+
+  // 定投开始日期
+  DateTimeColumn get recurringStartDate => dateTime().nullable()();
+
+  // 定投结束日期
+  DateTimeColumn get recurringEndDate => dateTime().nullable()();
+
+  // 定投状态：active, paused, stopped, completed
+  TextColumn get recurringStatus => text().nullable()();
+
+  // 备注
+  TextColumn get remark => text().nullable()();
+}
+
 // 账户表
 class Accounts extends Table {
   // ID
@@ -280,6 +368,8 @@ class MarketData extends Table {
   tables: [
     TradeRecords,
     Stocks,
+    Funds,
+    FundTransactions,
     TradeSellMappings,
     Accounts,
     StockPrices,
