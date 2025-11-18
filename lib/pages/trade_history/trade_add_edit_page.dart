@@ -748,7 +748,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
 
     setState(() {
       sellHoldings = holdings;
-      print('Loaded sell holdings: $sellHoldings');
+      //print('Loaded sell holdings: $sellHoldings');
       // 切换资产类型时清空已选
       if (notNeedRefresh) {
         final holding = sellHoldings.firstWhere(
@@ -814,7 +814,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
       selectedStockName = '';
       selectedStockInfo = null;
     });
-    if (tradeAction == ActionType.sell) {
+    if (tradeAction == ActionType.sell && assetCategoryCode == 'stock') {
       _loadSellHoldings();
     }
   }
@@ -827,7 +827,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
       selectedStockName = '';
       selectedStockInfo = null;
     });
-    if (tradeAction == ActionType.sell) {
+    if (tradeAction == ActionType.sell &&
+        assetCategoryCode == 'stock' &&
+        (assetSubCategoryCode == 'jp_stock' ||
+            assetSubCategoryCode == 'us_stock')) {
       _loadSellHoldings();
     }
   }
@@ -1068,6 +1071,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
               children: children,
               onValueChanged: (v) {
                 setState(() => tradeAction = v!);
+                _loadSellHoldings();
               },
               disabledChildren: widget.mode == 'edit'
                   ? {ActionType.buy, ActionType.sell}
