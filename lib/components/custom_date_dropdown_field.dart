@@ -67,7 +67,7 @@ class _CustomDateDropdownFieldState extends State<CustomDateDropdownField> {
                   padding: const EdgeInsets.all(8),
                   child: CalendarDatePicker(
                     initialDate: widget.value ?? DateTime.now(),
-                    firstDate: DateTime(2020, 1, 1), // 可选的最早日期
+                    firstDate: DateTime(2016, 1, 1), // 可选的最早日期
                     lastDate: DateTime.now(), // 可选的最晚日期（今天）
                     onDateChanged: (date) {
                       widget.onChanged(date);

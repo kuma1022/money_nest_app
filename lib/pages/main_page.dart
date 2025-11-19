@@ -39,6 +39,8 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       GlobalKey<AssetsTabPageState>();
   final GlobalKey<TradeHistoryPageState> tradeHistoryPageKey =
       GlobalKey<TradeHistoryPageState>();
+  final GlobalKey<AssetAnalysisPageState> assetAnalysisTabPageKey =
+      GlobalKey<AssetAnalysisPageState>();
   double _scrollPixels = 0.0;
 
   late final List<Widget> _pages = [
@@ -83,6 +85,8 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       scrollController: ScrollController(),
     ),
     AssetAnalysisPage(
+      db: widget.db,
+      key: assetAnalysisTabPageKey,
       onScroll: (pixels) {
         setState(() {
           _scrollPixels = pixels;
@@ -420,6 +424,10 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           } else if (index == 2) {
                             WidgetsBinding.instance.addPostFrameCallback((_) {
                               tradeHistoryPageKey.currentState?.onRefresh();
+                            });
+                          } else if (index == 3) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              assetAnalysisTabPageKey.currentState?.onRefresh();
                             });
                           }
                         },

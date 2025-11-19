@@ -57,6 +57,9 @@ class TradeRecords extends Table {
   // 更新时间
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
+  // 收益
+  RealColumn get profit => real().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

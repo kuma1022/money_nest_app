@@ -227,6 +227,15 @@ class $TradeRecordsTable extends TradeRecords
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _profitMeta = const VerificationMeta('profit');
+  @override
+  late final GeneratedColumn<double> profit = GeneratedColumn<double>(
+    'profit',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -249,6 +258,7 @@ class $TradeRecordsTable extends TradeRecords
     remark,
     createdAt,
     updatedAt,
+    profit,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -405,6 +415,12 @@ class $TradeRecordsTable extends TradeRecords
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('profit')) {
+      context.handle(
+        _profitMeta,
+        profit.isAcceptableOrUnknown(data['profit']!, _profitMeta),
+      );
+    }
     return context;
   }
 
@@ -494,6 +510,10 @@ class $TradeRecordsTable extends TradeRecords
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      profit: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}profit'],
+      ),
     );
   }
 
@@ -524,6 +544,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
   final String? remark;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final double? profit;
   const TradeRecord({
     required this.id,
     required this.userId,
@@ -545,6 +566,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     this.remark,
     required this.createdAt,
     required this.updatedAt,
+    this.profit,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -589,6 +611,9 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || profit != null) {
+      map['profit'] = Variable<double>(profit);
+    }
     return map;
   }
 
@@ -634,6 +659,9 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
           : Value(remark),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      profit: profit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(profit),
     );
   }
 
@@ -663,6 +691,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       remark: serializer.fromJson<String?>(json['remark']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      profit: serializer.fromJson<double?>(json['profit']),
     );
   }
   @override
@@ -689,6 +718,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       'remark': serializer.toJson<String?>(remark),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'profit': serializer.toJson<double?>(profit),
     };
   }
 
@@ -713,6 +743,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     Value<String?> remark = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
+    Value<double?> profit = const Value.absent(),
   }) => TradeRecord(
     id: id ?? this.id,
     userId: userId ?? this.userId,
@@ -736,6 +767,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     remark: remark.present ? remark.value : this.remark,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    profit: profit.present ? profit.value : this.profit,
   );
   TradeRecord copyWithCompanion(TradeRecordsCompanion data) {
     return TradeRecord(
@@ -769,6 +801,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       remark: data.remark.present ? data.remark.value : this.remark,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      profit: data.profit.present ? data.profit.value : this.profit,
     );
   }
 
@@ -794,13 +827,14 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
           ..write('manualRateInput: $manualRateInput, ')
           ..write('remark: $remark, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('profit: $profit')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     userId,
     accountId,
@@ -821,7 +855,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     remark,
     createdAt,
     updatedAt,
-  );
+    profit,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -845,7 +880,8 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
           other.manualRateInput == this.manualRateInput &&
           other.remark == this.remark &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.profit == this.profit);
 }
 
 class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
@@ -869,6 +905,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
   final Value<String?> remark;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<double?> profit;
   const TradeRecordsCompanion({
     this.id = const Value.absent(),
     this.userId = const Value.absent(),
@@ -890,6 +927,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     this.remark = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.profit = const Value.absent(),
   });
   TradeRecordsCompanion.insert({
     this.id = const Value.absent(),
@@ -912,6 +950,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     this.remark = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.profit = const Value.absent(),
   }) : userId = Value(userId),
        assetType = Value(assetType),
        assetId = Value(assetId),
@@ -940,6 +979,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     Expression<String>? remark,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<double>? profit,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -962,6 +1002,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
       if (remark != null) 'remark': remark,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (profit != null) 'profit': profit,
     });
   }
 
@@ -986,6 +1027,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     Value<String?>? remark,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
+    Value<double?>? profit,
   }) {
     return TradeRecordsCompanion(
       id: id ?? this.id,
@@ -1008,6 +1050,7 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
       remark: remark ?? this.remark,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      profit: profit ?? this.profit,
     );
   }
 
@@ -1074,6 +1117,9 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (profit.present) {
+      map['profit'] = Variable<double>(profit.value);
+    }
     return map;
   }
 
@@ -1099,7 +1145,8 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
           ..write('manualRateInput: $manualRateInput, ')
           ..write('remark: $remark, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('profit: $profit')
           ..write(')'))
         .toString();
   }
@@ -5308,6 +5355,7 @@ typedef $$TradeRecordsTableCreateCompanionBuilder =
       Value<String?> remark,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<double?> profit,
     });
 typedef $$TradeRecordsTableUpdateCompanionBuilder =
     TradeRecordsCompanion Function({
@@ -5331,6 +5379,7 @@ typedef $$TradeRecordsTableUpdateCompanionBuilder =
       Value<String?> remark,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
+      Value<double?> profit,
     });
 
 class $$TradeRecordsTableFilterComposer
@@ -5439,6 +5488,11 @@ class $$TradeRecordsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get profit => $composableBuilder(
+    column: $table.profit,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5551,6 +5605,11 @@ class $$TradeRecordsTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get profit => $composableBuilder(
+    column: $table.profit,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TradeRecordsTableAnnotationComposer
@@ -5631,6 +5690,9 @@ class $$TradeRecordsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<double> get profit =>
+      $composableBuilder(column: $table.profit, builder: (column) => column);
 }
 
 class $$TradeRecordsTableTableManager
@@ -5684,6 +5746,7 @@ class $$TradeRecordsTableTableManager
                 Value<String?> remark = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<double?> profit = const Value.absent(),
               }) => TradeRecordsCompanion(
                 id: id,
                 userId: userId,
@@ -5705,6 +5768,7 @@ class $$TradeRecordsTableTableManager
                 remark: remark,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                profit: profit,
               ),
           createCompanionCallback:
               ({
@@ -5728,6 +5792,7 @@ class $$TradeRecordsTableTableManager
                 Value<String?> remark = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<double?> profit = const Value.absent(),
               }) => TradeRecordsCompanion.insert(
                 id: id,
                 userId: userId,
@@ -5749,6 +5814,7 @@ class $$TradeRecordsTableTableManager
                 remark: remark,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                profit: profit,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

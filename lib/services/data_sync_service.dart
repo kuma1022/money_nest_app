@@ -258,6 +258,12 @@ class DataSyncService {
                   swapCurrency: Value(trade['swap_currency']),
                   manualRateInput: Value(trade['manual_rate_input'] ?? false),
                   remark: Value(trade['remark']),
+                  profit: Value(
+                    trade['profit'] != null
+                        ? (num.tryParse(trade['profit'].toString()) ?? 0)
+                              .toDouble()
+                        : null,
+                  ),
                 );
                 tradeRecordsInsert.add(record);
               }
@@ -500,6 +506,9 @@ class DataSyncService {
                   ? data['trade_id']
                   : int.tryParse(data['trade_id']?.toString() ?? ''))
             : assetData['id'];
+        final double? profit = data['profit'] != null
+            ? (num.tryParse(data['profit'].toString()) ?? 0).toDouble()
+            : null;
         final DateTime? accountUpdatedAt = DateTime.tryParse(
           data['account_updated_at'],
         );
@@ -571,6 +580,7 @@ class DataSyncService {
                       assetData['manual_rate_input'] ?? false,
                     ),
                     remark: Value(assetData['remark']),
+                    profit: Value(profit),
                   ),
                 );
           } else if (mode == 'edit') {
@@ -614,6 +624,7 @@ class DataSyncService {
                 swapCurrency: Value(assetData['swap_currency']),
                 manualRateInput: Value(assetData['manual_rate_input'] ?? false),
                 remark: Value(assetData['remark']),
+                profit: Value(profit),
               ),
             );
           }

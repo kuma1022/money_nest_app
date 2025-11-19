@@ -485,6 +485,7 @@ async function handleCreateAsset(userId, body) {
       p_trade_date: body.trade_date,
       p_action: body.action,
       p_trade_type: body.trade_type ?? null,
+      p_exchange: body.exchange,
       p_position_type: body.position_type ?? null,
       p_quantity: body.quantity,
       p_price: body.price,
@@ -508,16 +509,16 @@ async function handleCreateAsset(userId, body) {
 
     // Normalize RPC response shapes (array / single object)
     let tradeId = null;
+    let profit = null;
     let accountUpdatedAt = null;
     if (Array.isArray(data) && data.length > 0) {
       tradeId = data[0]?.trade_id ?? null;
+      profit = data[0]?.profit ?? null;
       accountUpdatedAt = data[0]?.account_updated_at ?? data[0]?.updated_at ?? null;
     } else if (data && typeof data === 'object') {
       tradeId = data.trade_id ?? null;
+      profit = data.profit ?? null;
       accountUpdatedAt = data.account_updated_at ?? data.updated_at ?? null;
-    } else {
-      // fallback: sometimes supabase RPC returns scalar
-      tradeId = data ?? null;
     }
 
     if (!tradeId) {
@@ -532,6 +533,7 @@ async function handleCreateAsset(userId, body) {
     return new Response(JSON.stringify({
       success: true,
       trade_id: tradeId,
+      profit: profit,
       account_updated_at: accountUpdatedAt
     }), {
       status: 201,
@@ -555,7 +557,9 @@ async function handleUpdateAsset(userId, body) {
       p_account_id: body.account_id ?? null,
       p_id: body.id,
       p_trade_date: body.trade_date,
+      p_action: body.action,
       p_trade_type: body.trade_type ?? null,
+      p_exchange: body.exchange,
       p_quantity: body.quantity,
       p_price: body.price,
       p_leverage: body.leverage ?? null,
@@ -575,13 +579,13 @@ async function handleUpdateAsset(userId, body) {
 
     // Normalize RPC response shapes (array / single object)
     let accountUpdatedAt = null;
+    let profit = null;
     if (Array.isArray(data) && data.length > 0) {
       accountUpdatedAt = data[0]?.account_updated_at ?? data[0]?.updated_at ?? null;
+      profit = data[0]?.profit ?? null;
     } else if (data && typeof data === 'object') {
       accountUpdatedAt = data.account_updated_at ?? data.updated_at ?? null;
-    } else {
-      // fallback: sometimes supabase RPC returns scalar
-      accountUpdatedAt = data ?? null;
+      profit = data.profit ?? null;
     }
 
     if (!accountUpdatedAt) {
@@ -594,7 +598,8 @@ async function handleUpdateAsset(userId, body) {
 
     return new Response(JSON.stringify({
       success: true,
-      account_updated_at: accountUpdatedAt
+      account_updated_at: accountUpdatedAt,
+      profit: profit
     }), {
       status: 201,
       headers: { 'Content-Type': 'application/json' }
@@ -743,9 +748,6 @@ async function handleCreateFund(userId, body) {
     } else if (data && typeof data === 'object') {
       transactionId = data.trade_id ?? null;
       accountUpdatedAt = data.account_updated_at ?? data.updated_at ?? null;
-    } else {
-      // fallback: sometimes supabase RPC returns scalar
-      transactionId = data ?? null;
     }
 
     if (!transactionId) {

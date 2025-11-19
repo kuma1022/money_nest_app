@@ -387,6 +387,44 @@ class AppUtils {
   }
 
   // -------------------------------------------------
+  // 计算收益或损失
+  // -------------------------------------------------
+  Future<Map<Stock, double>> calculateProfitAndLoss(
+    AppDatabase db,
+    String exchange,
+  ) async {
+    // 查询所有 sell 批次
+    final sellRecordsQuery =
+        db.select(db.tradeRecords).join([
+            innerJoin(
+              db.stocks,
+              db.stocks.id.equalsExp(db.tradeRecords.assetId),
+            ),
+          ])
+          ..where(db.tradeRecords.userId.equals(GlobalStore().userId!))
+          ..where(db.tradeRecords.accountId.equals(GlobalStore().accountId!))
+          ..where(db.tradeRecords.assetType.equals('stock'))
+          ..where(db.tradeRecords.action.equals('sell'))
+          ..where(db.stocks.exchange.equals(exchange));
+    final sellRecords = await sellRecordsQuery.get();
+    // 获取profit不为NULL的
+    final Map<Stock, double> result = {};
+    for (var r in sellRecords) {
+      final stock = r.readTable(db.stocks);
+      final trade = r.readTable(db.tradeRecords);
+      final profit = trade.profit;
+      print(trade);
+      if (profit == null) continue;
+      if (result.containsKey(stock)) {
+        result[stock] = result[stock]! + profit;
+      } else {
+        result[stock] = profit;
+      }
+    }
+    return result;
+  }
+
+  // -------------------------------------------------
   // 显示成功 HUD 提示
   // -------------------------------------------------
   Future<void> showSuccessHUD(

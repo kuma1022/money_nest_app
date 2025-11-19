@@ -787,7 +787,9 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
             afterFormat: _updateSellTotalQty,
           );
         }
-        sellTotalQty = 0;
+        if (widget.mode == 'add') {
+          sellTotalQty = 0;
+        }
       } else if (!notNeedRefresh) {
         // reset selection
         sellBatches = [];
@@ -3063,8 +3065,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                   "id": tradeId,
                   "account_id": GlobalStore().accountId!,
                   "trade_date": tradeDate,
+                  "action": 'buy',
                   "trade_type": tradeTypeCode,
                   "quantity": quantityValue,
+                  "exchange": selectedStockInfo!.exchange,
                   "price": unitPriceValue,
                   "leverage": null,
                   "swap_amount": null,
@@ -3124,8 +3128,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                   "id": tradeId,
                   "account_id": GlobalStore().accountId!,
                   "trade_date": tradeDate,
+                  "action": 'sell',
                   "quantity": sellTotalQty,
                   "price": sellUnitPrice,
+                  "exchange": selectedSellStockExchange,
                   "leverage": null,
                   "swap_amount": null,
                   "swap_currency": null,
