@@ -392,6 +392,8 @@ class AppUtils {
   Future<Map<Stock, double>> calculateProfitAndLoss(
     AppDatabase db,
     String exchange,
+    DateTime? startDate,
+    DateTime? endDate,
   ) async {
     // 查询所有 sell 批次
     final sellRecordsQuery =
@@ -414,7 +416,45 @@ class AppUtils {
       final trade = r.readTable(db.tradeRecords);
       final profit = trade.profit;
       print(trade);
-      if (profit == null) continue;
+      if (profit == null ||
+          (startDate != null &&
+                  trade.tradeDate
+                      .copyWith(
+                        hour: 0,
+                        minute: 0,
+                        second: 0,
+                        millisecond: 0,
+                        microsecond: 0,
+                      )
+                      .isBefore(
+                        startDate.copyWith(
+                          hour: 0,
+                          minute: 0,
+                          second: 0,
+                          millisecond: 0,
+                          microsecond: 0,
+                        ),
+                      ) ||
+              (endDate != null &&
+                  trade.tradeDate
+                      .copyWith(
+                        hour: 0,
+                        minute: 0,
+                        second: 0,
+                        millisecond: 0,
+                        microsecond: 0,
+                      )
+                      .isAfter(
+                        endDate.copyWith(
+                          hour: 0,
+                          minute: 0,
+                          second: 0,
+                          millisecond: 0,
+                          microsecond: 0,
+                        ),
+                      )))) {
+        continue;
+      }
       if (result.containsKey(stock)) {
         result[stock] = result[stock]! + profit;
       } else {
