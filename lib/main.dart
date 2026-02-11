@@ -113,7 +113,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           seedColor: Colors.blue,
           brightness: Brightness.dark,
           surface: const Color(0xFF1C1C1E),
-          background: Colors.black,
         ),
         useMaterial3: true,
         fontFamily: 'NotoSansJP', // 日文
@@ -126,7 +125,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ],
         dialogTheme: const DialogTheme(
           backgroundColor: Color(0xFF1C1C1E),
-          surfaceTintColor: Colors.transparent,
         ),
         cardTheme: const CardTheme(
           color: Color(0xFF1C1C1E),

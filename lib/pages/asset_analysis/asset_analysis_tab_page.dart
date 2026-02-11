@@ -344,39 +344,8 @@ class AssetAnalysisPageState extends State<AssetAnalysisPage> {
                   child: const Center(child: CircularProgressIndicator()),
                 ),
               ),
-          ],
-        ),
-      ),
-    );
   }
-
-                      // 3. 详情列表标题
-                      const Text(
-                        "詳細を見る",
-                        style: TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // 4. 详情卡片 (日本株/美国株)
-                      _buildDetailCardsRow(),
-                    ],
-                    const SizedBox(height: 100),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          if (_isInitializing)
-            Positioned.fill(
-              child: Container(
-                color: Colors.white.withOpacity(0.6),
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+}
 
   // --- 新的 UI 构建方法 ---
 

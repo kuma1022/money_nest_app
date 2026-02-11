@@ -341,33 +341,6 @@ class _ProfileSection extends StatelessWidget {
     );
   }
 }
-          color: isLoggedIn ? const Color(0xFFC8E6C9) : const Color(0xFFB7D8F6),
-          width: 1,
-        ),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 顶部icon和角标
-          Row(
-            children: [
-              Icon(
-                isLoggedIn ? Icons.account_circle : Icons.emoji_events_outlined,
-                color: isLoggedIn
-                    ? const Color(0xFF4CAF50)
-                    : const Color(0xFF1976D2),
-                size: 32,
-              ),
-              const Spacer(),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: isLoggedIn
-                      ? const Color(0xFFC8E6C9).withOpacity(0.3)
-                      : const Color(0xFFB3E5FC).withOpacity(0.3),
-                  shape: BoxShape.circle,
                 ),
                 child: Icon(
                   isLoggedIn ? Icons.check_circle : Icons.auto_graph,
