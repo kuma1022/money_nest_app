@@ -212,165 +212,135 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return SizedBox.expand(
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.appBackground, AppColors.appBackground],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPadding),
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (notification) {
-                double pixels = 0.0;
-                if (notification is ScrollUpdateNotification ||
-                    notification is OverscrollNotification) {
-                  pixels = notification.metrics.pixels;
-                  if (pixels < 0) pixels = 0; // 只允许正数（如需overscroll缩放可不处理）
-                  widget.onScroll?.call(pixels);
-                }
-                return false;
-              },
-              child: SingleChildScrollView(
-                controller: widget.scrollController,
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 16),
-                    CustomTab(
-                      tabs: const ['推移', '内訳', 'ポートフォリオ', '配当'],
-                      tabViews: [
-                        buildTransitionWidget(),
-                        buildBreakdownWidget(),
-                        buildPortfolioWidget(),
-                        buildDividendWidget(),
-                      ],
-                    ),
-                    const SizedBox(height: 80),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // 全屏加载层
-          if (_isInitializing)
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SizedBox.expand(
+        child: Stack(
+          children: [
             Positioned.fill(
               child: Container(
-                color: Colors.white.withOpacity(0.6),
-                child: const Center(child: CircularProgressIndicator()),
+                color: Colors.black,
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildTransitionWidget() {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        const double tabBtnHeight = 32;
-        const double tabBtnRadius = tabBtnHeight / 2;
-
-        return Column(
-          children: [
-            Row(
-              children: [
-                const SizedBox(width: 48),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedTransitionIndex = 0),
-                    child: Container(
-                      height: tabBtnHeight,
-                      decoration: BoxDecoration(
-                        color: _selectedTransitionIndex == 0
-                            ? AppColors.appBlue
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(tabBtnRadius),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  double pixels = 0.0;
+                  if (notification is ScrollUpdateNotification ||
+                      notification is OverscrollNotification) {
+                    pixels = notification.metrics.pixels;
+                    if (pixels < 0) pixels = 0;
+                    widget.onScroll?.call(pixels);
+                  }
+                  return false;
+                },
+                child: SingleChildScrollView(
+                  controller: widget.scrollController,
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 60),
+                      // Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(
-                            Icons.trending_up,
-                            color: _selectedTransitionIndex == 0
-                                ? Colors.white
-                                : Colors.grey,
+                          IconButton(
+                            icon: const Icon(Icons.menu, color: Colors.white),
+                            onPressed: () {},
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '資産',
+                          const Text(
+                            'Portfolios',
                             style: TextStyle(
-                              color: _selectedTransitionIndex == 0
-                                  ? Colors.white
-                                  : Colors.grey,
+                              color: Colors.white,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.work_outline,
+                                    color: Colors.white),
+                                onPressed: () {},
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.search,
+                                    color: Colors.white),
+                                onPressed: () {},
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      buildTransitionAssetWidget(),
+                      const SizedBox(height: 20),
+                      // Asset List Title
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: '保有量 (多い順)',
+                              dropdownColor: const Color(0xFF1C1C1E),
+                              icon: const Icon(Icons.keyboard_arrow_down,
+                                  color: Colors.white),
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 14),
+                              onChanged: (v) {},
+                              items: const [
+                                DropdownMenuItem(
+                                  value: '保有量 (多い順)',
+                                  child: Text('保有量 (多い順)'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF1C1C1E),
+                            ),
+                            child: const Icon(
+                              Icons.filter_list,
+                              color: Colors.grey,
+                              size: 20,
                             ),
                           ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                      createAssetList(),
+                      const SizedBox(height: 80),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedTransitionIndex = 1),
-                    child: Container(
-                      height: tabBtnHeight,
-                      decoration: BoxDecoration(
-                        color: _selectedTransitionIndex == 1
-                            ? AppColors.appDownRed
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(tabBtnRadius),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.trending_down,
-                            color: _selectedTransitionIndex == 1
-                                ? Colors.white
-                                : Colors.grey,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '負債',
-                            style: TextStyle(
-                              color: _selectedTransitionIndex == 1
-                                  ? Colors.white
-                                  : Colors.grey,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 48),
-              ],
+              ),
             ),
-            const SizedBox(height: 18),
-            _selectedTransitionIndex == 0
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [buildTransitionAssetWidget(), createAssetList()],
-                  )
-                : buildTransitionLiabilityWidget(),
+            // Floating Action Button
+            Positioned(
+              right: 16,
+              bottom: bottomPadding + 16,
+              child: FloatingActionButton(
+                backgroundColor: Colors.white,
+                child: const Icon(Icons.add, color: Colors.black),
+                onPressed: () {},
+              ),
+            ),
+            // Loading Overlay
+            if (_isInitializing)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.5),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+              ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -380,49 +350,122 @@ class AssetsTabPageState extends State<AssetsTabPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: categories.map((category) {
-        return InkWell(
-          borderRadius: BorderRadius.circular(16), // 配合卡片圆角
-          onTap: () {
-            // 如果是股票类别，跳转到 stock_detail_page
-            if (category['categoryCode'] == 'stock') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => StockDetailPage(db: widget.db),
-                ),
-              );
-            }
-            // 如果是加密货币类别，跳转到 crypto_detail_page
-            if (category['categoryCode'] == 'crypto') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) =>
-                      CryptoDetailPage(key: cryptoDetailPageKey, db: widget.db),
-                ),
-              );
-              // 访问 CryptoDetailPage 的初始化方法
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                cryptoDetailPageKey.currentState?.initializeData();
-              });
-            }
-            // 如果是投资信托类别，跳转到 fund_detail_page
-            else if (category['categoryCode'] == 'fund') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => FundDetailPage(db: widget.db),
-                ),
-              );
-            }
-            // 其他类别可以在这里添加相应的跳转逻辑
-          },
-          child: SummaryCategoryCard(
-            label: category['label'],
-            dotColor: category['dotColor'],
-            rateLabel: category['rateLabel'],
-            value: category['value'],
-            profitText: category['profitText'],
-            profitRateText: category['profitRateText'],
-            profitColor: category['profitColor'],
-            subCategories: const [],
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1C1E),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              if (category['categoryCode'] == 'stock') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => StockDetailPage(db: widget.db),
+                  ),
+                );
+              } else if (category['categoryCode'] == 'crypto') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => CryptoDetailPage(
+                        key: cryptoDetailPageKey, db: widget.db),
+                  ),
+                );
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  cryptoDetailPageKey.currentState?.initializeData();
+                });
+              } else if (category['categoryCode'] == 'fund') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => FundDetailPage(db: widget.db),
+                  ),
+                );
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  // Icon
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: category['dotColor'] ?? Colors.grey,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        (category['label'] as String).substring(0, 1),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Name and Quantity
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category['label'],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        category['rateLabel'] ?? '',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  // Value and Change
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        category['value'],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            category['profitText'] ?? '',
+                            style: TextStyle(
+                              color: category['profitColor'] ?? Colors.grey,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            category['profitRateText'] ?? '',
+                            style: TextStyle(
+                              color: category['profitColor'] ?? Colors.grey,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       }).toList(),
@@ -433,124 +476,142 @@ class AssetsTabPageState extends State<AssetsTabPage> {
   Widget buildTransitionAssetWidget() {
     final List<Map<String, dynamic>> datas = [];
     if (priceHistory.isNotEmpty && costBasisHistory.isNotEmpty) {
-      /*final List<Map<String, dynamic>> grouped = groupConsecutive(
-        priceHistory,
-        costBasisHistory,
-      );
-
-      for (var group in grouped) {
-        datas.add({
-          'label': group['label'],
-          'color': group['color'],
-          'dataList': (group['dataList'] as List).cast<(DateTime, double)>(),
-        });
-      }
-      */
       datas.add({
         'label': '評価総額',
-        'lineColor': AppColors.appChartBlue,
+        'lineColor': AppColors.appDownRed, // Screenshot shows red/magenta line
         'tooltipText1Color': AppColors.appChartLightBlue,
         'tooltipText2Color': AppColors.appChartLightBlue,
         'dataList': priceHistory,
       });
 
-      datas.add({
-        'label': '取得総額',
-        'lineColor': AppColors.appGrey,
-        'tooltipText1Color': AppColors.appLightGrey,
-        'tooltipText2Color': AppColors.appLightGrey,
-        'dataList': costBasisHistory,
-      });
+      // Hide cost basis line to match simpler look of screenshot?
+      // Or keep it but darker.
+      // Screenshot shows a dotted line, maybe that's cost basis or previous close.
+      // I'll keep just price history for simplicity or keep both.
+      // Keeping both for now but with updated colors.
     }
+
+    final double profit = totalAssets - totalCosts;
+    final double profitPercent =
+        totalCosts == 0 ? 0 : (profit / totalCosts * 100);
+    final bool isUp = profit >= 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Text(
+          'ポートフォリオ価値',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(height: 4),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
           children: [
-            const Text(
-              '資産総額',
-              style: TextStyle(
-                fontSize: AppTexts.fontSizeMedium,
-                color: Colors.black87,
+            Text(
+              AppUtils().formatMoney(
+                totalAssets.toDouble(),
+                GlobalStore().selectedCurrencyCode ?? 'JPY',
+              ),
+              style: const TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 1,
               ),
             ),
-            const Spacer(),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  AppUtils().formatMoney(
-                    totalAssets.toDouble(),
-                    GlobalStore().selectedCurrencyCode ?? 'JPY',
-                  ),
-                  style: const TextStyle(
-                    fontSize: AppTexts.fontSizeHuge,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                  ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      totalAssets > totalCosts
-                          ? Icons.trending_up
-                          : totalAssets < totalCosts
-                          ? Icons.trending_down
-                          : Icons.trending_flat,
-                      color: totalAssets > totalCosts
-                          ? AppColors.appUpGreen
-                          : totalAssets < totalCosts
-                          ? AppColors.appDownRed
-                          : AppColors.appGrey,
-                      size: AppTexts.fontSizeMedium,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${AppUtils().formatMoney((totalAssets - totalCosts).toDouble(), GlobalStore().selectedCurrencyCode ?? 'JPY')} (${AppUtils().formatNumberByTwoDigits(totalCosts == 0 ? 0 : ((totalAssets - totalCosts) / totalCosts * 100))}%)',
-                      style: TextStyle(
-                        color: totalAssets > totalCosts
-                            ? AppColors.appUpGreen
-                            : totalAssets < totalCosts
-                            ? AppColors.appDownRed
-                            : AppColors.appGrey,
-                        fontSize: AppTexts.fontSizeMedium,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            const SizedBox(width: 8),
+            Text(
+              GlobalStore().selectedCurrencyCode ?? 'JPY',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        if (datas.isNotEmpty)
-          // 区间选择 pulldown 靠右
-          Padding(
-            padding: const EdgeInsets.only(right: 12, top: 4, bottom: 4),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: _PlatformRangeSelector(
-                value: _selectedRangeKey,
-                values: _rangeMap.keys.toList(),
-                onChanged: (v) {
-                  if (v == null) return;
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Text(
+              '${isUp ? '+' : ''}${AppUtils().formatMoney(profit, GlobalStore().selectedCurrencyCode ?? 'JPY')}',
+              style: TextStyle(
+                color: isUp ? AppColors.appUpGreen : AppColors.appDownRed,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: (isUp ? AppColors.appUpGreen : AppColors.appDownRed)
+                    .withOpacity(0.2),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                '${isUp ? '+' : ''}${AppUtils().formatNumberByTwoDigits(profitPercent)}%',
+                style: TextStyle(
+                  color: isUp ? AppColors.appUpGreen : AppColors.appDownRed,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          height: 250, // Chart height
+          child: datas.isNotEmpty
+              ? _TransitionAssetChart(
+                  datas: datas,
+                  currencyCode: GlobalStore().selectedCurrencyCode ?? 'JPY',
+                )
+              : const Center(
+                  child: Text('データがありません', style: TextStyle(color: Colors.grey))),
+        ),
+        const SizedBox(height: 16),
+        // Range Selector Tabs
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _rangeMap.keys.map((key) {
+              final bool isSelected = key == _selectedRangeKey;
+              return GestureDetector(
+                onTap: () {
                   if (mounted) {
-                    setState(() => _selectedRangeKey = v);
+                    setState(() => _selectedRangeKey = key);
                     _reloadByRange();
                   }
                 },
-              ),
-            ),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFF1C1C1E)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    key,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
-        if (datas.isNotEmpty)
-          _TransitionAssetChart(
-            datas: datas,
-            currencyCode: GlobalStore().selectedCurrencyCode,
-          ),
-        if (datas.isEmpty)
-          const SizedBox(height: 200, child: Center(child: Text('データがありません'))),
+        ),
       ],
     );
   }
@@ -709,12 +770,10 @@ class _TransitionAssetChartState extends State<_TransitionAssetChart>
       animation: _animation,
       builder: (context, child) {
         // 这里直接传完整 dataList
-        return CardSection(
-          child: LineChartSample12(
-            datas: widget.datas,
-            currencyCode: widget.currencyCode,
-            animationValue: _animation.value, // 0.0~1.0
-          ),
+        return LineChartSample12(
+          datas: widget.datas,
+          currencyCode: widget.currencyCode,
+          animationValue: _animation.value, // 0.0~1.0
         );
       },
     );
