@@ -23,10 +23,14 @@ class ModernHudDropdown<T> extends StatelessWidget {
       absorbing: disabled,
       child: Opacity(
         opacity: 1.0,
-        child: DropdownButtonFormField2<T>(
+        child: Theme(
+           data: ThemeData.dark().copyWith(
+             textTheme: ThemeData.dark().textTheme.apply(bodyColor: Colors.white),
+           ),
+           child: DropdownButtonFormField2<T>(
           isExpanded: true,
           value: selectedValue,
-          hint: Text(hintText),
+          hint: Text(hintText, style: const TextStyle(color: Colors.grey)),
 
           items: items,
 
@@ -34,7 +38,7 @@ class ModernHudDropdown<T> extends StatelessWidget {
 
           decoration: InputDecoration(
             filled: true,
-            fillColor: const Color(0xFFF5F6FA),
+            fillColor: const Color(0xFF2C2C2E),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: BorderSide.none,
@@ -55,11 +59,11 @@ class ModernHudDropdown<T> extends StatelessWidget {
             elevation: 4,
             offset: const Offset(0, 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9), // ✅ 提高透明度，可读性好
+              color: const Color(0xFF2C2C2E),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withOpacity(0.5),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),

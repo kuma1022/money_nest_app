@@ -107,9 +107,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       title: AppTexts.appName,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+          surface: const Color(0xFF1C1C1E),
+          background: Colors.black,
+        ),
         useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.appWhite, // 整体背景颜色
         fontFamily: 'NotoSansJP', // 日文
         fontFamilyFallback: [
           'NotoSansSC', // 简体中文
@@ -118,6 +124,32 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           'Roboto',
           'sans-serif',
         ],
+        dialogTheme: const DialogTheme(
+          backgroundColor: Color(0xFF1C1C1E),
+          surfaceTintColor: Colors.transparent,
+        ),
+        cardTheme: const CardTheme(
+          color: Color(0xFF1C1C1E),
+          elevation: 0,
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF2C2C2E),
+          labelStyle: const TextStyle(color: Colors.grey),
+          hintStyle: const TextStyle(color: Colors.grey),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+             borderRadius: BorderRadius.circular(12),
+             borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+             borderRadius: BorderRadius.circular(12),
+             borderSide: const BorderSide(color: Colors.blue),
+          ),
+        ),
       ),
       localizationsDelegates: const [
         AppLocalizations.delegate,

@@ -111,12 +111,10 @@ class _SettingsTabPageState extends State<SettingsTabPage>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF181A20) : const Color(0xFFF7F8FA);
-    final cardColor = isDark ? const Color(0xFF23242A) : Colors.white;
-    final borderColor = isDark
-        ? const Color(0xFF23242A)
-        : const Color(0xFFE5E6EA);
+    // Force Dark Theme Colors
+    const bgColor = Colors.black;
+    const cardColor = Color(0xFF1C1C1E);
+    const borderColor = Color(0xFF1C1C1E);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -125,11 +123,20 @@ class _SettingsTabPageState extends State<SettingsTabPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 10),
-            // プレミアム機能
-            _PremiumCard(
-              cardColor: cardColor,
-              borderColor: borderColor,
+            const SizedBox(height: 60), // Header space
+            // Settings Header
+            const Text(
+              'Settings',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Profile Section (Modified PremiumCard)
+            _ProfileSection(
               isLoggedIn: _isLoggedIn,
               userName: _userName,
               onLoginPressed: () async {
@@ -141,49 +148,53 @@ class _SettingsTabPageState extends State<SettingsTabPage>
                       builder: (_) => PremiumLoginPage(db: widget.db),
                     ),
                   );
-                  // 如果登录成功，刷新状态
-                  print('Login result: $result');
                   if (result == true) {
-                    print('Login successful, refreshing status...');
                     await _checkLoginStatus();
                   }
                 }
               },
             ),
-            const _NoAdCard(),
-            const SizedBox(height: 10),
-            _DisplaySettingsCard(
+            const SizedBox(height: 20),
+
+            _SectionCard(
+              title: 'General',
               cardColor: cardColor,
               borderColor: borderColor,
+              children: [
+                _SettingsTile(
+                  icon: Icons.display_settings,
+                  label: 'Display Settings',
+                  onTap: () {}, // Can open display settings
+                  cardColor: cardColor,
+                  borderColor: borderColor,
+                ),
+                _SettingsTile(
+                  icon: Icons.notifications_none,
+                  label: 'Notifications',
+                  onTap: () {},
+                  cardColor: cardColor,
+                  borderColor: borderColor,
+                ),
+              ],
             ),
-            // データ管理
+            const SizedBox(height: 20),
+            
+            // 数据管理
             _SectionCard(
-              icon: Icons.storage_outlined,
-              title: 'データ管理',
+              title: 'Data Management',
               cardColor: cardColor,
               borderColor: borderColor,
               children: [
                 _SettingsTile(
                   icon: Icons.download_outlined,
-                  label: 'データエクスポート',
+                  label: 'Export Data',
                   onTap: () {},
                   cardColor: cardColor,
                   borderColor: borderColor,
                 ),
                 _SettingsTile(
                   icon: Icons.upload_outlined,
-                  label: 'データインポート',
-                  onTap: () {},
-                  cardColor: cardColor,
-                  borderColor: borderColor,
-                ),
-                _SettingsTile(
-                  icon: Icons.account_balance_outlined,
-                  label: '証券会社連携',
-                  trailing: const Text(
-                    '近日公開',
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
+                  label: 'Import Data',
                   onTap: () {},
                   cardColor: cardColor,
                   borderColor: borderColor,
@@ -191,26 +202,25 @@ class _SettingsTabPageState extends State<SettingsTabPage>
               ],
             ),
             const SizedBox(height: 20),
-            // セキュリティ
+
+            // Security
             _SectionCard(
-              icon: Icons.shield_outlined,
-              title: 'セキュリティ',
+              title: 'Security',
               cardColor: cardColor,
               borderColor: borderColor,
               children: [
                 _SettingsTile(
-                  icon: Icons.backup_outlined,
-                  label: 'データバックアップ',
+                  icon: Icons.lock_outline,
+                  label: 'Security Settings',
                   onTap: () {},
                   cardColor: cardColor,
                   borderColor: borderColor,
                 ),
                 _SettingsTile(
                   icon: Icons.delete_outline,
-                  label: 'データの削除',
+                  label: 'Delete Data',
                   labelColor: Colors.red,
                   iconColor: Colors.red,
-                  trailing: const Icon(Icons.chevron_right, color: Colors.red),
                   onTap: () {},
                   cardColor: cardColor,
                   borderColor: borderColor,
@@ -218,50 +228,42 @@ class _SettingsTabPageState extends State<SettingsTabPage>
               ],
             ),
             const SizedBox(height: 20),
-            // サポート・情報
+            
+            // Support
             _SectionCard(
-              icon: Icons.help_outline,
-              title: 'サポート・情報',
+              title: 'Support',
               cardColor: cardColor,
               borderColor: borderColor,
               children: [
                 _SettingsTile(
-                  label: 'ヘルプ・FAQ',
+                  label: 'Help & FAQ',
                   onTap: () {},
                   cardColor: cardColor,
                   borderColor: borderColor,
                 ),
                 _SettingsTile(
-                  label: 'お問い合わせ',
+                  label: 'Contact Us',
                   onTap: () {},
                   cardColor: cardColor,
                   borderColor: borderColor,
                 ),
-                _SettingsTile(
-                  label: 'プライバシーポリシー',
-                  onTap: () {},
-                  cardColor: cardColor,
-                  borderColor: borderColor,
-                ),
-                _SettingsTile(
-                  label: '利用規約',
+                 _SettingsTile(
+                  label: 'Terms & Policy',
                   onTap: () {},
                   cardColor: cardColor,
                   borderColor: borderColor,
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            // アプリ情報
-            _AppInfoCard(cardColor: cardColor, borderColor: borderColor),
             const SizedBox(height: 32),
-            // フッター
+            // Footer
             Center(
               child: Text(
-                '© 2024 Asset Manager App. All rights reserved.',
-                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                'Version 1.0.0',
+                 style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
             ),
+             const SizedBox(height: 80),
           ],
         ),
       ),
@@ -269,17 +271,12 @@ class _SettingsTabPageState extends State<SettingsTabPage>
   }
 }
 
-// プレミアム機能カード
-class _PremiumCard extends StatelessWidget {
-  final Color cardColor;
-  final Color borderColor;
+class _ProfileSection extends StatelessWidget {
   final bool isLoggedIn;
   final String? userName;
   final VoidCallback onLoginPressed;
 
-  const _PremiumCard({
-    required this.cardColor,
-    required this.borderColor,
+  const _ProfileSection({
     required this.isLoggedIn,
     this.userName,
     required this.onLoginPressed,
@@ -287,17 +284,63 @@ class _PremiumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isLoggedIn
-              ? [const Color(0xFFE8F5E8), const Color(0xFFF0FFF0)] // 绿色系 - 已登录
-              : [const Color(0xFFE3F0FF), const Color(0xFFD6F5F2)], // 蓝色系 - 未登录
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return GestureDetector(
+      onTap: onLoginPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1C1E),
+          borderRadius: BorderRadius.circular(16),
         ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: const BoxDecoration(
+                color: Colors.grey,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.person,
+                size: 30,
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isLoggedIn ? (userName ?? 'User') : 'Sign In',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isLoggedIn ? 'Tap to view profile' : 'Sign in to sync data',
+                     style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+             Icon(
+              Icons.chevron_right,
+              color: Colors.grey[600],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
           color: isLoggedIn ? const Color(0xFFC8E6C9) : const Color(0xFFB7D8F6),
           width: 1,
         ),
@@ -512,13 +555,13 @@ class _PremiumFeatureBox extends StatelessWidget {
 
 // 通用设置区块
 class _SectionCard extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon; // Made optional
   final String title;
   final List<Widget> children;
   final Color cardColor;
   final Color borderColor;
   const _SectionCard({
-    required this.icon,
+    this.icon,
     required this.title,
     required this.children,
     required this.cardColor,
@@ -529,28 +572,24 @@ class _SectionCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 0),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: Colors.transparent, // Remove background
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: 0.7),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, color: Colors.black54),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.grey, // Section header color
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 8),
           ...children,
         ],
       ),
@@ -584,36 +623,35 @@ class _SettingsTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: isDanger ? Colors.red.withOpacity(0.06) : cardColor,
+        color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: borderColor, width: 0.5),
       ),
       child: ListTile(
         leading: icon != null
             ? Icon(
                 icon,
-                color: iconColor ?? (isDanger ? Colors.red : Colors.black54),
+                color: iconColor ?? (isDanger ? Colors.red : Colors.grey),
                 size: 22,
               )
             : null,
         title: Text(
           label,
           style: TextStyle(
-            color: labelColor ?? (isDanger ? Colors.red : Colors.black87),
+            color: labelColor ?? (isDanger ? Colors.red : Colors.white),
             fontWeight: isDanger ? FontWeight.bold : FontWeight.normal,
             fontSize: 14,
           ),
         ),
         trailing:
             trailing ??
-            Icon(
+             const Icon(
               Icons.chevron_right,
-              color: isDanger ? Colors.red : Colors.black26,
+              color: Colors.grey,
               size: 20,
             ),
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         minLeadingWidth: 28,
       ),
     );

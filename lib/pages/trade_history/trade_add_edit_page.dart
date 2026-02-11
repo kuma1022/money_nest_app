@@ -404,7 +404,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
         FocusScope.of(context).unfocus();
       },
       child: Material(
-        color: AppColors.appBackground,
+        color: Colors.black, // Dark background
         child: SafeArea(
           bottom: false,
           child: SingleChildScrollView(
@@ -430,7 +430,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                         IconButton(
                           icon: const Icon(
                             Icons.arrow_back_ios_new,
-                            color: Colors.black87,
+                            color: Colors.white, // White icon
                           ),
                           onPressed:
                               widget.onClose ?? () => Navigator.pop(context),
@@ -439,7 +439,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                         const Text(
                           '取引追加',
                           style: TextStyle(
-                            color: Color(0xFF222222),
+                            color: Colors.white, // White text
                             fontWeight: FontWeight.bold,
                             fontSize: 22,
                             letterSpacing: 1.2,
@@ -471,12 +471,12 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24),
                               ),
-                              backgroundColor: Colors.white,
+                              backgroundColor: const Color(0xFF1C1C1E), // Dark button
                             ),
                             child: const Text(
                               'キャンセル',
                               style: TextStyle(
-                                color: Colors.black87,
+                                color: Colors.white, // White text
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),

@@ -152,201 +152,184 @@ class TradeHistoryPageState extends State<TradeHistoryPage> {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return SizedBox.expand(
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.appBackground, AppColors.appBackground],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPadding),
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (notification) {
-                double pixels = 0.0;
-                if (notification is ScrollUpdateNotification ||
-                    notification is OverscrollNotification) {
-                  pixels = notification.metrics.pixels;
-                  if (pixels < 0) pixels = 0; // 只允许正数（如需overscroll缩放可不处理）
-                  widget.onScroll?.call(pixels);
-                }
-                return false;
-              },
-              child: SingleChildScrollView(
-                controller: widget.scrollController,
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 16),
-                    // 筛选卡片
-                    CardSection(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: const [
-                              Icon(
-                                Icons.filter_alt_outlined,
-                                size: 18,
-                                color: Colors.black54,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'フィルター',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // 搜索框
-                          Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.appBackground,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: const TextField(
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                hintText: '銘柄名・コードで検索',
-                                hintStyle: TextStyle(color: Colors.grey),
-                                icon: Icon(Icons.search, color: Colors.grey),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          // 下拉筛选
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _FilterDropdown(
-                                  items: const ['all', '買い', '売り', '配当'],
-                                  value: 'all',
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _FilterDropdown(
-                                  items: const [
-                                    'all',
-                                    '株式',
-                                    'FX（為替）',
-                                    '暗号資産',
-                                    '貴金属',
-                                    'その他資産',
-                                  ],
-                                  value: 'all',
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // 日期筛选
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.calendar_today,
-                                size: 18,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  '年 / 月 / 日',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    // 交易记录列表
-                    if (records.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 32),
-                        child: Center(child: Text('データがありません')),
-                      ),
-                    if (records.isNotEmpty)
-                      Column(
-                        children: records
-                            .map((r) => buildTradeRecordCard(r))
-                            .toList(),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // 全屏加载层
-          if (_isInitializing)
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SizedBox.expand(
+        child: Stack(
+          children: [
             Positioned.fill(
               child: Container(
-                color: Colors.white.withOpacity(0.6),
-                child: const Center(child: CircularProgressIndicator()),
+                color: Colors.black,
               ),
             ),
-          // 浮动追加按钮
-          Positioned(
-            right: 16,
-            bottom: 16 + bottomPadding + 70,
-            child: FloatingButton(
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => TradeAddEditPage(
-                      db: widget.db,
-                      mode: 'add',
-                      type: 'asset',
-                      record: TradeRecordDisplay(
-                        id: 0,
-                        action: ActionType.buy,
-                        tradeDate: '',
-                        tradeType: '',
-                        amount: '',
-                        detail: '',
-                        assetType: '',
-                        price: 0.0,
-                        quantity: 0.0,
-                        currency: '',
-                        feeAmount: 0.0,
-                        feeCurrency: '',
-                        remark: '',
-                        stockInfo: Stock(
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  double pixels = 0.0;
+                  if (notification is ScrollUpdateNotification ||
+                      notification is OverscrollNotification) {
+                    pixels = notification.metrics.pixels;
+                    if (pixels < 0) pixels = 0;
+                    widget.onScroll?.call(pixels);
+                  }
+                  return false;
+                },
+                child: SmartRefresher(
+                  controller: _refreshController,
+                  onRefresh: onRefresh,
+                  header: const WaterDropHeader(waterDropColor: Colors.grey),
+                  child: SingleChildScrollView(
+                    controller: widget.scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 60),
+                        // Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back,
+                                  color: Colors.white),
+                              onPressed: () => Navigator.maybePop(context),
+                            ),
+                            const Text(
+                              'Trade History',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF1C1C1E),
+                              ),
+                              child: const Icon(
+                                Icons.filter_list, // Filter icon
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Search Bar (Optional, can be integrated into filter)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1C1C1E),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: const TextField(
+                            style: TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              icon: Icon(Icons.search, color: Colors.grey),
+                              hintText: 'Search by ticker or name',
+                              hintStyle: TextStyle(color: Colors.grey),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Date Header (Example, assuming grouped by date or just a list)
+                        const Text(
+                          'Transactions',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // 交易记录列表
+                        if (records.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 60),
+                            child: Center(
+                                child: Text('No transactions found',
+                                    style: TextStyle(color: Colors.grey))),
+                          ),
+                        if (records.isNotEmpty)
+                          Column(
+                            children: records
+                                .map((r) => buildTradeRecordCard(r))
+                                .toList(),
+                          ),
+                        const SizedBox(height: 80),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // 全屏加载层
+            if (_isInitializing)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.5),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+              ),
+            // 浮动追加按钮
+            Positioned(
+              right: 16,
+              bottom: 16 + bottomPadding,
+              child: FloatingActionButton(
+                backgroundColor: Colors.white,
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TradeAddEditPage(
+                        db: widget.db,
+                        mode: 'add',
+                        type: 'asset',
+                        record: TradeRecordDisplay(
                           id: 0,
-                          name: '',
-                          nameUs: '',
-                          exchange: 'JP',
-                          logo: '',
+                          action: ActionType.buy,
+                          tradeDate: '',
+                          tradeType: '',
+                          amount: '',
+                          detail: '',
+                          assetType: '',
+                          price: 0.0,
+                          quantity: 0.0,
                           currency: '',
-                          country: '',
-                          status: '',
+                          feeAmount: 0.0,
+                          feeCurrency: '',
+                          remark: '',
+                          stockInfo: Stock(
+                            id: 0,
+                            name: '',
+                            nameUs: '',
+                            exchange: 'JP',
+                            logo: '',
+                            currency: '',
+                            country: '',
+                            status: '',
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
+                  );
 
-                if (result == true) {
-                  await onRefresh();
-                }
-              },
-              icon: Icon(Icons.add, color: Colors.white, size: 28),
+                  if (result == true) {
+                    await onRefresh();
+                  }
+                },
+                child: const Icon(Icons.add, color: Colors.black),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -358,19 +341,17 @@ class TradeHistoryPageState extends State<TradeHistoryPage> {
       ActionType.dividend: AppColors.appBlue,
     };
     final typeLabel = {
-      ActionType.buy: '買い',
-      ActionType.sell: '売り',
-      ActionType.dividend: '配当',
+      ActionType.buy: 'Buy',
+      ActionType.sell: 'Sell',
+      ActionType.dividend: 'Dividend',
     };
-    final typeIcon = {
-      ActionType.buy: Icons.add_outlined,
-      ActionType.sell: Icons.remove_outlined,
-      ActionType.dividend: Icons.card_giftcard,
-    };
+    // Icons
+    // buy: arrow down left (incoming asset?) or simple arrow
+    // sell: arrow up right
+    // or keep simple circle icons
 
     return GestureDetector(
       onTap: () async {
-        // 用回调
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
@@ -379,113 +360,101 @@ class TradeHistoryPageState extends State<TradeHistoryPage> {
         );
 
         if (result == true) {
-          // 刷新数据 调用刷新方法
           await onRefresh();
         }
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFF1C1C1E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE5E6EA), width: 1),
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // 左侧icon
+            // Icon
             Container(
-              width: 32,
-              height: 32,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: typeColor[record.action]?.withAlpha(20),
+                color: (typeColor[record.action] ?? Colors.grey).withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                typeIcon[record.action],
+                record.action == ActionType.buy
+                    ? Icons.south_west
+                    : record.action == ActionType.sell
+                        ? Icons.north_east
+                        : Icons.savings,
                 color: typeColor[record.action],
                 size: 20,
               ),
             ),
-            const SizedBox(width: 10),
-            // 主要内容
+            const SizedBox(width: 12),
+            // Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        record.stockInfo.ticker ?? '',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: typeColor[record.action]?.withAlpha(20),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          typeLabel[record.action]!,
-                          style: TextStyle(
-                            color: typeColor[record.action],
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        record.amount,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: record.action == ActionType.dividend
-                              ? const Color(0xFF388E3C)
-                              : Colors.black,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    record.stockInfo.ticker ?? record.stockInfo.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
-                      Expanded(
-                        child: Text(
-                          record.stockInfo.name,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                      Text(
+                        typeLabel[record.action]!,
+                        style: TextStyle(
+                          color: typeColor[record.action],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        record.detail,
+                        DateFormat('yyyy-MM-dd')
+                            .format(DateTime.parse(record.tradeDate)),
                         style: const TextStyle(
-                          fontSize: 13,
                           color: Colors.grey,
+                          fontSize: 12,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
                       ),
                     ],
                   ),
-                  Text(
-                    record.tradeDate,
-                    style: const TextStyle(fontSize: 13, color: Colors.grey),
-                  ),
                 ],
               ),
+            ),
+            // Amount
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  record.amount,
+                  style: TextStyle(
+                    color: record.action == ActionType.buy
+                        ? Colors.white
+                        : record.action == ActionType.sell
+                            ? AppColors.appDownRed
+                            : AppColors.appUpGreen,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                 '${record.quantity} @ ${record.price}',
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

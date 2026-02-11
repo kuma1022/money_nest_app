@@ -29,9 +29,9 @@ class _CustomTabState extends State<CustomTab> {
           margin: const EdgeInsets.only(top: 8, bottom: 16),
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: const Color(0xFFF5F6FA),
+            color: const Color(0xFF1C1C1E), // Dark container
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFE5E6EA)),
+            border: Border.all(color: const Color(0xFF2C2C2E)), // Dark border
           ),
           child: Row(
             children: widget.tabs.asMap().entries.map((entry) {
@@ -45,7 +45,7 @@ class _CustomTabState extends State<CustomTab> {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: tabIndex == idx
-                          ? Colors.white
+                          ? const Color(0xFF3A3A3C) // Dark selected
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -56,8 +56,12 @@ class _CustomTabState extends State<CustomTab> {
                         child: Text(
                           tab,
                           style: TextStyle(
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w400,
+                            color: tabIndex == idx
+                                ? Colors.white
+                                : Colors.grey, // White / Grey
+                            fontWeight: tabIndex == idx
+                                ? FontWeight.bold
+                                : FontWeight.w400,
                             fontSize: AppTexts.fontSizeMedium,
                           ),
                           maxLines: 1,

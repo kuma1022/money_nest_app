@@ -165,257 +165,255 @@ class HomeTabPageState extends State<HomeTabPage> {
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    return SizedBox.expand(
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.appBackground, AppColors.appBackground],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SizedBox.expand(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                color: Colors.black,
               ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(8, 0, 8, bottomPadding),
-            child: NotificationListener<ScrollNotification>(
-              onNotification: (notification) {
-                double pixels = 0.0;
-                if (notification is ScrollUpdateNotification ||
-                    notification is OverscrollNotification) {
-                  pixels = notification.metrics.pixels;
-                  if (pixels < 0) pixels = 0;
-                  widget.onScroll?.call(pixels);
-                }
-                return false;
-              },
-              child: SmartRefresher(
-                controller: _refreshController,
-                onRefresh: onRefresh,
-                header: const WaterDropHeader(),
-                child: SingleChildScrollView(
-                  controller: widget.scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 16),
-                      CardSection(
-                        child: Row(
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  double pixels = 0.0;
+                  if (notification is ScrollUpdateNotification ||
+                      notification is OverscrollNotification) {
+                    pixels = notification.metrics.pixels;
+                    if (pixels < 0) pixels = 0;
+                    widget.onScroll?.call(pixels);
+                  }
+                  return false;
+                },
+                child: SmartRefresher(
+                  controller: _refreshController,
+                  onRefresh: onRefresh,
+                  header: const WaterDropHeader(
+                    waterDropColor: Colors.grey,
+                  ),
+                  child: SingleChildScrollView(
+                    controller: widget.scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 60),
+                        // Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  const Text(
-                                    '💰 総資産',
-                                    style: TextStyle(
-                                      fontSize: AppTexts.fontSizeLarge,
-                                      color: Colors.black87,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    AppUtils().formatMoney(
-                                      totalAssets.toDouble(),
-                                      GlobalStore().selectedCurrencyCode,
-                                    ),
-                                    style: const TextStyle(
-                                      fontSize: AppTexts.fontSizeHuge,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  // 最近同步时间显示
-                                  Text(
-                                    GlobalStore().lastSyncTime != null
-                                        ? '最終更新: ${DateFormat('yyyy-MM-dd HH:mm').format(GlobalStore().lastSyncTime!)}'
-                                        : '最終更新: --',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                  // 只在非加载状态下显示损益信息
-                                  if (!_isInitializing)
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          totalAssets > totalCosts
-                                              ? Icons.trending_up
-                                              : totalAssets < totalCosts
-                                              ? Icons.trending_down
-                                              : Icons.trending_flat,
-                                          color: totalAssets > totalCosts
-                                              ? AppColors.appUpGreen
-                                              : totalAssets < totalCosts
-                                              ? AppColors.appDownRed
-                                              : AppColors.appGrey,
-                                          size: AppTexts.fontSizeMedium,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${AppUtils().formatMoney((totalAssets - totalCosts).toDouble(), GlobalStore().selectedCurrencyCode ?? 'JPY')} (${AppUtils().formatNumberByTwoDigits(totalCosts == 0 ? 0 : ((totalAssets - totalCosts) / totalCosts * 100))}%)',
-                                          style: TextStyle(
-                                            color: totalAssets > totalCosts
-                                                ? AppColors.appUpGreen
-                                                : totalAssets < totalCosts
-                                                ? AppColors.appDownRed
-                                                : AppColors.appGrey,
-                                            fontSize: AppTexts.fontSizeMedium,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  // 如果初始化失败，显示重试按钮
-                                  if (!_isInitializing && !_hasData)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: ElevatedButton(
-                                        onPressed: _initializeData,
-                                        child: const Text('データを再読み込み'),
-                                      ),
-                                    ),
-                                ],
-                              ),
+                            IconButton(
+                              icon:
+                                  const Icon(Icons.menu, color: Colors.white),
+                              onPressed: () {},
                             ),
-                          ],
-                        ),
-                      ),
-                      GlassQuickBar(
-                        items: [
-                          GlassQuickBarItem(
-                            icon: Icons.add,
-                            label: '取引追加',
-                            selected: false,
-                            onTap: () {},
-                            iconColor: const Color(0xFF1976D2),
-                          ),
-                          GlassQuickBarItem(
-                            icon: Icons.pie_chart_outline,
-                            label: '資産一覧',
-                            selected: false,
-                            onTap: () => widget.onPortfolioTap?.call(),
-                            iconColor: const Color(0xFF1976D2),
-                          ),
-                          GlassQuickBarItem(
-                            icon: Icons.download_outlined,
-                            label: '資産分析',
-                            selected: false,
-                            onTap: () => widget.onAssetAnalysisTap?.call(),
-                            iconColor: const Color(0xFF1976D2),
-                          ),
-                          GlassQuickBarItem(
-                            icon: Icons.calculate_outlined,
-                            label: '損益計算',
-                            selected: false,
-                            onTap: () {},
-                            iconColor: const Color(0xFF1976D2),
-                          ),
-                        ],
-                      ),
-                      CardSection(
-                        child: _ClickableCardTile(
-                          onTap: widget.onAssetAnalysisTap,
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 0,
-                              vertical: 0,
-                            ),
-                            leading: Container(
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF1976D2,
-                                ).withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.all(8),
-                              child: const Icon(
-                                Icons.analytics_outlined,
-                                color: Color(0xFF1976D2),
-                                size: 28,
-                              ),
-                            ),
-                            title: const Text(
-                              '資産分析',
+                            const Text(
+                              'Home',
                               style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
                               ),
                             ),
-                            subtitle: const Text(
-                              '資産の推移や損益をグラフで分析',
-                              style: TextStyle(fontSize: 13),
-                            ),
-                            trailing: Icon(
-                              Icons.chevron_right,
-                              color: Colors.black.withValues(alpha: 0.3),
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (!_isInitializing && _pieSections.isNotEmpty ||
-                          _tabIndex == 1)
-                        GlassTab(
-                          borderRadius: 24,
-                          margin: const EdgeInsets.only(
-                            left: 0,
-                            right: 0,
-                            bottom: 18,
-                          ),
-                          tabs: const ['資産', '負債'],
-                          // 监听tab切换
-                          onTabChanged: (index) {
-                            _tabIndex = index;
-                            if (index == assetTabIndex) {
-                              _animatePieChart();
-                            } else {
-                              if (mounted) {
-                                setState(() {
-                                  _pieSections = [];
-                                });
-                              }
-                            }
-                          },
-                          tabBarContentList: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
                               children: [
-                                const SizedBox(height: 8),
-                                createPieChart(),
-                                const SizedBox(height: 8),
-                                createTabBarContentForAsset(),
-                                const SizedBox(height: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.notifications_none,
+                                      color: Colors.white),
+                                  onPressed: () {},
+                                ),
                               ],
                             ),
-                            const SizedBox.shrink(),
                           ],
                         ),
-                      const SizedBox(height: 80),
-                    ],
+                        const SizedBox(height: 20),
+                        // Total Assets
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '総資産',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              AppUtils().formatMoney(
+                                totalAssets.toDouble(),
+                                GlobalStore().selectedCurrencyCode,
+                              ),
+                              style: const TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            if (!_isInitializing)
+                              Row(
+                                children: [
+                                  Text(
+                                    '${totalAssets >= totalCosts ? '+' : ''}${AppUtils().formatMoney((totalAssets - totalCosts).toDouble(), GlobalStore().selectedCurrencyCode ?? 'JPY')}',
+                                    style: TextStyle(
+                                      color: totalAssets >= totalCosts
+                                          ? AppColors.appUpGreen
+                                          : AppColors.appDownRed,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: (totalAssets >= totalCosts
+                                              ? AppColors.appUpGreen
+                                              : AppColors.appDownRed)
+                                          .withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '${totalAssets >= totalCosts ? '+' : ''}${AppUtils().formatNumberByTwoDigits(totalCosts == 0 ? 0 : ((totalAssets - totalCosts) / totalCosts * 100))}%',
+                                      style: TextStyle(
+                                        color: totalAssets >= totalCosts
+                                            ? AppColors.appUpGreen
+                                            : AppColors.appDownRed,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 30),
+                        // Quick Actions
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildQuickActionButton(
+                              icon: Icons.add,
+                              label: 'Add',
+                              onTap: () {},
+                            ),
+                            _buildQuickActionButton(
+                              icon: Icons.send,
+                              label: 'Send',
+                              onTap: () {},
+                            ),
+                            _buildQuickActionButton(
+                              icon: Icons.call_received,
+                              label: 'Receive',
+                              onTap: () {},
+                            ),
+                            _buildQuickActionButton(
+                              icon: Icons.more_horiz,
+                              label: 'More',
+                              onTap: () {},
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 30),
+
+                        // Pie Chart
+                        if (_pieSections.isNotEmpty)
+                          SizedBox(
+                            height: 220,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                CustomPieChart(sections: _pieSections),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                      'Portfolio',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${_pieSections.length} Assets',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        const SizedBox(height: 30),
+                        const Text(
+                          'Your Assets',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        createTabBarContentForAsset(),
+                        const SizedBox(height: 80),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          // 全屏加载层
-          if (_isInitializing)
-            Positioned.fill(
-              child: Container(
-                color: Colors.white.withOpacity(0.6),
-                child: const Center(child: CircularProgressIndicator()),
+            // Full screen loading
+            if (_isInitializing)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.5),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildQuickActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: const BoxDecoration(
+              color: Color(0xFF1C1C1E),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+      ],
     );
   }
 
@@ -427,31 +425,103 @@ class HomeTabPageState extends State<HomeTabPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: assetCategories.map((category) {
-        return SummaryCategoryCard(
-          label: category['label'],
-          dotColor: category['dotColor'],
-          rateLabel: category['rateLabel'],
-          value: category['value'],
-          profitText: category['profitText'],
-          profitRateText: category['profitRateText'],
-          profitColor: category['profitColor'],
-          subCategories: (category['subCategories'] as List)
-              .where(
-                (e) =>
-                    e['value'] != null &&
-                    AppUtils().parseMoneySimple(e['value']) > 0,
-              )
-              .map(
-                (subCat) => SummarySubCategoryCard(
-                  label: subCat['label'],
-                  rateLabel: subCat['rateLabel'],
-                  value: subCat['value'],
-                  profitText: subCat['profitText'],
-                  profitRateText: subCat['profitRateText'],
-                  profitColor: subCat['profitColor'],
-                ),
-              )
-              .toList(),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1C1E),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              // Expand logic later
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: category['dotColor'] ?? Colors.grey,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            (category['label'] as String).substring(0, 1),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              category['label'],
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              category['rateLabel'] ?? '',
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            category['value'],
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                category['profitText'] ?? '',
+                                style: TextStyle(
+                                  color: category['profitColor'] ?? Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                category['profitRateText'] ?? '',
+                                style: TextStyle(
+                                  color: category['profitColor'] ?? Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       }).toList(),
     );

@@ -415,20 +415,15 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black, // Explicitly set black background
       body: Stack(
         children: [
+          // Background Gradient - Removed for simple dark mode or kept as subtle dark gradient if needed.
+          // For consistency with other pages, we can just filter it or make it very dark.
+          // But user asked for "Simple Dark Mode", usually implies solid or very dark background.
+          // Let's us a simple solid black background as base, maybe a subtle gradient if really needed, but sticking to black is safer.
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFFB6D0E2),
-                  Color(0xFFD6EFFF),
-                  Color(0xFFE3E0F9),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
+           color: Colors.black, // Fully black
           ),
           SafeArea(
             child: SingleChildScrollView(
@@ -478,7 +473,7 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
             color: const Color(0xFF4CAF50).withOpacity(0.85),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 16),
+              BoxShadow(color: Colors.white.withOpacity(0.08), blurRadius: 16), // Light shadow for dark mode
             ],
           ),
           child: const Icon(
@@ -490,12 +485,13 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
         const SizedBox(height: 18),
         const Text(
           'MoneyGrow - 資産管理アプリ',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          style: TextStyle(
+              fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         const SizedBox(height: 8),
         const Text(
           'プレミアム機能をご利用ください',
-          style: TextStyle(fontSize: 15, color: Colors.black54),
+          style: TextStyle(fontSize: 15, color: Colors.grey),
         ),
         const SizedBox(height: 24),
       ],
@@ -507,7 +503,7 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
       onPressed: () {},
       child: const Text(
         'スキップ（デモモード）',
-        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
       ),
     );
   }
@@ -519,9 +515,9 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
         width: double.infinity,
         child: OutlinedButton(
           style: OutlinedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
-            side: const BorderSide(color: Color(0xFFE5E6EA)),
+            backgroundColor: const Color(0xFF1C1C1E), // Dark card color
+            foregroundColor: Colors.white,
+            side: const BorderSide(color: Color(0xFF2C2C2E)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -600,7 +596,8 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           const SizedBox(height: 18),
           const Text(
             'アカウントにログイン',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
           ),
           if (loginError != null)
             Container(
@@ -621,18 +618,21 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           // 邮箱字段标题和输入框
           const Text(
             'メールアドレス',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 6),
           TextField(
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
             enabled: !isLoading,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.email_outlined),
+              prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
               hintText: 'moneygrow@gmail.com',
+              hintStyle: const TextStyle(color: Colors.grey),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.4),
+              fillColor: const Color(0xFF2C2C2E),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -648,18 +648,21 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           // 密码字段标题和输入框
           const Text(
             'パスワード',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 6),
           TextField(
             controller: passwordController,
             obscureText: passwordObscure,
             enabled: !isLoading,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.lock_outline),
+              prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
               hintText: '••••••••',
+              hintStyle: const TextStyle(color: Colors.grey),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.4),
+              fillColor: const Color(0xFF2C2C2E),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -673,6 +676,7 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
                   passwordObscure
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
+                  color: Colors.grey,
                 ),
                 onPressed: () =>
                     setState(() => passwordObscure = !passwordObscure),
@@ -712,12 +716,12 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           // 分隔线
           const Row(
             children: [
-              Expanded(child: Divider()),
+              Expanded(child: Divider(color: Color(0xFF2C2C2E))),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Text('または', style: TextStyle(color: Colors.grey)),
               ),
-              Expanded(child: Divider()),
+              Expanded(child: Divider(color: Color(0xFF2C2C2E))),
             ],
           ),
           const SizedBox(height: 18),
@@ -725,12 +729,12 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           // Apple ID 登录按钮
           OutlinedButton.icon(
             onPressed: isLoading ? null : _onAppleLogin,
-            icon: const Icon(Icons.apple, size: 22, color: Colors.black),
+            icon: const Icon(Icons.apple, size: 22, color: Colors.white),
             label: const Text('Apple ID'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.black87,
-              backgroundColor: Colors.white,
-              side: const BorderSide(color: Color(0xFFE5E6EA)),
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.black, // Dark background
+              side: const BorderSide(color: Color(0xFF2C2C2E)),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -752,7 +756,8 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           const SizedBox(height: 18),
           const Text(
             '新規アカウント作成',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
           ),
           if (registerError != null)
             Container(
@@ -773,17 +778,20 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           // 昵称输入字段
           const Text(
             'ニックネーム（任意）',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 6),
           TextField(
             controller: regNicknameController,
             enabled: !isLoading,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.person_outline),
+              prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
               hintText: 'マネー太郎',
+              hintStyle: const TextStyle(color: Colors.grey),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.4),
+              fillColor: const Color(0xFF2C2C2E),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -799,18 +807,21 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           // 邮箱输入字段
           const Text(
             'メールアドレス',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 6),
           TextField(
             controller: regEmailController,
             keyboardType: TextInputType.emailAddress,
             enabled: !isLoading,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.email_outlined),
+              prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
               hintText: 'example@email.com',
+              hintStyle: const TextStyle(color: Colors.grey),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.4),
+              fillColor: const Color(0xFF2C2C2E),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -827,18 +838,21 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           // 密码输入字段
           const Text(
             'パスワード',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 6),
           TextField(
             controller: regPasswordController,
             obscureText: regPasswordObscure,
             enabled: !isLoading,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.lock_outline),
+              prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
               hintText: '••••••••',
+              hintStyle: const TextStyle(color: Colors.grey),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.4),
+              fillColor: const Color(0xFF2C2C2E),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -852,6 +866,7 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
                   regPasswordObscure
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
+                  color: Colors.grey,
                 ),
                 onPressed: () =>
                     setState(() => regPasswordObscure = !regPasswordObscure),
@@ -863,18 +878,21 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           // 密码确认输入字段
           const Text(
             'パスワード確認',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 6),
           TextField(
             controller: regPasswordConfirmController,
             obscureText: regPasswordConfirmObscure,
             enabled: !isLoading,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.lock_outline),
+              prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
               hintText: '••••••••',
+              hintStyle: const TextStyle(color: Colors.grey),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.4),
+              fillColor: const Color(0xFF2C2C2E),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -888,6 +906,7 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
                   regPasswordConfirmObscure
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
+                  color: Colors.grey,
                 ),
                 onPressed: () => setState(
                   () => regPasswordConfirmObscure = !regPasswordConfirmObscure,
@@ -928,12 +947,12 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           // 分隔线
           const Row(
             children: [
-              Expanded(child: Divider()),
+              Expanded(child: Divider(color: Color(0xFF2C2C2E))),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 8),
                 child: Text('または', style: TextStyle(color: Colors.grey)),
               ),
-              Expanded(child: Divider()),
+              Expanded(child: Divider(color: Color(0xFF2C2C2E))),
             ],
           ),
           const SizedBox(height: 18),
@@ -941,12 +960,12 @@ class _PremiumLoginPageState extends State<PremiumLoginPage> {
           // Apple ID 注册按钮
           OutlinedButton.icon(
             onPressed: isLoading ? null : _onAppleLogin,
-            icon: const Icon(Icons.apple, size: 22, color: Colors.black),
+            icon: const Icon(Icons.apple, size: 22, color: Colors.white),
             label: const Text('Apple ID'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.black87,
-              backgroundColor: Colors.white,
-              side: const BorderSide(color: Color(0xFFE5E6EA)),
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.black, // Dark background
+              side: const BorderSide(color: Color(0xFF2C2C2E)),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -990,20 +1009,21 @@ class PremiumSubscribePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.appBackground,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black,
         elevation: 0,
+        leading: const BackButton(color: Colors.white),
         title: const Text(
           'プレミアム会員登録',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
       body: Center(
         child: Text(
           'ここにプレミアム会員のプラン選択・決済画面を実装してください。',
-          style: TextStyle(fontSize: 16, color: Colors.black54),
+          style: TextStyle(fontSize: 16, color: Colors.grey),
         ),
       ),
     );

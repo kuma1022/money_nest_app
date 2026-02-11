@@ -1624,12 +1624,12 @@ class _FundTransactionPageState extends State<FundTransactionPage> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.black, // Dark Mode
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black, // Dark Mode
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.white), // White Icon
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Column(
@@ -1638,7 +1638,7 @@ class _FundTransactionPageState extends State<FundTransactionPage> {
             Text(
               widget.isEditMode ? '積立設定編集' : '取引追加',
               style: const TextStyle(
-                color: Colors.black,
+                color: Colors.white, // White Text
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),

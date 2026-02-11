@@ -204,7 +204,7 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
           splashColor: Colors.transparent,
         ),
         child: Scaffold(
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.black, // Dark background
           body: Column(
             children: [
               // 页面内容
