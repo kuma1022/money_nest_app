@@ -312,7 +312,7 @@ class AssetAnalysisPageState extends State<AssetAnalysisPage> {
                         // I will update TotalAssetAnalysisCard usage if I could see it,
                         // but since I can't modify it here, I will just display it.
                         // NOTE: Ideally all sub-components should also be updated.
-                        TotalAssetAnalysisCard(isAssetAnalysisBtnDisplay: false, isDark: true), // Assuming isDark param or auto-adapt
+                        TotalAssetAnalysisCard(isAssetAnalysisBtnDisplay: false), // Assuming isDark param or auto-adapt
                         const SizedBox(height: 18),
                         _AssetTrendCard(),
                         const SizedBox(height: 18),
@@ -344,8 +344,11 @@ class AssetAnalysisPageState extends State<AssetAnalysisPage> {
                   child: const Center(child: CircularProgressIndicator()),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
   }
-}
 
   // --- 新的 UI 构建方法 ---
 
