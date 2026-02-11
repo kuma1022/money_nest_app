@@ -123,10 +123,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           'Roboto',
           'sans-serif',
         ],
-        dialogTheme: const DialogTheme(
+        dialogTheme: const DialogThemeData(
           backgroundColor: Color(0xFF1C1C1E),
         ),
-        cardTheme: const CardTheme(
+        cardTheme: const CardThemeData(
           color: Color(0xFF1C1C1E),
           elevation: 0,
         ),
