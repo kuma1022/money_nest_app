@@ -79,7 +79,7 @@ class TradeDetailPageState extends State<TradeDetailPage> {
       backgroundColor: Colors.black,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Column(
             children: [
               // 返回
@@ -103,9 +103,9 @@ class TradeDetailPageState extends State<TradeDetailPage> {
               const Text(
                 '取引詳細',
                 style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                  color: Colors.white,
+                  fontWeight: FontWeight.bold, 
+                  fontSize: 20, 
+                  color: Colors.white
                 ),
               ),
               const SizedBox(height: 8),
@@ -170,10 +170,7 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                               const SizedBox(height: 2),
                               Text(
                                 recordData.tradeDate,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                ),
+                                style: const TextStyle(fontSize: 16, color: Colors.white),
                               ),
                             ],
                           ),
@@ -192,10 +189,7 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                               const SizedBox(height: 2),
                               Text(
                                 category,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                ),
+                                style: const TextStyle(fontSize: 16, color: Colors.white),
                               ),
                             ],
                           ),
@@ -219,10 +213,7 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                               const SizedBox(height: 2),
                               Text(
                                 '${recordData.quantity}株',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                ),
+                                style: const TextStyle(fontSize: 16, color: Colors.white),
                               ),
                             ],
                           ),
@@ -244,10 +235,7 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                                   recordData.price,
                                   recordData.currency,
                                 ),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                ),
+                                style: const TextStyle(fontSize: 16, color: Colors.white),
                               ),
                             ],
                           ),
@@ -268,10 +256,13 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 2)
-                                  fontSize: 16,
-                                  color: Colors.white,
+                              const SizedBox(height: 2),
+                              Text(
+                                AppUtils().formatMoney(
+                                  recordData.quantity * recordData.price,
+                                  recordData.currency,
                                 ),
+                                style: const TextStyle(fontSize: 16, color: Colors.white),
                               ),
                             ],
                           ),
@@ -293,26 +284,16 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                                   recordData.feeAmount,
                                   recordData.feeCurrency,
                                 ),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                
-                              Text(
-                                AppUtils().formatMoney(
-                                  recordData.feeAmount,
-                                  recordData.feeCurrency,
-                                ),
-                                style: const TextStyle(fontSize: 16),
-                              ),, color: Color(0xFF2C2C2E)),
+                                style: const TextStyle(fontSize: 16, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 32, color: Color(0xFF2C2C2E)),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          '合計金額',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.white MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
                           '合計金額',
@@ -327,6 +308,7 @@ class TradeDetailPageState extends State<TradeDetailPage> {
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
+                            color: Colors.white,
                           ),
                         ),
                       ],
@@ -338,11 +320,11 @@ class TradeDetailPageState extends State<TradeDetailPage> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(2C2C2E),
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2C2C2E),
                         foregroundColor: Colors.white,
-                        side: const BorderSide(color: Color(0xFF3C3C3E)
-                        foregroundColor: Colors.black87,
-                        side: const BorderSide(color: AppColors.appGrey),
+                        side: const BorderSide(color: Color(0xFF3C3C3E)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
