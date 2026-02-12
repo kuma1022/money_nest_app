@@ -886,100 +886,75 @@ class AppUtils {
   }
 
   // -------------------------------------------------
-  // 取得各类资产的当前持仓List
+  // 取得各类资产的当前持仓List (Simplified for JP Stock, US Stock, Cash)
   // -------------------------------------------------
   List<dynamic> getAssetsHoldingList() {
     double total = 0.0;
+    
+    final stockData = GlobalStore().totalAssetsAndCostsMap['stock'];
+    final jpStock = stockData?['details']?['jp_stock'];
+    final usStock = stockData?['details']?['us_stock'];
 
-    final List
-    categories = Categories.values.where((cat) => cat.type == 'asset').map((
-      category,
-    ) {
-      final data = GlobalStore().totalAssetsAndCostsMap[category.code];
-      final details = data?['details'] ?? {};
-      final double value = data?['totalAssets']?.toDouble() ?? 0.0;
-      final double cost = data?['totalCosts']?.toDouble() ?? 0.0;
-      final double profit = value - cost;
-      final double profitRate = cost == 0 ? 0.0 : (profit / cost) * 100;
+    // JP Stock Values
+    final double jpVal = jpStock?['totalAssets']?.toDouble() ?? 0.0;
+    final double jpCost = jpStock?['totalCosts']?.toDouble() ?? 0.0;
+    final double jpProfit = jpVal - jpCost;
+    final double jpRate = jpCost == 0 ? 0.0 : (jpProfit / jpCost) * 100;
+    
+    // US Stock Values
+    final double usVal = usStock?['totalAssets']?.toDouble() ?? 0.0;
+    final double usCost = usStock?['totalCosts']?.toDouble() ?? 0.0;
+    final double usProfit = usVal - usCost;
+    final double usRate = usCost == 0 ? 0.0 : (usProfit / usCost) * 100;
 
-      total += value;
+    // Cash Values (Placeholder)
+    final double cashVal = 0.0; 
 
-      return {
-        'label': category.name,
-        'dotColor': category.dotColor,
-        'rateLabel': '0%',
-        'value': AppUtils().formatMoney(
-          value,
-          GlobalStore().selectedCurrencyCode,
-        ),
-        'profitText': AppUtils().formatMoney(
-          profit,
-          GlobalStore().selectedCurrencyCode,
-        ),
-        'profitRateText':
-            '(${AppUtils().formatNumberByTwoDigits(profitRate)}%)',
-        'profitColor': profit > 0
-            ? AppColors.appUpGreen
-            : profit < 0
-            ? AppColors.appDownRed
-            : AppColors.appGrey,
-        'subCategories': Subcategories.values
-            .where((sub) => sub.categoryId == category.id)
-            .map((subcategory) {
-              final subData = details[subcategory.code];
-              final double subValue =
-                  subData?['totalAssets']?.toDouble() ?? 0.0;
-              final double subCost = subData?['totalCosts']?.toDouble() ?? 0.0;
-              final double subProfit = subValue - subCost;
-              final double subProfitRate = subCost == 0
-                  ? 0.0
-                  : (subProfit / subCost) * 100;
-              final subRate = value == 0 ? 0.0 : (subValue / value) * 100;
+    total = jpVal + usVal + cashVal;
 
-              return {
-                'label': subcategory.name,
-                'rateLabel': '${AppUtils().formatNumberByTwoDigits(subRate)}%',
-                'value': AppUtils().formatMoney(
-                  subValue,
-                  GlobalStore().selectedCurrencyCode,
-                ),
-                'profitText': AppUtils().formatMoney(
-                  subProfit,
-                  GlobalStore().selectedCurrencyCode,
-                ),
-                'profitRateText':
-                    '(${AppUtils().formatNumberByTwoDigits(subProfitRate)}%)',
-                'profitColor': subProfit > 0
-                    ? AppColors.appUpGreen
-                    : subProfit < 0
-                    ? AppColors.appDownRed
-                    : AppColors.appGrey,
-              };
-            })
-            .toList(),
-        'displayOrder': category.displayOrder,
-        'categoryCode': category.code, // 添加 category.code
-      };
-    }).toList();
+    List<Map<String, dynamic>> list = [];
 
-    // 计算各个资产类别的占比
-    for (var category in categories) {
-      final v = parseMoneySimple(category['value']);
-      final rate = total == 0 ? 0.0 : (v / total) * 100;
-      category['rateLabel'] = '${AppUtils().formatNumberByTwoDigits(rate)}%';
-    }
-
-    // 按照 displayOrder 排序，并且总市值为0的排到后面
-    categories.sort((a, b) {
-      bool aPositive = parseMoneySimple(a['value']) > 0;
-      bool bPositive = parseMoneySimple(b['value']) > 0;
-
-      if (aPositive && !bPositive) return -1; // a 在前
-      if (!aPositive && bPositive) return 1; // b 在前
-
-      return a['displayOrder'].compareTo(b['displayOrder']);
+    // 1. Japan Stocks
+    list.add({
+      'label': '日本株',
+      'categoryCode': 'stock', // Keep 'stock' if standard navigation expects it, or custom?
+      // Note: AssetsTabPage now handles navigation manually, HomeTabPage might not click?
+      // Home page is usually just summary.
+      'dotColor': AppColors.appChartGreen,
+      'value': formatMoney(jpVal, GlobalStore().selectedCurrencyCode),
+      'rateLabel': total == 0 ? '0%' : '${formatNumberByTwoDigits(jpVal/total*100)}%',
+      'profitText': formatMoney(jpProfit, GlobalStore().selectedCurrencyCode),
+      'profitRateText': '(${formatNumberByTwoDigits(jpRate)}%)',
+      'profitColor': jpProfit >= 0 ? AppColors.appUpGreen : AppColors.appDownRed,
+      'displayOrder': 1,
     });
 
-    return categories;
+    // 2. US Stocks
+    list.add({
+      'label': '米国株',
+      'categoryCode': 'us_stock_summary', 
+      'dotColor': AppColors.appChartBlue,
+      'value': formatMoney(usVal, GlobalStore().selectedCurrencyCode),
+      'rateLabel': total == 0 ? '0%' : '${formatNumberByTwoDigits(usVal/total*100)}%',
+      'profitText': formatMoney(usProfit, GlobalStore().selectedCurrencyCode),
+      'profitRateText': '(${formatNumberByTwoDigits(usRate)}%)',
+      'profitColor': usProfit >= 0 ? AppColors.appUpGreen : AppColors.appDownRed,
+      'displayOrder': 2,
+    });
+
+    // 3. Cash
+    list.add({
+      'label': '現金',
+      'categoryCode': 'cash_summary',
+      'dotColor': Colors.orange,
+      'value': formatMoney(cashVal, GlobalStore().selectedCurrencyCode),
+      'rateLabel': total == 0 ? '0%' : '${formatNumberByTwoDigits(cashVal/total*100)}%',
+      'profitText': '---',
+      'profitRateText': '',
+      'profitColor': Colors.grey,
+      'displayOrder': 3,
+    });
+
+    return list;
   }
 }

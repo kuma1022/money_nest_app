@@ -46,45 +46,21 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       key: homeTabPageKey,
       db: widget.db,
       onPortfolioTap: () {
-        setState(() {
-          _currentIndex = 1;
-        });
+        // No longer applicable with 3 tabs, maybe direct to specific asset detail
       },
       onAssetAnalysisTap: () {
-        setState(() {
-          _currentIndex = 3;
-        });
+        // No longer applicable
       },
       onScroll: (pixels) {
         setState(() {
           _scrollPixels = pixels;
         });
       },
-    ),
-    AssetsTabPage(
-      db: widget.db,
-      key: assetsTabPageKey,
-      onScroll: (pixels) {
-        setState(() {
-          _scrollPixels = pixels;
-        });
-      },
-      scrollController: ScrollController(),
     ),
     TradeHistoryPage(
       db: widget.db,
       key: tradeHistoryPageKey,
-      onAddPressed: _showTradeAddPage,
-      onScroll: (pixels) {
-        setState(() {
-          _scrollPixels = pixels;
-        });
-      },
-      scrollController: ScrollController(),
-    ),
-    AssetAnalysisPage(
-      db: widget.db,
-      key: assetAnalysisTabPageKey,
+      onAddPressed: _showTradeAddMenu,
       onScroll: (pixels) {
         setState(() {
           _scrollPixels = pixels;
@@ -94,6 +70,90 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
     ),
     SettingsTabPage(db: widget.db),
   ];
+
+  void _showTradeAddMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1C1C1E),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Add Record',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 30),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildAddOption(
+                  icon: Icons.show_chart,
+                  label: 'Stock Trade',
+                  color: AppColors.appChartGreen,
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Open stock trade dialog
+                     _showTradeAddPage(); // Reuse existing for now, simplify later
+                  },
+                ),
+                _buildAddOption(
+                  icon: Icons.account_balance_wallet,
+                  label: 'Cash Change',
+                  color: AppColors.appChartOrange,
+                  onTap: () {
+                    Navigator.pop(context);
+                    // TODO: Open cash change dialog
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 32),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showTradeAddPage() {
     setState(() {
@@ -161,20 +221,17 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
     final titles = [
       AppLocalizations.of(context)!.mainPageTopTitle,
-      '資産',
       AppLocalizations.of(context)!.mainPageTradeTitle,
-      '資産分析',
       AppLocalizations.of(context)!.mainPageMoreTitle,
     ];
     final icons = [
       Icons.home_outlined,
-      Icons.pie_chart_outline,
       Icons.list_alt_outlined,
-      Icons.monetization_on_outlined,
-      Icons.menu,
+      Icons.settings_outlined,
     ];
 
     void onTabChanged(int index) {
+      if (index >= _pages.length) return;
       setState(() {
         _currentIndex = index;
       });

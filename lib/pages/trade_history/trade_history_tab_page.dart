@@ -281,7 +281,7 @@ class TradeHistoryPageState extends State<TradeHistoryPage> {
             // 浮动追加按钮
             Positioned(
               right: 16,
-              bottom: 16 + bottomPadding + 40,
+              bottom: 16 + bottomPadding,
               child: FloatingActionButton(
                 backgroundColor: Colors.white,
                 onPressed: () async {

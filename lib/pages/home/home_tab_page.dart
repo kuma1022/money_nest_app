@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:money_nest_app/components/card_section.dart';
 import 'package:money_nest_app/components/custom_pie_chart.dart';
-import 'package:money_nest_app/components/glass_quick_bar.dart';
-import 'package:money_nest_app/components/glass_quick_bar_item.dart';
-import 'package:money_nest_app/components/glass_tab.dart';
-import 'package:money_nest_app/components/summary_category_card.dart';
-import 'package:money_nest_app/components/summary_sub_category_card.dart';
 import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/pages/assets/cash/cash_page.dart';
+import 'package:money_nest_app/pages/assets/stock/domestic_stock_detail_page.dart';
+import 'package:money_nest_app/pages/assets/stock/us_stock_detail_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
-import 'package:money_nest_app/presentation/resources/app_texts.dart';
 import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
-import 'package:intl/intl.dart';
 
 class HomeTabPage extends StatefulWidget {
   final AppDatabase db;
@@ -295,77 +290,7 @@ class HomeTabPageState extends State<HomeTabPage> {
                           ],
                         ),
                         const SizedBox(height: 30),
-                        // Quick Actions
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildQuickActionButton(
-                              icon: Icons.add,
-                              label: 'Add',
-                              onTap: () {},
-                            ),
-                            _buildQuickActionButton(
-                              icon: Icons.send,
-                              label: 'Send',
-                              onTap: () {},
-                            ),
-                            _buildQuickActionButton(
-                              icon: Icons.call_received,
-                              label: 'Receive',
-                              onTap: () {},
-                            ),
-                            _buildQuickActionButton(
-                              icon: Icons.more_horiz,
-                              label: 'More',
-                              onTap: () {},
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 30),
-
-                        // Pie Chart
-                        if (_pieSections.isNotEmpty)
-                          SizedBox(
-                            height: 220,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                CustomPieChart(sections: _pieSections),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text(
-                                      'Portfolio',
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${_pieSections.length} Assets',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                        const SizedBox(height: 30),
-                        const Text(
-                          'Your Assets',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
+                        // Asset List (Simplified)
                         createTabBarContentForAsset(),
                         const SizedBox(height: 80),
                       ],
@@ -374,6 +299,7 @@ class HomeTabPageState extends State<HomeTabPage> {
                 ),
               ),
             ),
+
 
             // Full screen loading
             if (_isInitializing)
@@ -434,7 +360,19 @@ class HomeTabPageState extends State<HomeTabPage> {
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () {
-              // Expand logic later
+               if (category['categoryCode'] == 'stock') { // JP Stock (using code from AppUtils)
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => DomesticStockDetailPage(db: widget.db)),
+                );
+              } else if (category['categoryCode'] == 'us_stock_summary') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => UsStockDetailPage(db: widget.db)),
+                );
+              } else if (category['categoryCode'] == 'cash_summary') {
+                 Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => CashPage(db: widget.db)),
+                );
+              }
             },
             child: Padding(
               padding: const EdgeInsets.all(16.0),
