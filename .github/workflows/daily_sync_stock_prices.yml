@@ -1,9 +1,9 @@
 name: Stock Price Sync
 
 on:
-  #schedule:
-    #- cron: '0 21 * * *' # 每天美股收盘后运行 (UTC 21:00)
-  workflow_dispatch: # 允许手动触发
+  # schedule:
+   # - cron: '0 21 * * *'
+  workflow_dispatch:
     inputs:
       mode:
         description: 'Run Mode'
@@ -34,7 +34,10 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # 获取手动输入参数
+          INPUT_MODE: ${{ github.event.inputs.mode }}
         run: |
-          # 如果是手动触发使用输入参数，否则默认 normal
-          MODE=${{ github.event.inputs.mode || 'normal' }}
+          # 设定默认模式
+          MODE=${INPUT_MODE:-normal}
+          echo "Current Mode: $MODE"
           python sync_stock_prices.py $MODE
