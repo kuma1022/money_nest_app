@@ -1,7 +1,7 @@
 name: Stock Price Sync
 
 on:
-  schedule:
+  #schedule:
     #- cron: '0 21 * * *' # 每天美股收盘后运行 (UTC 21:00)
   workflow_dispatch: # 允许手动触发
     inputs:
