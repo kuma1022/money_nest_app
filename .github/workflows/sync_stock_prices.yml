@@ -40,4 +40,4 @@ jobs:
           # 设定默认模式
           MODE=${INPUT_MODE:-normal}
           echo "Current Mode: $MODE"
-          python sync_stock_prices.py $MODE
+          python scripts/sync_stock_prices.py $MODE
