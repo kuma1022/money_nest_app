@@ -157,7 +157,7 @@ class _CashEditPageState extends State<CashEditPage> {
                       contentPadding: EdgeInsets.zero,
                       title: const Text('日付と時刻', style: TextStyle(color: Colors.grey, fontSize: 12)),
                       subtitle: Text(
-                        AppUtils.formatDate(_selectedDate), // Simple format
+                        AppUtils().formatDate(_selectedDate), // Simple format
                         style: const TextStyle(color: Colors.white, fontSize: 16),
                       ),
                       onTap: () async {
