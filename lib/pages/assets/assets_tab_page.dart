@@ -18,6 +18,7 @@ import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
 import 'package:provider/provider.dart';
+import 'package:money_nest_app/pages/assets/asset_type_selection_page.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class AssetsTabPage extends StatefulWidget {
@@ -338,7 +339,12 @@ class AssetsTabPageState extends State<AssetsTabPage> {
                 heroTag: 'assets_fab', // Unique tag to prevent collision with other FABs
                 backgroundColor: Colors.white,
                 child: const Icon(Icons.add, color: Colors.black),
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => AssetTypeSelectionPage(db: widget.db)),
+                  );
+                },
               ),
             ),
             // Loading Overlay

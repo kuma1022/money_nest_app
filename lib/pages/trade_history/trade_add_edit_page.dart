@@ -27,6 +27,7 @@ class TradeAddEditPage extends StatefulWidget {
   final String mode;
   final String type; // 'asset' or 'liability'
   final TradeRecordDisplay record; // 支持编辑模式
+  final Stock? initialStock;
   final VoidCallback? onClose;
   final AppDatabase db;
   const TradeAddEditPage({
@@ -36,6 +37,7 @@ class TradeAddEditPage extends StatefulWidget {
     required this.record,
     required this.mode,
     required this.type,
+    this.initialStock,
   }); //this.record});
 
   @override
@@ -256,6 +258,20 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
         commissionCurrency = commissionCurrencies.first;
         sellCommissionCurrency = commissionCurrencies.first;
       });
+
+      if (widget.initialStock != null) {
+        final stock = widget.initialStock!;
+        setState(() {
+          tabIndex = 0;
+          assetCategoryCode = 'stock';
+          assetSubCategoryCode =
+              stock.exchange == 'JP' ? 'jp_stock' : 'us_stock';
+          selectedStockInfo = stock;
+          selectedStockCode = stock.ticker ?? '';
+          _stockCodeController.text = selectedStockCode;
+          selectedStockName = stock.name;
+        });
+      }
     }
 
     // EDIT MODE 初始化已有值
