@@ -716,6 +716,36 @@ class AppUtils {
       }
     }
 
+    // --- Add Cash Calculation ---
+    double cashTotalAssets = 0.0;
+    // Assuming cost equals current value for cash if no forex P/L tracking
+    double cashTotalCosts = 0.0; 
+
+    try {
+      final accountId = GlobalStore().accountId;
+      if (accountId != null) {
+        final balances = await (dataSync.db.select(dataSync.db.accountBalances)
+              ..where((t) => t.accountId.equals(accountId)))
+            .get();
+
+        for (var b in balances) {
+          final amt = b.amount;
+          // Calculate JPY value (or based on selected currency)
+          // Using current exchange rate.
+          double rate = 1.0;
+          if (b.currency != (selectedCurrencyCode ?? 'JPY')) {
+             final pair = '${b.currency == 'USD' ? '' : b.currency}${selectedCurrencyCode ?? 'JPY'}=X';
+             rate = GlobalStore().currentStockPrices[pair] ?? 1.0;
+          }
+          final val = amt * rate;
+          cashTotalAssets += val;
+          cashTotalCosts += val;
+        }
+      }
+    } catch (e) {
+      print('Error calculating cash total: $e');
+    }
+
     final result = {
       'stock': {
         'totalAssets': stockTotalAssets,
@@ -739,6 +769,16 @@ class AppUtils {
           'crypto': {
             'totalAssets': cryptoTotalAssets,
             'totalCosts': cryptoTotalAssets,
+          },
+        },
+      },
+      'other_asset': {
+        'totalAssets': cashTotalAssets,
+        'totalCosts': cashTotalCosts,
+        'details': {
+          'cash': {
+            'totalAssets': cashTotalAssets,
+            'totalCosts': cashTotalCosts,
           },
         },
       },
