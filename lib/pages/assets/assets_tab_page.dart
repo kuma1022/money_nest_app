@@ -353,6 +353,53 @@ class AssetsTabPageState extends State<AssetsTabPage> {
     final otherData = GlobalStore().totalAssetsAndCostsMap['other_asset'];
     final currency = GlobalStore().selectedCurrencyCode ?? 'JPY';
 
+    // -------------------------------------------------------------------------
+    // Prepare Stock Lists (Re-calculate for display)
+    // -------------------------------------------------------------------------
+    final List<Map<String, dynamic>> jpStockList = [];
+    final List<Map<String, dynamic>> usStockList = [];
+
+    for (var item in GlobalStore().portfolio) {
+      final qty = item['quantity'] as num? ?? 0;
+      if (qty <= 0) continue; // Skip if quantity is 0
+
+      final code = item['code'] as String? ?? '';
+      final name = item['name'] as String? ?? code;
+      final buyPrice = item['buyPrice'] as num? ?? 0;
+      final exchange = item['exchange'] as String? ?? 'JP';
+      final itemCurrency = item['currency'] as String? ?? 'JPY';
+
+      final rate = GlobalStore().currentStockPrices[
+              '${itemCurrency == 'USD' ? '' : itemCurrency}${currency}=X'] ??
+          1.0;
+      final currentPrice = GlobalStore().currentStockPrices[
+              exchange == 'JP' ? '$code.T' : code] ??
+          buyPrice; // Fallback to buyPrice if current price missing
+
+      final marketValue = qty * currentPrice * rate;
+      final totalCost = qty * buyPrice * rate;
+      final profit = marketValue - totalCost;
+      final profitPercent = totalCost == 0 ? 0.0 : (profit / totalCost) * 100;
+
+      final stockMap = {
+        'code': code,
+        'name': name,
+        'quantity': qty,
+        'currentPrice': currentPrice,
+        'avgCost': buyPrice,
+        'marketValue': marketValue,
+        'profit': profit,
+        'profitPercent': profitPercent,
+        'currency': itemCurrency, // Display currency for unit prices usually
+      };
+
+      if (exchange == 'JP') {
+        jpStockList.add(stockMap);
+      } else if (exchange == 'US') {
+        usStockList.add(stockMap);
+      }
+    }
+
     // 1. Japan Stock
     final jpData = stockData?['details']?['jp_stock'];
     double jpVal = jpData?['totalAssets']?.toDouble() ?? 0.0;
@@ -379,11 +426,10 @@ class AssetsTabPageState extends State<AssetsTabPage> {
 
     return Column(
       children: [
-        _buildAssetCard(
+        _ExpandableAssetCard(
           title: '日本株',
           dotColor: AppColors.appChartGreen,
-          value:
-              AppUtils().formatMoney(jpVal, currency),
+          value: AppUtils().formatMoney(jpVal, currency),
           profitText: AppUtils().formatMoney(
             jpProfit,
             currency,
@@ -398,13 +444,14 @@ class AssetsTabPageState extends State<AssetsTabPage> {
               ),
             );
           },
+          stockList: jpStockList,
+          displayCurrency: currency,
         ),
         const SizedBox(height: 12),
-        _buildAssetCard(
+        _ExpandableAssetCard(
           title: '米国株',
           dotColor: AppColors.appChartBlue,
-          value:
-              AppUtils().formatMoney(usVal, currency),
+          value: AppUtils().formatMoney(usVal, currency),
           profitText: AppUtils().formatMoney(
             usProfit,
             currency,
@@ -419,6 +466,8 @@ class AssetsTabPageState extends State<AssetsTabPage> {
               ),
             );
           },
+          stockList: usStockList,
+          displayCurrency: currency,
         ),
         const SizedBox(height: 12),
         _buildAssetCard(
@@ -803,6 +852,304 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 2),
         Text(percent, style: const TextStyle(fontSize: 13, color: Colors.grey)),
       ],
+    );
+  }
+}
+
+class _ExpandableAssetCard extends StatelessWidget {
+  final String title;
+  final Color dotColor;
+  final String value;
+  final String profitText;
+  final String profitRateText;
+  final Color profitColor;
+  final VoidCallback onTap;
+  final List<Map<String, dynamic>> stockList;
+  final String displayCurrency;
+
+  const _ExpandableAssetCard({
+    required this.title,
+    required this.dotColor,
+    required this.value,
+    required this.profitText,
+    required this.profitRateText,
+    required this.profitColor,
+    required this.onTap,
+    required this.stockList,
+    required this.displayCurrency,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (stockList.isEmpty) {
+      // Fallback to simple card if no stocks
+      return _buildSimpleCard();
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          iconColor: Colors.white,
+          collapsedIconColor: Colors.grey,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+          title: InkWell(
+            onTap: onTap, // Tap title to navigate
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: dotColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      title.substring(0, 1),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          profitText,
+                          style: TextStyle(
+                            color: profitColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          profitRateText,
+                          style: TextStyle(
+                            color: profitColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                // Padding to avoid overlapping with default expansion icon
+                const SizedBox(width: 8), 
+              ],
+            ),
+          ),
+          children: [
+            Column(
+              children: stockList.map((stock) => _buildStockRow(stock)).toList(),
+            ),
+            // Optional: View Details Button at bottom
+            TextButton(
+              onPressed: onTap,
+              child: const Text(
+                '詳細を見る >',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSimpleCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: dotColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    title.substring(0, 1),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        profitText,
+                        style: TextStyle(
+                          color: profitColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        profitRateText,
+                        style: TextStyle(
+                          color: profitColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStockRow(Map<String, dynamic> stock) {
+    final profit = stock['profit'] as double;
+    final profitPercent = stock['profitPercent'] as double;
+    final isProfitPositive = profit >= 0;
+    final profitColor = isProfitPositive ? AppColors.appUpGreen : AppColors.appDownRed;
+    final currency = stock['currency'] ?? displayCurrency;
+    // For unit prices, we might want to use native currency or displayCurrency depending on requirement.
+    // Usually User wants to see native price for Unit Price, and converted or native for Total.
+    // Assuming 'marketValue' is in converted currency (displayCurrency) because we summed it up in createAssetList?
+    // Wait, in createAssetList: `marketValue = qty * currentPrice * rate`. So marketValue is in `currency` (JPY usually).
+    // `currentPrice` is likely in native currency (USD/JPY).
+    // `avgCost` is likely in native currency (USD/JPY).
+    
+    // User requested fields:
+    // Quantity (股数), Current Market Value (当前市价 - Total?), Avg Cost (平均取得), Current Price (现在价格), Profit (损益)
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFF2C2C2E))),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                stock['name'] ?? stock['code'],
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                '${AppUtils().formatMoney(stock['marketValue'], displayCurrency)}',
+                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Left Column: Quantity, Avg Cost
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   Text('保有数: ${AppUtils().formatNumber(stock['quantity'])}', 
+                     style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                   Text('取得単価: ${AppUtils().formatMoney(stock['avgCost'], currency)}',
+                     style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                ],
+              ),
+              // Right Column: Current Price, Profit
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                   Text('現在値: ${AppUtils().formatMoney(stock['currentPrice'], currency)}',
+                     style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                   Row(
+                     children: [
+                       Text(
+                         '${AppUtils().formatMoney(profit, displayCurrency)}',
+                         style: TextStyle(color: profitColor, fontSize: 12),
+                       ),
+                       const SizedBox(width: 4),
+                       Text(
+                         '(${AppUtils().formatNumberByTwoDigits(profitPercent)}%)',
+                         style: TextStyle(color: profitColor, fontSize: 12),
+                       ),
+                     ],
+                   ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
