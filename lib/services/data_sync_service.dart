@@ -242,21 +242,6 @@ class DataSyncService {
                         .toDouble(),
                   ),
                   feeCurrency: Value(trade['fee_currency']),
-                  positionType: Value(trade['position_type']),
-                  leverage: Value(
-                    trade['leverage'] != null
-                        ? (num.tryParse(trade['leverage'].toString()) ?? 0)
-                              .toDouble()
-                        : null,
-                  ),
-                  swapAmount: Value(
-                    trade['swap_amount'] != null
-                        ? (num.tryParse(trade['swap_amount'].toString()) ?? 0)
-                              .toDouble()
-                        : null,
-                  ),
-                  swapCurrency: Value(trade['swap_currency']),
-                  manualRateInput: Value(trade['manual_rate_input'] ?? false),
                   remark: Value(trade['remark']),
                   profit: Value(
                     trade['profit'] != null
@@ -349,6 +334,62 @@ class DataSyncService {
               final t5 = DateTime.now();
               console.log(
                 'Sync crypto info time: ${t5.difference(t4).inMilliseconds} ms',
+              );
+
+              // 5. 同步 Account Balances
+              final accountBalances = accountInfoMap['account_balances'] as List? ?? [];
+              console.log('Syncing ${accountBalances.length} account balances');
+
+              final List<AccountBalancesCompanion> accountBalancesInsert = [];
+              for (var balance in accountBalances) {
+                if (balance is! Map<String, dynamic>) continue;
+                
+                accountBalancesInsert.add(AccountBalancesCompanion(
+                  id: Value(balance['id']),
+                  accountId: Value(balance['account_id']),
+                  userId: Value(balance['user_id']),
+                  currency: Value(balance['currency']),
+                  amount: Value((num.tryParse(balance['amount'].toString()) ?? 0).toDouble()),
+                  updatedAt: Value(DateTime.tryParse(balance['updated_at'].toString()) ?? DateTime.now()),
+                ));
+              }
+              
+              await db.batch((batch) {
+                batch.insertAllOnConflictUpdate(db.accountBalances, accountBalancesInsert);
+              });
+              
+              final t6 = DateTime.now();
+              console.log(
+                'Sync account balances time: ${t6.difference(t5).inMilliseconds} ms',
+              );
+
+              // 6. 同步 Cash Transactions
+              final cashTransactions = accountInfoMap['cash_transactions'] as List? ?? [];
+              console.log('Syncing ${cashTransactions.length} cash transactions');
+              
+              final List<CashTransactionsCompanion> cashTransactionsInsert = [];
+              for (var tx in cashTransactions) {
+                if (tx is! Map<String, dynamic>) continue;
+
+                cashTransactionsInsert.add(CashTransactionsCompanion(
+                  id: Value(tx['id']),
+                  userId: Value(tx['user_id']),
+                  accountId: Value(tx['account_id']),
+                  currency: Value(tx['currency']),
+                  amount: Value((num.tryParse(tx['amount'].toString()) ?? 0).toDouble()),
+                  type: Value(tx['type']),
+                  transactionDate: Value(DateTime.tryParse(tx['transaction_date'].toString()) ?? DateTime.now()),
+                  remark: Value(tx['remark']),
+                ));
+              }
+
+              await db.batch((batch) {
+                batch.insertAllOnConflictUpdate(db.cashTransactions, cashTransactionsInsert);
+              });
+              
+              final t7 = DateTime.now();
+              console.log(
+                'Sync cash transactions time: ${t7.difference(t6).inMilliseconds} ms',
               );
 
               console.log('Account $accountId sync completed successfully');
@@ -560,25 +601,6 @@ class DataSyncService {
                           .toDouble(),
                     ),
                     feeCurrency: Value(assetData['fee_currency']),
-                    positionType: Value(assetData['position_type']),
-                    leverage: Value(
-                      assetData['leverage'] != null
-                          ? num.tryParse(
-                              assetData['leverage'].toString(),
-                            )?.toDouble()
-                          : null,
-                    ),
-                    swapAmount: Value(
-                      assetData['swap_amount'] != null
-                          ? (num.tryParse(
-                              assetData['swap_amount'].toString(),
-                            ))?.toDouble()
-                          : null,
-                    ),
-                    swapCurrency: Value(assetData['swap_currency']),
-                    manualRateInput: Value(
-                      assetData['manual_rate_input'] ?? false,
-                    ),
                     remark: Value(assetData['remark']),
                     profit: Value(profit),
                   ),
@@ -606,23 +628,6 @@ class DataSyncService {
                       .toDouble(),
                 ),
                 feeCurrency: Value(assetData['fee_currency']),
-                positionType: Value(assetData['position_type']),
-                leverage: Value(
-                  assetData['leverage'] != null
-                      ? num.tryParse(
-                          assetData['leverage'].toString(),
-                        )?.toDouble()
-                      : null,
-                ),
-                swapAmount: Value(
-                  assetData['swap_amount'] != null
-                      ? (num.tryParse(
-                          assetData['swap_amount'].toString(),
-                        ))?.toDouble()
-                      : null,
-                ),
-                swapCurrency: Value(assetData['swap_currency']),
-                manualRateInput: Value(assetData['manual_rate_input'] ?? false),
                 remark: Value(assetData['remark']),
                 profit: Value(profit),
               ),
@@ -1288,7 +1293,88 @@ class DataSyncService {
     GlobalStore().syncStartDate = syncStartDate;
     GlobalStore().syncEndDate = syncEndDate;
     GlobalStore().saveSyncDateToPrefs();
+  }
 
-    return {'priceHistory': [], 'costBasisHistory': []};
+  // -------------------------------------------------
+  // 现金交易（入金/出金）追加
+  // -------------------------------------------------
+  Future<void> addCashTransaction({
+    required bool isDeposit,
+    required double amount,
+    required String currency,
+    required DateTime date,
+    String? memo,
+  }) async {
+    try {
+      final userId = GlobalStore().userId!;
+      final accountId = GlobalStore().accountId!;
+
+      // 1. 调用 Supabase Edge Function 处理逻辑
+      final response = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {
+          'action': 'user-cash',
+          'user_id': userId,
+        },
+        body: {
+          'account_id': accountId,
+          'currency': currency,
+          'amount': amount,
+          'type': isDeposit ? 'deposit' : 'withdraw',
+          'transaction_date': date.toIso8601String(),
+          'remark': memo,
+        },
+        method: HttpMethod.post,
+      );
+
+      if (response.status != 201 && response.status != 200) {
+        throw Exception('Failed to add cash transaction: ${response.data}');
+      }
+
+      dynamic data = response.data;
+      if (data is String) {
+        data = jsonDecode(data);
+      }
+      final txRes = data['transaction'];
+      final upsertRes = data['balance'];
+
+      // 5. 保存到本地数据库 (需要先运行 build_runner 生成代码)
+      // 由于 build_runner 未运行，这里暂时注释掉本地保存部分，或者使用 raw sql
+      // TODO: Uncomment after generating drifted code
+      
+      await db.into(db.accountBalances).insertOnConflictUpdate(
+        AccountBalancesCompanion(
+          id: Value(upsertRes['id'] as int),
+          accountId: Value(accountId),
+          userId: Value(userId),
+          currency: Value(currency),
+          amount: Value((upsertRes['amount'] as num).toDouble()),
+          updatedAt: Value(DateTime.parse(upsertRes['updated_at'])),
+        ),
+      );
+      
+      await db.into(db.cashTransactions).insert(
+        CashTransactionsCompanion(
+          id: Value(txRes['id'] as int),
+          userId: Value(userId),
+          accountId: Value(accountId),
+          currency: Value(currency),
+          amount: Value(amount),
+          type: Value(isDeposit ? 'deposit' : 'withdraw'),
+          transactionDate: Value(DateTime.parse(txRes['transaction_date'])),
+          remark: Value(memo),
+        ),
+      );
+      
+      
+      // 更新 GlobalStore 缓存（简单版）
+      // GlobalStore().totalAssetsAndCostsMap... 需要重新拉取或手动更新
+      // 暂时只打印日志
+      print('Cash Transaction Added: $txRes');
+
+    } catch (e) {
+      print('Error adding cash transaction: $e');
+      rethrow;
+    }
   }
 }

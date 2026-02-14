@@ -54,25 +54,35 @@ class _CustomDateDropdownFieldState extends State<CustomDateDropdownField> {
                 color: Colors.transparent,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.95),
+                    color: const Color(0xFF2C2C2E), // Dark popover
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withOpacity(0.5),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                       ),
                     ],
                   ),
                   padding: const EdgeInsets.all(8),
-                  child: CalendarDatePicker(
-                    initialDate: widget.value ?? DateTime.now(),
-                    firstDate: DateTime(2016, 1, 1), // 可选的最早日期
-                    lastDate: DateTime.now(), // 可选的最晚日期（今天）
-                    onDateChanged: (date) {
-                      widget.onChanged(date);
-                      _removeOverlay();
-                    },
+                  child: Theme(
+                    data: ThemeData.dark().copyWith(
+                      colorScheme: const ColorScheme.dark(
+                        primary: Colors.blue,
+                        onPrimary: Colors.white,
+                        surface: Color(0xFF2C2C2E),
+                        onSurface: Colors.white,
+                      ),
+                    ),
+                    child: CalendarDatePicker(
+                      initialDate: widget.value ?? DateTime.now(),
+                      firstDate: DateTime(2016, 1, 1), // 可选的最早日期
+                      lastDate: DateTime.now(), // 可选的最晚日期（今天）
+                      onDateChanged: (date) {
+                        widget.onChanged(date);
+                        _removeOverlay();
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -104,11 +114,14 @@ class _CustomDateDropdownFieldState extends State<CustomDateDropdownField> {
         child: AbsorbPointer(
           child: TextFormField(
             readOnly: true,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               labelText: widget.labelText,
+              labelStyle: const TextStyle(color: Colors.grey),
               hintText: widget.hintText,
+              hintStyle: const TextStyle(color: Colors.grey),
               filled: true,
-              fillColor: const Color(0xFFF5F6FA),
+              fillColor: const Color(0xFF2C2C2E),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,

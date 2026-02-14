@@ -134,66 +134,6 @@ class $TradeRecordsTable extends TradeRecords
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _positionTypeMeta = const VerificationMeta(
-    'positionType',
-  );
-  @override
-  late final GeneratedColumn<String> positionType = GeneratedColumn<String>(
-    'position_type',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _leverageMeta = const VerificationMeta(
-    'leverage',
-  );
-  @override
-  late final GeneratedColumn<double> leverage = GeneratedColumn<double>(
-    'leverage',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _swapAmountMeta = const VerificationMeta(
-    'swapAmount',
-  );
-  @override
-  late final GeneratedColumn<double> swapAmount = GeneratedColumn<double>(
-    'swap_amount',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _swapCurrencyMeta = const VerificationMeta(
-    'swapCurrency',
-  );
-  @override
-  late final GeneratedColumn<String> swapCurrency = GeneratedColumn<String>(
-    'swap_currency',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _manualRateInputMeta = const VerificationMeta(
-    'manualRateInput',
-  );
-  @override
-  late final GeneratedColumn<bool> manualRateInput = GeneratedColumn<bool>(
-    'manual_rate_input',
-    aliasedName,
-    true,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("manual_rate_input" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
   static const VerificationMeta _remarkMeta = const VerificationMeta('remark');
   @override
   late final GeneratedColumn<String> remark = GeneratedColumn<String>(
@@ -250,11 +190,6 @@ class $TradeRecordsTable extends TradeRecords
     price,
     feeAmount,
     feeCurrency,
-    positionType,
-    leverage,
-    swapAmount,
-    swapCurrency,
-    manualRateInput,
     remark,
     createdAt,
     updatedAt,
@@ -358,45 +293,6 @@ class $TradeRecordsTable extends TradeRecords
         ),
       );
     }
-    if (data.containsKey('position_type')) {
-      context.handle(
-        _positionTypeMeta,
-        positionType.isAcceptableOrUnknown(
-          data['position_type']!,
-          _positionTypeMeta,
-        ),
-      );
-    }
-    if (data.containsKey('leverage')) {
-      context.handle(
-        _leverageMeta,
-        leverage.isAcceptableOrUnknown(data['leverage']!, _leverageMeta),
-      );
-    }
-    if (data.containsKey('swap_amount')) {
-      context.handle(
-        _swapAmountMeta,
-        swapAmount.isAcceptableOrUnknown(data['swap_amount']!, _swapAmountMeta),
-      );
-    }
-    if (data.containsKey('swap_currency')) {
-      context.handle(
-        _swapCurrencyMeta,
-        swapCurrency.isAcceptableOrUnknown(
-          data['swap_currency']!,
-          _swapCurrencyMeta,
-        ),
-      );
-    }
-    if (data.containsKey('manual_rate_input')) {
-      context.handle(
-        _manualRateInputMeta,
-        manualRateInput.isAcceptableOrUnknown(
-          data['manual_rate_input']!,
-          _manualRateInputMeta,
-        ),
-      );
-    }
     if (data.containsKey('remark')) {
       context.handle(
         _remarkMeta,
@@ -478,26 +374,6 @@ class $TradeRecordsTable extends TradeRecords
         DriftSqlType.string,
         data['${effectivePrefix}fee_currency'],
       ),
-      positionType: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}position_type'],
-      ),
-      leverage: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}leverage'],
-      ),
-      swapAmount: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}swap_amount'],
-      ),
-      swapCurrency: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}swap_currency'],
-      ),
-      manualRateInput: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}manual_rate_input'],
-      ),
       remark: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remark'],
@@ -536,11 +412,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
   final double price;
   final double? feeAmount;
   final String? feeCurrency;
-  final String? positionType;
-  final double? leverage;
-  final double? swapAmount;
-  final String? swapCurrency;
-  final bool? manualRateInput;
   final String? remark;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -558,11 +429,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     required this.price,
     this.feeAmount,
     this.feeCurrency,
-    this.positionType,
-    this.leverage,
-    this.swapAmount,
-    this.swapCurrency,
-    this.manualRateInput,
     this.remark,
     required this.createdAt,
     required this.updatedAt,
@@ -590,21 +456,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     }
     if (!nullToAbsent || feeCurrency != null) {
       map['fee_currency'] = Variable<String>(feeCurrency);
-    }
-    if (!nullToAbsent || positionType != null) {
-      map['position_type'] = Variable<String>(positionType);
-    }
-    if (!nullToAbsent || leverage != null) {
-      map['leverage'] = Variable<double>(leverage);
-    }
-    if (!nullToAbsent || swapAmount != null) {
-      map['swap_amount'] = Variable<double>(swapAmount);
-    }
-    if (!nullToAbsent || swapCurrency != null) {
-      map['swap_currency'] = Variable<String>(swapCurrency);
-    }
-    if (!nullToAbsent || manualRateInput != null) {
-      map['manual_rate_input'] = Variable<bool>(manualRateInput);
     }
     if (!nullToAbsent || remark != null) {
       map['remark'] = Variable<String>(remark);
@@ -639,21 +490,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       feeCurrency: feeCurrency == null && nullToAbsent
           ? const Value.absent()
           : Value(feeCurrency),
-      positionType: positionType == null && nullToAbsent
-          ? const Value.absent()
-          : Value(positionType),
-      leverage: leverage == null && nullToAbsent
-          ? const Value.absent()
-          : Value(leverage),
-      swapAmount: swapAmount == null && nullToAbsent
-          ? const Value.absent()
-          : Value(swapAmount),
-      swapCurrency: swapCurrency == null && nullToAbsent
-          ? const Value.absent()
-          : Value(swapCurrency),
-      manualRateInput: manualRateInput == null && nullToAbsent
-          ? const Value.absent()
-          : Value(manualRateInput),
       remark: remark == null && nullToAbsent
           ? const Value.absent()
           : Value(remark),
@@ -683,11 +519,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       price: serializer.fromJson<double>(json['price']),
       feeAmount: serializer.fromJson<double?>(json['feeAmount']),
       feeCurrency: serializer.fromJson<String?>(json['feeCurrency']),
-      positionType: serializer.fromJson<String?>(json['positionType']),
-      leverage: serializer.fromJson<double?>(json['leverage']),
-      swapAmount: serializer.fromJson<double?>(json['swapAmount']),
-      swapCurrency: serializer.fromJson<String?>(json['swapCurrency']),
-      manualRateInput: serializer.fromJson<bool?>(json['manualRateInput']),
       remark: serializer.fromJson<String?>(json['remark']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -710,11 +541,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       'price': serializer.toJson<double>(price),
       'feeAmount': serializer.toJson<double?>(feeAmount),
       'feeCurrency': serializer.toJson<String?>(feeCurrency),
-      'positionType': serializer.toJson<String?>(positionType),
-      'leverage': serializer.toJson<double?>(leverage),
-      'swapAmount': serializer.toJson<double?>(swapAmount),
-      'swapCurrency': serializer.toJson<String?>(swapCurrency),
-      'manualRateInput': serializer.toJson<bool?>(manualRateInput),
       'remark': serializer.toJson<String?>(remark),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -735,11 +561,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     double? price,
     Value<double?> feeAmount = const Value.absent(),
     Value<String?> feeCurrency = const Value.absent(),
-    Value<String?> positionType = const Value.absent(),
-    Value<double?> leverage = const Value.absent(),
-    Value<double?> swapAmount = const Value.absent(),
-    Value<String?> swapCurrency = const Value.absent(),
-    Value<bool?> manualRateInput = const Value.absent(),
     Value<String?> remark = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -757,13 +578,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     price: price ?? this.price,
     feeAmount: feeAmount.present ? feeAmount.value : this.feeAmount,
     feeCurrency: feeCurrency.present ? feeCurrency.value : this.feeCurrency,
-    positionType: positionType.present ? positionType.value : this.positionType,
-    leverage: leverage.present ? leverage.value : this.leverage,
-    swapAmount: swapAmount.present ? swapAmount.value : this.swapAmount,
-    swapCurrency: swapCurrency.present ? swapCurrency.value : this.swapCurrency,
-    manualRateInput: manualRateInput.present
-        ? manualRateInput.value
-        : this.manualRateInput,
     remark: remark.present ? remark.value : this.remark,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -785,19 +599,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       feeCurrency: data.feeCurrency.present
           ? data.feeCurrency.value
           : this.feeCurrency,
-      positionType: data.positionType.present
-          ? data.positionType.value
-          : this.positionType,
-      leverage: data.leverage.present ? data.leverage.value : this.leverage,
-      swapAmount: data.swapAmount.present
-          ? data.swapAmount.value
-          : this.swapAmount,
-      swapCurrency: data.swapCurrency.present
-          ? data.swapCurrency.value
-          : this.swapCurrency,
-      manualRateInput: data.manualRateInput.present
-          ? data.manualRateInput.value
-          : this.manualRateInput,
       remark: data.remark.present ? data.remark.value : this.remark,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -820,11 +621,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
           ..write('price: $price, ')
           ..write('feeAmount: $feeAmount, ')
           ..write('feeCurrency: $feeCurrency, ')
-          ..write('positionType: $positionType, ')
-          ..write('leverage: $leverage, ')
-          ..write('swapAmount: $swapAmount, ')
-          ..write('swapCurrency: $swapCurrency, ')
-          ..write('manualRateInput: $manualRateInput, ')
           ..write('remark: $remark, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -834,7 +630,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
   }
 
   @override
-  int get hashCode => Object.hashAll([
+  int get hashCode => Object.hash(
     id,
     userId,
     accountId,
@@ -847,16 +643,11 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     price,
     feeAmount,
     feeCurrency,
-    positionType,
-    leverage,
-    swapAmount,
-    swapCurrency,
-    manualRateInput,
     remark,
     createdAt,
     updatedAt,
     profit,
-  ]);
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -873,11 +664,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
           other.price == this.price &&
           other.feeAmount == this.feeAmount &&
           other.feeCurrency == this.feeCurrency &&
-          other.positionType == this.positionType &&
-          other.leverage == this.leverage &&
-          other.swapAmount == this.swapAmount &&
-          other.swapCurrency == this.swapCurrency &&
-          other.manualRateInput == this.manualRateInput &&
           other.remark == this.remark &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -897,11 +683,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
   final Value<double> price;
   final Value<double?> feeAmount;
   final Value<String?> feeCurrency;
-  final Value<String?> positionType;
-  final Value<double?> leverage;
-  final Value<double?> swapAmount;
-  final Value<String?> swapCurrency;
-  final Value<bool?> manualRateInput;
   final Value<String?> remark;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -919,11 +700,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     this.price = const Value.absent(),
     this.feeAmount = const Value.absent(),
     this.feeCurrency = const Value.absent(),
-    this.positionType = const Value.absent(),
-    this.leverage = const Value.absent(),
-    this.swapAmount = const Value.absent(),
-    this.swapCurrency = const Value.absent(),
-    this.manualRateInput = const Value.absent(),
     this.remark = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -942,11 +718,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     required double price,
     this.feeAmount = const Value.absent(),
     this.feeCurrency = const Value.absent(),
-    this.positionType = const Value.absent(),
-    this.leverage = const Value.absent(),
-    this.swapAmount = const Value.absent(),
-    this.swapCurrency = const Value.absent(),
-    this.manualRateInput = const Value.absent(),
     this.remark = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -971,11 +742,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     Expression<double>? price,
     Expression<double>? feeAmount,
     Expression<String>? feeCurrency,
-    Expression<String>? positionType,
-    Expression<double>? leverage,
-    Expression<double>? swapAmount,
-    Expression<String>? swapCurrency,
-    Expression<bool>? manualRateInput,
     Expression<String>? remark,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -994,11 +760,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
       if (price != null) 'price': price,
       if (feeAmount != null) 'fee_amount': feeAmount,
       if (feeCurrency != null) 'fee_currency': feeCurrency,
-      if (positionType != null) 'position_type': positionType,
-      if (leverage != null) 'leverage': leverage,
-      if (swapAmount != null) 'swap_amount': swapAmount,
-      if (swapCurrency != null) 'swap_currency': swapCurrency,
-      if (manualRateInput != null) 'manual_rate_input': manualRateInput,
       if (remark != null) 'remark': remark,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1019,11 +780,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     Value<double>? price,
     Value<double?>? feeAmount,
     Value<String?>? feeCurrency,
-    Value<String?>? positionType,
-    Value<double?>? leverage,
-    Value<double?>? swapAmount,
-    Value<String?>? swapCurrency,
-    Value<bool?>? manualRateInput,
     Value<String?>? remark,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -1042,11 +798,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
       price: price ?? this.price,
       feeAmount: feeAmount ?? this.feeAmount,
       feeCurrency: feeCurrency ?? this.feeCurrency,
-      positionType: positionType ?? this.positionType,
-      leverage: leverage ?? this.leverage,
-      swapAmount: swapAmount ?? this.swapAmount,
-      swapCurrency: swapCurrency ?? this.swapCurrency,
-      manualRateInput: manualRateInput ?? this.manualRateInput,
       remark: remark ?? this.remark,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1093,21 +844,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     if (feeCurrency.present) {
       map['fee_currency'] = Variable<String>(feeCurrency.value);
     }
-    if (positionType.present) {
-      map['position_type'] = Variable<String>(positionType.value);
-    }
-    if (leverage.present) {
-      map['leverage'] = Variable<double>(leverage.value);
-    }
-    if (swapAmount.present) {
-      map['swap_amount'] = Variable<double>(swapAmount.value);
-    }
-    if (swapCurrency.present) {
-      map['swap_currency'] = Variable<String>(swapCurrency.value);
-    }
-    if (manualRateInput.present) {
-      map['manual_rate_input'] = Variable<bool>(manualRateInput.value);
-    }
     if (remark.present) {
       map['remark'] = Variable<String>(remark.value);
     }
@@ -1138,11 +874,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
           ..write('price: $price, ')
           ..write('feeAmount: $feeAmount, ')
           ..write('feeCurrency: $feeCurrency, ')
-          ..write('positionType: $positionType, ')
-          ..write('leverage: $leverage, ')
-          ..write('swapAmount: $swapAmount, ')
-          ..write('swapCurrency: $swapCurrency, ')
-          ..write('manualRateInput: $manualRateInput, ')
           ..write('remark: $remark, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -5301,6 +5032,946 @@ class CryptoInfoCompanion extends UpdateCompanion<CryptoInfoData> {
   }
 }
 
+class $AccountBalancesTable extends AccountBalances
+    with TableInfo<$AccountBalancesTable, AccountBalance> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AccountBalancesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    accountId,
+    userId,
+    currency,
+    amount,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'account_balances';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AccountBalance> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_currencyMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {accountId, currency},
+  ];
+  @override
+  AccountBalance map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AccountBalance(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+    );
+  }
+
+  @override
+  $AccountBalancesTable createAlias(String alias) {
+    return $AccountBalancesTable(attachedDatabase, alias);
+  }
+}
+
+class AccountBalance extends DataClass implements Insertable<AccountBalance> {
+  final int id;
+  final int accountId;
+  final String userId;
+  final String currency;
+  final double amount;
+  final DateTime? updatedAt;
+  const AccountBalance({
+    required this.id,
+    required this.accountId,
+    required this.userId,
+    required this.currency,
+    required this.amount,
+    this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['account_id'] = Variable<int>(accountId);
+    map['user_id'] = Variable<String>(userId);
+    map['currency'] = Variable<String>(currency);
+    map['amount'] = Variable<double>(amount);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    return map;
+  }
+
+  AccountBalancesCompanion toCompanion(bool nullToAbsent) {
+    return AccountBalancesCompanion(
+      id: Value(id),
+      accountId: Value(accountId),
+      userId: Value(userId),
+      currency: Value(currency),
+      amount: Value(amount),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+    );
+  }
+
+  factory AccountBalance.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AccountBalance(
+      id: serializer.fromJson<int>(json['id']),
+      accountId: serializer.fromJson<int>(json['accountId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      currency: serializer.fromJson<String>(json['currency']),
+      amount: serializer.fromJson<double>(json['amount']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'accountId': serializer.toJson<int>(accountId),
+      'userId': serializer.toJson<String>(userId),
+      'currency': serializer.toJson<String>(currency),
+      'amount': serializer.toJson<double>(amount),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+    };
+  }
+
+  AccountBalance copyWith({
+    int? id,
+    int? accountId,
+    String? userId,
+    String? currency,
+    double? amount,
+    Value<DateTime?> updatedAt = const Value.absent(),
+  }) => AccountBalance(
+    id: id ?? this.id,
+    accountId: accountId ?? this.accountId,
+    userId: userId ?? this.userId,
+    currency: currency ?? this.currency,
+    amount: amount ?? this.amount,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+  );
+  AccountBalance copyWithCompanion(AccountBalancesCompanion data) {
+    return AccountBalance(
+      id: data.id.present ? data.id.value : this.id,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AccountBalance(')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('userId: $userId, ')
+          ..write('currency: $currency, ')
+          ..write('amount: $amount, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, accountId, userId, currency, amount, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AccountBalance &&
+          other.id == this.id &&
+          other.accountId == this.accountId &&
+          other.userId == this.userId &&
+          other.currency == this.currency &&
+          other.amount == this.amount &&
+          other.updatedAt == this.updatedAt);
+}
+
+class AccountBalancesCompanion extends UpdateCompanion<AccountBalance> {
+  final Value<int> id;
+  final Value<int> accountId;
+  final Value<String> userId;
+  final Value<String> currency;
+  final Value<double> amount;
+  final Value<DateTime?> updatedAt;
+  const AccountBalancesCompanion({
+    this.id = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  AccountBalancesCompanion.insert({
+    this.id = const Value.absent(),
+    required int accountId,
+    required String userId,
+    required String currency,
+    this.amount = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  }) : accountId = Value(accountId),
+       userId = Value(userId),
+       currency = Value(currency);
+  static Insertable<AccountBalance> custom({
+    Expression<int>? id,
+    Expression<int>? accountId,
+    Expression<String>? userId,
+    Expression<String>? currency,
+    Expression<double>? amount,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (accountId != null) 'account_id': accountId,
+      if (userId != null) 'user_id': userId,
+      if (currency != null) 'currency': currency,
+      if (amount != null) 'amount': amount,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  AccountBalancesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? accountId,
+    Value<String>? userId,
+    Value<String>? currency,
+    Value<double>? amount,
+    Value<DateTime?>? updatedAt,
+  }) {
+    return AccountBalancesCompanion(
+      id: id ?? this.id,
+      accountId: accountId ?? this.accountId,
+      userId: userId ?? this.userId,
+      currency: currency ?? this.currency,
+      amount: amount ?? this.amount,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AccountBalancesCompanion(')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('userId: $userId, ')
+          ..write('currency: $currency, ')
+          ..write('amount: $amount, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CashTransactionsTable extends CashTransactions
+    with TableInfo<$CashTransactionsTable, CashTransaction> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CashTransactionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<int> accountId = GeneratedColumn<int>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tradeIdMeta = const VerificationMeta(
+    'tradeId',
+  );
+  @override
+  late final GeneratedColumn<int> tradeId = GeneratedColumn<int>(
+    'trade_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _transactionDateMeta = const VerificationMeta(
+    'transactionDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> transactionDate =
+      GeneratedColumn<DateTime>(
+        'transaction_date',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+        defaultValue: currentDateAndTime,
+      );
+  static const VerificationMeta _remarkMeta = const VerificationMeta('remark');
+  @override
+  late final GeneratedColumn<String> remark = GeneratedColumn<String>(
+    'remark',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    accountId,
+    currency,
+    amount,
+    type,
+    tradeId,
+    transactionDate,
+    remark,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cash_transactions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CashTransaction> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_currencyMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('trade_id')) {
+      context.handle(
+        _tradeIdMeta,
+        tradeId.isAcceptableOrUnknown(data['trade_id']!, _tradeIdMeta),
+      );
+    }
+    if (data.containsKey('transaction_date')) {
+      context.handle(
+        _transactionDateMeta,
+        transactionDate.isAcceptableOrUnknown(
+          data['transaction_date']!,
+          _transactionDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remark')) {
+      context.handle(
+        _remarkMeta,
+        remark.isAcceptableOrUnknown(data['remark']!, _remarkMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CashTransaction map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CashTransaction(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}account_id'],
+      )!,
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      tradeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}trade_id'],
+      ),
+      transactionDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}transaction_date'],
+      )!,
+      remark: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remark'],
+      ),
+    );
+  }
+
+  @override
+  $CashTransactionsTable createAlias(String alias) {
+    return $CashTransactionsTable(attachedDatabase, alias);
+  }
+}
+
+class CashTransaction extends DataClass implements Insertable<CashTransaction> {
+  final int id;
+  final String userId;
+  final int accountId;
+  final String currency;
+  final double amount;
+  final String type;
+  final int? tradeId;
+  final DateTime transactionDate;
+  final String? remark;
+  const CashTransaction({
+    required this.id,
+    required this.userId,
+    required this.accountId,
+    required this.currency,
+    required this.amount,
+    required this.type,
+    this.tradeId,
+    required this.transactionDate,
+    this.remark,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['account_id'] = Variable<int>(accountId);
+    map['currency'] = Variable<String>(currency);
+    map['amount'] = Variable<double>(amount);
+    map['type'] = Variable<String>(type);
+    if (!nullToAbsent || tradeId != null) {
+      map['trade_id'] = Variable<int>(tradeId);
+    }
+    map['transaction_date'] = Variable<DateTime>(transactionDate);
+    if (!nullToAbsent || remark != null) {
+      map['remark'] = Variable<String>(remark);
+    }
+    return map;
+  }
+
+  CashTransactionsCompanion toCompanion(bool nullToAbsent) {
+    return CashTransactionsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      accountId: Value(accountId),
+      currency: Value(currency),
+      amount: Value(amount),
+      type: Value(type),
+      tradeId: tradeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tradeId),
+      transactionDate: Value(transactionDate),
+      remark: remark == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remark),
+    );
+  }
+
+  factory CashTransaction.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CashTransaction(
+      id: serializer.fromJson<int>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      accountId: serializer.fromJson<int>(json['accountId']),
+      currency: serializer.fromJson<String>(json['currency']),
+      amount: serializer.fromJson<double>(json['amount']),
+      type: serializer.fromJson<String>(json['type']),
+      tradeId: serializer.fromJson<int?>(json['tradeId']),
+      transactionDate: serializer.fromJson<DateTime>(json['transactionDate']),
+      remark: serializer.fromJson<String?>(json['remark']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'userId': serializer.toJson<String>(userId),
+      'accountId': serializer.toJson<int>(accountId),
+      'currency': serializer.toJson<String>(currency),
+      'amount': serializer.toJson<double>(amount),
+      'type': serializer.toJson<String>(type),
+      'tradeId': serializer.toJson<int?>(tradeId),
+      'transactionDate': serializer.toJson<DateTime>(transactionDate),
+      'remark': serializer.toJson<String?>(remark),
+    };
+  }
+
+  CashTransaction copyWith({
+    int? id,
+    String? userId,
+    int? accountId,
+    String? currency,
+    double? amount,
+    String? type,
+    Value<int?> tradeId = const Value.absent(),
+    DateTime? transactionDate,
+    Value<String?> remark = const Value.absent(),
+  }) => CashTransaction(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    accountId: accountId ?? this.accountId,
+    currency: currency ?? this.currency,
+    amount: amount ?? this.amount,
+    type: type ?? this.type,
+    tradeId: tradeId.present ? tradeId.value : this.tradeId,
+    transactionDate: transactionDate ?? this.transactionDate,
+    remark: remark.present ? remark.value : this.remark,
+  );
+  CashTransaction copyWithCompanion(CashTransactionsCompanion data) {
+    return CashTransaction(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      type: data.type.present ? data.type.value : this.type,
+      tradeId: data.tradeId.present ? data.tradeId.value : this.tradeId,
+      transactionDate: data.transactionDate.present
+          ? data.transactionDate.value
+          : this.transactionDate,
+      remark: data.remark.present ? data.remark.value : this.remark,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CashTransaction(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('accountId: $accountId, ')
+          ..write('currency: $currency, ')
+          ..write('amount: $amount, ')
+          ..write('type: $type, ')
+          ..write('tradeId: $tradeId, ')
+          ..write('transactionDate: $transactionDate, ')
+          ..write('remark: $remark')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    accountId,
+    currency,
+    amount,
+    type,
+    tradeId,
+    transactionDate,
+    remark,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CashTransaction &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.accountId == this.accountId &&
+          other.currency == this.currency &&
+          other.amount == this.amount &&
+          other.type == this.type &&
+          other.tradeId == this.tradeId &&
+          other.transactionDate == this.transactionDate &&
+          other.remark == this.remark);
+}
+
+class CashTransactionsCompanion extends UpdateCompanion<CashTransaction> {
+  final Value<int> id;
+  final Value<String> userId;
+  final Value<int> accountId;
+  final Value<String> currency;
+  final Value<double> amount;
+  final Value<String> type;
+  final Value<int?> tradeId;
+  final Value<DateTime> transactionDate;
+  final Value<String?> remark;
+  const CashTransactionsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.type = const Value.absent(),
+    this.tradeId = const Value.absent(),
+    this.transactionDate = const Value.absent(),
+    this.remark = const Value.absent(),
+  });
+  CashTransactionsCompanion.insert({
+    this.id = const Value.absent(),
+    required String userId,
+    required int accountId,
+    required String currency,
+    required double amount,
+    required String type,
+    this.tradeId = const Value.absent(),
+    this.transactionDate = const Value.absent(),
+    this.remark = const Value.absent(),
+  }) : userId = Value(userId),
+       accountId = Value(accountId),
+       currency = Value(currency),
+       amount = Value(amount),
+       type = Value(type);
+  static Insertable<CashTransaction> custom({
+    Expression<int>? id,
+    Expression<String>? userId,
+    Expression<int>? accountId,
+    Expression<String>? currency,
+    Expression<double>? amount,
+    Expression<String>? type,
+    Expression<int>? tradeId,
+    Expression<DateTime>? transactionDate,
+    Expression<String>? remark,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (accountId != null) 'account_id': accountId,
+      if (currency != null) 'currency': currency,
+      if (amount != null) 'amount': amount,
+      if (type != null) 'type': type,
+      if (tradeId != null) 'trade_id': tradeId,
+      if (transactionDate != null) 'transaction_date': transactionDate,
+      if (remark != null) 'remark': remark,
+    });
+  }
+
+  CashTransactionsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? userId,
+    Value<int>? accountId,
+    Value<String>? currency,
+    Value<double>? amount,
+    Value<String>? type,
+    Value<int?>? tradeId,
+    Value<DateTime>? transactionDate,
+    Value<String?>? remark,
+  }) {
+    return CashTransactionsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      accountId: accountId ?? this.accountId,
+      currency: currency ?? this.currency,
+      amount: amount ?? this.amount,
+      type: type ?? this.type,
+      tradeId: tradeId ?? this.tradeId,
+      transactionDate: transactionDate ?? this.transactionDate,
+      remark: remark ?? this.remark,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<int>(accountId.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (tradeId.present) {
+      map['trade_id'] = Variable<int>(tradeId.value);
+    }
+    if (transactionDate.present) {
+      map['transaction_date'] = Variable<DateTime>(transactionDate.value);
+    }
+    if (remark.present) {
+      map['remark'] = Variable<String>(remark.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CashTransactionsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('accountId: $accountId, ')
+          ..write('currency: $currency, ')
+          ..write('amount: $amount, ')
+          ..write('type: $type, ')
+          ..write('tradeId: $tradeId, ')
+          ..write('transactionDate: $transactionDate, ')
+          ..write('remark: $remark')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5316,6 +5987,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $StockPricesTable stockPrices = $StockPricesTable(this);
   late final $FxRatesTable fxRates = $FxRatesTable(this);
   late final $CryptoInfoTable cryptoInfo = $CryptoInfoTable(this);
+  late final $AccountBalancesTable accountBalances = $AccountBalancesTable(
+    this,
+  );
+  late final $CashTransactionsTable cashTransactions = $CashTransactionsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5330,6 +6007,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     stockPrices,
     fxRates,
     cryptoInfo,
+    accountBalances,
+    cashTransactions,
   ];
 }
 
@@ -5347,11 +6026,6 @@ typedef $$TradeRecordsTableCreateCompanionBuilder =
       required double price,
       Value<double?> feeAmount,
       Value<String?> feeCurrency,
-      Value<String?> positionType,
-      Value<double?> leverage,
-      Value<double?> swapAmount,
-      Value<String?> swapCurrency,
-      Value<bool?> manualRateInput,
       Value<String?> remark,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -5371,11 +6045,6 @@ typedef $$TradeRecordsTableUpdateCompanionBuilder =
       Value<double> price,
       Value<double?> feeAmount,
       Value<String?> feeCurrency,
-      Value<String?> positionType,
-      Value<double?> leverage,
-      Value<double?> swapAmount,
-      Value<String?> swapCurrency,
-      Value<bool?> manualRateInput,
       Value<String?> remark,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -5448,31 +6117,6 @@ class $$TradeRecordsTableFilterComposer
 
   ColumnFilters<String> get feeCurrency => $composableBuilder(
     column: $table.feeCurrency,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get positionType => $composableBuilder(
-    column: $table.positionType,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get leverage => $composableBuilder(
-    column: $table.leverage,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get swapAmount => $composableBuilder(
-    column: $table.swapAmount,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get swapCurrency => $composableBuilder(
-    column: $table.swapCurrency,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get manualRateInput => $composableBuilder(
-    column: $table.manualRateInput,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5566,31 +6210,6 @@ class $$TradeRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get positionType => $composableBuilder(
-    column: $table.positionType,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get leverage => $composableBuilder(
-    column: $table.leverage,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get swapAmount => $composableBuilder(
-    column: $table.swapAmount,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get swapCurrency => $composableBuilder(
-    column: $table.swapCurrency,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get manualRateInput => $composableBuilder(
-    column: $table.manualRateInput,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get remark => $composableBuilder(
     column: $table.remark,
     builder: (column) => ColumnOrderings(column),
@@ -5659,29 +6278,6 @@ class $$TradeRecordsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get positionType => $composableBuilder(
-    column: $table.positionType,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get leverage =>
-      $composableBuilder(column: $table.leverage, builder: (column) => column);
-
-  GeneratedColumn<double> get swapAmount => $composableBuilder(
-    column: $table.swapAmount,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get swapCurrency => $composableBuilder(
-    column: $table.swapCurrency,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get manualRateInput => $composableBuilder(
-    column: $table.manualRateInput,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<String> get remark =>
       $composableBuilder(column: $table.remark, builder: (column) => column);
 
@@ -5738,11 +6334,6 @@ class $$TradeRecordsTableTableManager
                 Value<double> price = const Value.absent(),
                 Value<double?> feeAmount = const Value.absent(),
                 Value<String?> feeCurrency = const Value.absent(),
-                Value<String?> positionType = const Value.absent(),
-                Value<double?> leverage = const Value.absent(),
-                Value<double?> swapAmount = const Value.absent(),
-                Value<String?> swapCurrency = const Value.absent(),
-                Value<bool?> manualRateInput = const Value.absent(),
                 Value<String?> remark = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -5760,11 +6351,6 @@ class $$TradeRecordsTableTableManager
                 price: price,
                 feeAmount: feeAmount,
                 feeCurrency: feeCurrency,
-                positionType: positionType,
-                leverage: leverage,
-                swapAmount: swapAmount,
-                swapCurrency: swapCurrency,
-                manualRateInput: manualRateInput,
                 remark: remark,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -5784,11 +6370,6 @@ class $$TradeRecordsTableTableManager
                 required double price,
                 Value<double?> feeAmount = const Value.absent(),
                 Value<String?> feeCurrency = const Value.absent(),
-                Value<String?> positionType = const Value.absent(),
-                Value<double?> leverage = const Value.absent(),
-                Value<double?> swapAmount = const Value.absent(),
-                Value<String?> swapCurrency = const Value.absent(),
-                Value<bool?> manualRateInput = const Value.absent(),
                 Value<String?> remark = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -5806,11 +6387,6 @@ class $$TradeRecordsTableTableManager
                 price: price,
                 feeAmount: feeAmount,
                 feeCurrency: feeCurrency,
-                positionType: positionType,
-                leverage: leverage,
-                swapAmount: swapAmount,
-                swapCurrency: swapCurrency,
-                manualRateInput: manualRateInput,
                 remark: remark,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -7900,6 +8476,503 @@ typedef $$CryptoInfoTableProcessedTableManager =
       CryptoInfoData,
       PrefetchHooks Function()
     >;
+typedef $$AccountBalancesTableCreateCompanionBuilder =
+    AccountBalancesCompanion Function({
+      Value<int> id,
+      required int accountId,
+      required String userId,
+      required String currency,
+      Value<double> amount,
+      Value<DateTime?> updatedAt,
+    });
+typedef $$AccountBalancesTableUpdateCompanionBuilder =
+    AccountBalancesCompanion Function({
+      Value<int> id,
+      Value<int> accountId,
+      Value<String> userId,
+      Value<String> currency,
+      Value<double> amount,
+      Value<DateTime?> updatedAt,
+    });
+
+class $$AccountBalancesTableFilterComposer
+    extends Composer<_$AppDatabase, $AccountBalancesTable> {
+  $$AccountBalancesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AccountBalancesTableOrderingComposer
+    extends Composer<_$AppDatabase, $AccountBalancesTable> {
+  $$AccountBalancesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AccountBalancesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AccountBalancesTable> {
+  $$AccountBalancesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$AccountBalancesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AccountBalancesTable,
+          AccountBalance,
+          $$AccountBalancesTableFilterComposer,
+          $$AccountBalancesTableOrderingComposer,
+          $$AccountBalancesTableAnnotationComposer,
+          $$AccountBalancesTableCreateCompanionBuilder,
+          $$AccountBalancesTableUpdateCompanionBuilder,
+          (
+            AccountBalance,
+            BaseReferences<
+              _$AppDatabase,
+              $AccountBalancesTable,
+              AccountBalance
+            >,
+          ),
+          AccountBalance,
+          PrefetchHooks Function()
+        > {
+  $$AccountBalancesTableTableManager(
+    _$AppDatabase db,
+    $AccountBalancesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AccountBalancesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AccountBalancesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AccountBalancesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> accountId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+              }) => AccountBalancesCompanion(
+                id: id,
+                accountId: accountId,
+                userId: userId,
+                currency: currency,
+                amount: amount,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int accountId,
+                required String userId,
+                required String currency,
+                Value<double> amount = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+              }) => AccountBalancesCompanion.insert(
+                id: id,
+                accountId: accountId,
+                userId: userId,
+                currency: currency,
+                amount: amount,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AccountBalancesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AccountBalancesTable,
+      AccountBalance,
+      $$AccountBalancesTableFilterComposer,
+      $$AccountBalancesTableOrderingComposer,
+      $$AccountBalancesTableAnnotationComposer,
+      $$AccountBalancesTableCreateCompanionBuilder,
+      $$AccountBalancesTableUpdateCompanionBuilder,
+      (
+        AccountBalance,
+        BaseReferences<_$AppDatabase, $AccountBalancesTable, AccountBalance>,
+      ),
+      AccountBalance,
+      PrefetchHooks Function()
+    >;
+typedef $$CashTransactionsTableCreateCompanionBuilder =
+    CashTransactionsCompanion Function({
+      Value<int> id,
+      required String userId,
+      required int accountId,
+      required String currency,
+      required double amount,
+      required String type,
+      Value<int?> tradeId,
+      Value<DateTime> transactionDate,
+      Value<String?> remark,
+    });
+typedef $$CashTransactionsTableUpdateCompanionBuilder =
+    CashTransactionsCompanion Function({
+      Value<int> id,
+      Value<String> userId,
+      Value<int> accountId,
+      Value<String> currency,
+      Value<double> amount,
+      Value<String> type,
+      Value<int?> tradeId,
+      Value<DateTime> transactionDate,
+      Value<String?> remark,
+    });
+
+class $$CashTransactionsTableFilterComposer
+    extends Composer<_$AppDatabase, $CashTransactionsTable> {
+  $$CashTransactionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tradeId => $composableBuilder(
+    column: $table.tradeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get transactionDate => $composableBuilder(
+    column: $table.transactionDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remark => $composableBuilder(
+    column: $table.remark,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CashTransactionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CashTransactionsTable> {
+  $$CashTransactionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tradeId => $composableBuilder(
+    column: $table.tradeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get transactionDate => $composableBuilder(
+    column: $table.transactionDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remark => $composableBuilder(
+    column: $table.remark,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CashTransactionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CashTransactionsTable> {
+  $$CashTransactionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<int> get tradeId =>
+      $composableBuilder(column: $table.tradeId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get transactionDate => $composableBuilder(
+    column: $table.transactionDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remark =>
+      $composableBuilder(column: $table.remark, builder: (column) => column);
+}
+
+class $$CashTransactionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CashTransactionsTable,
+          CashTransaction,
+          $$CashTransactionsTableFilterComposer,
+          $$CashTransactionsTableOrderingComposer,
+          $$CashTransactionsTableAnnotationComposer,
+          $$CashTransactionsTableCreateCompanionBuilder,
+          $$CashTransactionsTableUpdateCompanionBuilder,
+          (
+            CashTransaction,
+            BaseReferences<
+              _$AppDatabase,
+              $CashTransactionsTable,
+              CashTransaction
+            >,
+          ),
+          CashTransaction,
+          PrefetchHooks Function()
+        > {
+  $$CashTransactionsTableTableManager(
+    _$AppDatabase db,
+    $CashTransactionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CashTransactionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CashTransactionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CashTransactionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> accountId = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<int?> tradeId = const Value.absent(),
+                Value<DateTime> transactionDate = const Value.absent(),
+                Value<String?> remark = const Value.absent(),
+              }) => CashTransactionsCompanion(
+                id: id,
+                userId: userId,
+                accountId: accountId,
+                currency: currency,
+                amount: amount,
+                type: type,
+                tradeId: tradeId,
+                transactionDate: transactionDate,
+                remark: remark,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String userId,
+                required int accountId,
+                required String currency,
+                required double amount,
+                required String type,
+                Value<int?> tradeId = const Value.absent(),
+                Value<DateTime> transactionDate = const Value.absent(),
+                Value<String?> remark = const Value.absent(),
+              }) => CashTransactionsCompanion.insert(
+                id: id,
+                userId: userId,
+                accountId: accountId,
+                currency: currency,
+                amount: amount,
+                type: type,
+                tradeId: tradeId,
+                transactionDate: transactionDate,
+                remark: remark,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CashTransactionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CashTransactionsTable,
+      CashTransaction,
+      $$CashTransactionsTableFilterComposer,
+      $$CashTransactionsTableOrderingComposer,
+      $$CashTransactionsTableAnnotationComposer,
+      $$CashTransactionsTableCreateCompanionBuilder,
+      $$CashTransactionsTableUpdateCompanionBuilder,
+      (
+        CashTransaction,
+        BaseReferences<_$AppDatabase, $CashTransactionsTable, CashTransaction>,
+      ),
+      CashTransaction,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7922,4 +8995,8 @@ class $AppDatabaseManager {
       $$FxRatesTableTableManager(_db, _db.fxRates);
   $$CryptoInfoTableTableManager get cryptoInfo =>
       $$CryptoInfoTableTableManager(_db, _db.cryptoInfo);
+  $$AccountBalancesTableTableManager get accountBalances =>
+      $$AccountBalancesTableTableManager(_db, _db.accountBalances);
+  $$CashTransactionsTableTableManager get cashTransactions =>
+      $$CashTransactionsTableTableManager(_db, _db.cashTransactions);
 }

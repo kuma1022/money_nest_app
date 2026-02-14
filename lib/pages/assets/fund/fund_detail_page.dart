@@ -4,6 +4,7 @@ import 'package:money_nest_app/components/custom_tab.dart';
 import 'package:money_nest_app/components/custom_line_chart.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/pages/assets/fund/fund_transaction_page.dart';
+import 'package:money_nest_app/pages/assets/fund/fund_investment_plan_tab.dart'; // Import New Plan Tab
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
@@ -186,12 +187,12 @@ class _FundDetailPageState extends State<FundDetailPage> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: AppColors.appBackground,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Column(
@@ -200,7 +201,7 @@ class _FundDetailPageState extends State<FundDetailPage> {
             Text(
               '投資信託',
               style: TextStyle(
-                color: Colors.black,
+                color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -691,23 +692,9 @@ class _FundDetailPageState extends State<FundDetailPage> {
   }
 
   Widget _buildRecurringTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 积立模拟器卡片
-        _buildRecurringSimulatorCard(),
-        const SizedBox(height: 16),
-
-        // 积立设定标题和新规追加按钮
-        _buildRecurringHeader(),
-        const SizedBox(height: 16),
-
-        // 积立设定列表
-        ..._buildRecurringSettingsList(),
-      ],
-    );
+    return const FundInvestmentPlanTab();
   }
-
+/*
   // 积立模拟器卡片
   Widget _buildRecurringSimulatorCard() {
     return CardSection(
@@ -941,6 +928,7 @@ class _FundDetailPageState extends State<FundDetailPage> {
     );
   }
 
+*/
   // 取引履歴标签页
   Widget _buildHistoryTab() {
     // 模拟交易历史数据

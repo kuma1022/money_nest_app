@@ -373,12 +373,12 @@ class _StockDetailPageState extends State<StockDetailPage> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: AppColors.appBackground,
+      backgroundColor: Colors.black, // Dark Mode
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black, // Dark Mode
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.white), // White Icon
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Column(
@@ -387,7 +387,7 @@ class _StockDetailPageState extends State<StockDetailPage> {
             Text(
               '株式',
               style: TextStyle(
-                color: Colors.black,
+                color: Colors.white, // White Text
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),

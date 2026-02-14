@@ -79,16 +79,16 @@ class _GlassTabState extends State<GlassTab>
                 child: TabBar(
                   controller: _tabController,
                   indicator: BoxDecoration(
-                    color: AppColors.appGrey.withValues(alpha: 0.30),
+                    color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   indicatorPadding: const EdgeInsets.symmetric(
                     horizontal: 2,
                     vertical: 6,
-                  ), // 横向padding加大
+                  ),
                   indicatorSize: TabBarIndicatorSize.tab,
-                  labelColor: Colors.black87,
-                  unselectedLabelColor: Colors.black87,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.grey,
                   labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                   unselectedLabelStyle: const TextStyle(
                     fontWeight: FontWeight.normal,

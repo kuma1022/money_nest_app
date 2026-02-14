@@ -21,9 +21,12 @@ class TotalAssetAnalysisCardState extends State<TotalAssetAnalysisCard> {
 
   @override
   Widget build(BuildContext context) {
-    return GlassPanel(
-      borderRadius: 24,
+    return Container(
       margin: const EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(24),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
         child: Column(
@@ -38,7 +41,7 @@ class TotalAssetAnalysisCardState extends State<TotalAssetAnalysisCard> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.normal,
-                    color: Colors.black87,
+                    color: Colors.white,
                   ),
                 ),
                 const Spacer(),
@@ -47,10 +50,10 @@ class TotalAssetAnalysisCardState extends State<TotalAssetAnalysisCard> {
                   height: 38,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.appBackground,
+                    color: Colors.black,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFFE5E6EA),
+                      color: Colors.grey.withOpacity(0.5),
                       width: 1,
                     ),
                   ),
@@ -61,13 +64,14 @@ class TotalAssetAnalysisCardState extends State<TotalAssetAnalysisCard> {
                       icon: const Icon(
                         Icons.keyboard_arrow_down_rounded,
                         size: 22,
+                        color: Colors.white,
                       ),
                       style: const TextStyle(
                         fontWeight: FontWeight.normal,
-                        color: Color(0xFF333333),
+                        color: Colors.white,
                         fontSize: 15,
                       ),
-                      dropdownColor: AppColors.appBackground,
+                      dropdownColor: const Color(0xFF2C2C2E),
                       items: const [
                         DropdownMenuItem(value: 0, child: Text('カテゴリ')),
                         DropdownMenuItem(value: 1, child: Text('日本株')),
@@ -232,7 +236,7 @@ class _LegendDot extends StatelessWidget {
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 4),
-          Text(label, style: const TextStyle(fontSize: 13)),
+          Text(label, style: const TextStyle(fontSize: 13, color: Colors.white)),
           const Spacer(),
           Text(
             percent,

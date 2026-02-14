@@ -26,10 +26,12 @@ class CustomTextFormField extends StatelessWidget {
       focusNode: focusNode,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      style: const TextStyle(color: Colors.white), // White text input
       decoration: InputDecoration(
         hintText: hintText ?? '',
+        hintStyle: const TextStyle(color: Colors.grey),
         filled: true,
-        fillColor: const Color(0xFFF5F6FA),
+        fillColor: const Color(0xFF2C2C2E), // Dark input background
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,

@@ -20,29 +20,28 @@ class RankingListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black, // Dark AppBar
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back, color: Colors.white), // White icon
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           title,
           style: const TextStyle(
-            color: Colors.black87,
+            color: Colors.white, // White text
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
       ),
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: Colors.black, // Dark background
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFF1C1C1E), // Dark card
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFE5E6EA)),
           ),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 0),
           child: Column(
@@ -75,13 +74,14 @@ class RankingListPage extends StatelessWidget {
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
+                        color: Colors.white, // White title
                       ),
                     ),
                     subtitle: Text(
                       item[1] as String,
                       style: const TextStyle(
                         fontSize: 13,
-                        color: Colors.black54,
+                        color: Colors.grey, // Grey subtitle
                       ),
                     ),
                     trailing: Text(

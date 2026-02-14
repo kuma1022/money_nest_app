@@ -34,7 +34,7 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
         FocusScope.of(context).unfocus();
       },
       child: Material(
-        color: AppColors.appBackground,
+        color: Colors.black, // Dark background
         child: SafeArea(
           bottom: false,
           child: SingleChildScrollView(
@@ -53,7 +53,7 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
                       IconButton(
                         icon: const Icon(
                           Icons.arrow_back_ios_new,
-                          color: Colors.black87,
+                          color: Colors.white, // White icon
                         ),
                         onPressed:
                             widget.onClose ?? () => Navigator.pop(context),
@@ -64,7 +64,7 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
                         child: Text(
                           widget.title,
                           style: const TextStyle(
-                            color: Color(0xFF222222),
+                            color: Colors.white, // White text
                             fontWeight: FontWeight.bold,
                             fontSize: 22,
                             letterSpacing: 1.2,
@@ -126,9 +126,8 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E6EA)),
       ),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
@@ -138,7 +137,10 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
             children: [
               const Text(
                 '利益 Top 5',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white),
               ),
               const Spacer(),
               TextButton(
@@ -149,8 +151,8 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
                         title: '利益ランキング',
                         isProfit: true,
                         items: items,
-                        mainColor: const Color(0xFF43A047),
-                        bgColor: const Color(0xFFF4FCF7),
+                        mainColor: AppColors.appUpGreen,
+                        bgColor: AppColors.appUpGreen.withOpacity(0.2),
                       ),
                     ),
                   );
@@ -174,12 +176,12 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFE8F8F0),
+                color: AppColors.appUpGreen.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: const Color(0xFF43A047),
+                  backgroundColor: AppColors.appUpGreen,
                   radius: 16,
                   child: Text(
                     '${i + 1}',
@@ -194,11 +196,12 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
+                    color: Colors.white,
                   ),
                 ),
                 subtitle: Text(
                   item[1] as String,
-                  style: const TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 trailing: Text(
                   item[2].toString().replaceAllMapped(
@@ -255,9 +258,8 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E6EA)),
       ),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Column(
@@ -267,7 +269,10 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
             children: [
               const Text(
                 '損失 Top 5',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: Colors.white),
               ),
               const Spacer(),
               TextButton(
@@ -278,8 +283,8 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
                         title: '損失ランキング',
                         isProfit: false,
                         items: items,
-                        mainColor: const Color(0xFFE53935),
-                        bgColor: const Color(0xFFFDF5F5),
+                        mainColor: AppColors.appDownRed,
+                        bgColor: AppColors.appDownRed.withOpacity(0.2),
                       ),
                     ),
                   );
@@ -303,12 +308,12 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFFDEAEA),
+                color: AppColors.appDownRed.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: const Color(0xFFE53935),
+                  backgroundColor: AppColors.appDownRed,
                   radius: 16,
                   child: Text(
                     '${i + 1}',
@@ -323,19 +328,20 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
+                    color: Colors.white,
                   ),
                 ),
                 subtitle: Text(
                   item[1] as String,
-                  style: const TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 trailing: Text(
                   item[2].toString().replaceAllMapped(
                     RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                     (m) => '${m[1]},',
                   ),
-                  style: const TextStyle(
-                    color: Color(0xFFE53935),
+                  style: TextStyle(
+                    color: AppColors.appDownRed,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                   ),
@@ -371,9 +377,8 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
     final net = profit - loss;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E6EA)),
       ),
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -381,7 +386,8 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
         children: [
           Text(
             '総合損益',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
           ),
           const SizedBox(height: 12),
           Row(
@@ -389,21 +395,21 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F8F0),
+                    color: AppColors.appUpGreen.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Column(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.trending_up,
-                        color: Color(0xFF43A047),
+                        color: AppColors.appUpGreen,
                         size: 28,
                       ),
                       const SizedBox(height: 4),
-                      const Text(
+                      Text(
                         '総利益',
-                        style: TextStyle(color: Colors.black54, fontSize: 13),
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
                       ),
                       Text(
                         AppUtils()
@@ -412,8 +418,8 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
                               RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                               (m) => '${m[1]},',
                             ),
-                        style: const TextStyle(
-                          color: Color(0xFF43A047),
+                        style: TextStyle(
+                          color: AppColors.appUpGreen,
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
                         ),
@@ -426,21 +432,21 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFDEAEA),
+                    color: AppColors.appDownRed.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Column(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.trending_down,
-                        color: Color(0xFFE53935),
+                        color: AppColors.appDownRed,
                         size: 28,
                       ),
                       const SizedBox(height: 4),
-                      const Text(
+                      Text(
                         '総損失',
-                        style: TextStyle(color: Colors.black54, fontSize: 13),
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
                       ),
                       Text(
                         AppUtils()
@@ -449,8 +455,8 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
                               RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                               (m) => '${m[1]},',
                             ),
-                        style: const TextStyle(
-                          color: Color(0xFFE53935),
+                        style: TextStyle(
+                          color: AppColors.appDownRed,
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
                         ),
@@ -464,7 +470,7 @@ class AssetAnalysisDetailPageState extends State<AssetAnalysisDetailPage> {
           const SizedBox(height: 14),
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F6FA),
+              color: const Color(0xFF2C2C2E),
               borderRadius: BorderRadius.circular(10),
             ),
             padding: const EdgeInsets.symmetric(vertical: 12),

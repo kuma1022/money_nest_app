@@ -52,6 +52,11 @@ Deno.serve(async (req: { url: string | URL; method: any; headers: { get: (arg0: 
         const userId = url.searchParams.get('user_id');
         return handleCreateFund(userId, body);
       }
+      // 现金（入金/出金）追加
+      if (action === 'user-cash') {
+        const userId = url.searchParams.get('user_id');
+        return handleCreateCash(userId, body);
+      }
     }
 
     // GET actions
@@ -486,15 +491,10 @@ async function handleCreateAsset(userId, body) {
       p_action: body.action,
       p_trade_type: body.trade_type ?? null,
       p_exchange: body.exchange,
-      p_position_type: body.position_type ?? null,
       p_quantity: body.quantity,
       p_price: body.price,
-      p_leverage: body.leverage ?? null,
-      p_swap_amount: body.swap_amount ?? null,
-      p_swap_currency: body.swap_currency ?? null,
       p_fee_amount: body.fee_amount ?? null,
       p_fee_currency: body.fee_currency ?? null,
-      p_manual_rate_input: body.manual_rate_input ?? null,
       p_remark: body.remark ?? null,
       p_sell_mappings: body.sell_mappings ?? []
     });
@@ -562,12 +562,8 @@ async function handleUpdateAsset(userId, body) {
       p_exchange: body.exchange,
       p_quantity: body.quantity,
       p_price: body.price,
-      p_leverage: body.leverage ?? null,
-      p_swap_amount: body.swap_amount ?? null,
-      p_swap_currency: body.swap_currency ?? null,
       p_fee_amount: body.fee_amount ?? null,
       p_fee_currency: body.fee_currency ?? null,
-      p_manual_rate_input: body.manual_rate_input ?? null,
       p_remark: body.remark ?? null,
       p_sell_mappings: body.sell_mappings ?? []
     });
@@ -800,6 +796,23 @@ async function handleGetUserSummary(userId) {
   }), {
     status: 500
   });
+
+  // 4. 查询account_balances
+  const { data: balanceData, error: balanceError } = await supabase.from('account_balances').select('*').in('account_id', accIds);
+  if (balanceError) return new Response(JSON.stringify({
+    error: balanceError.message
+  }), {
+    status: 500
+  });
+
+  // 5. 查询cash_transactions
+  const { data: cashTxData, error: cashTxError } = await supabase.from('cash_transactions').select('*').in('account_id', accIds);
+  if (cashTxError) return new Response(JSON.stringify({
+    error: cashTxError.message
+  }), {
+    status: 500
+  });
+
   const cryptoMap = {};
   if (cryptoData) {
     cryptoData.forEach((ci)=>{
@@ -807,6 +820,26 @@ async function handleGetUserSummary(userId) {
         cryptoMap[ci.account_id] = [];
       }
       cryptoMap[ci.account_id].push(ci);
+    });
+  }
+
+  const balanceMap = {};
+  if (balanceData) {
+    balanceData.forEach((row)=>{
+      if (!balanceMap[row.account_id]) {
+        balanceMap[row.account_id] = [];
+      }
+      balanceMap[row.account_id].push(row);
+    });
+  }
+
+  const cashTxMap = {};
+  if (cashTxData) {
+    cashTxData.forEach((row)=>{
+      if (!cashTxMap[row.account_id]) {
+        cashTxMap[row.account_id] = [];
+      }
+      cashTxMap[row.account_id].push(row);
     });
   }
   const t_db3 = Date.now();
@@ -826,6 +859,8 @@ async function handleGetUserSummary(userId) {
         stocks: [],
         trade_sell_mapping: [],
         crypto_info: cryptoMap[accId] || [],
+        account_balances: balanceMap[accId] || [],
+        cash_transactions: cashTxMap[accId] || [],
       };
     }
     const acc = accountsMap[accId];
@@ -1073,4 +1108,95 @@ async function handleGetLastSyncTime(userId, accountId) {
     return new Response(JSON.stringify({ error: 'Account not found' }), { status: 404 });
   }
   return new Response(JSON.stringify({ last_sync_time: data.updated_at }), { status: 200 });
+}
+
+// ------------------- 现金交易（入金/出金）处理 -------------------
+async function handleCreateCash(userId, body) {
+  // Check parameters
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Missing userId' }), { status: 400 });
+  }
+  const { account_id, currency, amount, type, transaction_date, remark } = body;
+  
+  // Basic validation
+  if (!account_id || !currency || amount === undefined || !type || !transaction_date) {
+    return new Response(JSON.stringify({ 
+      error: 'Missing required fields: account_id, currency, amount, type, transaction_date' 
+    }), { status: 400 });
+  }
+
+  // 1. Get current balance for (account_id, currency)
+  const { data: balanceData, error: fetchError } = await supabase
+    .from('account_balances')
+    .select('amount')
+    .eq('user_id', userId)
+    .eq('account_id', account_id)
+    .eq('currency', currency)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error('Error fetching balance:', fetchError);
+    return new Response(JSON.stringify({ error: 'Database error fetching balance' }), { status: 500 });
+  }
+
+  const currentAmount = balanceData ? Number(balanceData.amount) : 0;
+  
+  // 2. Calculate new balance
+  let newAmount = currentAmount;
+  // If type is 'deposit', we add. If 'withdraw', we subtract.
+  if (type === 'deposit') {
+    newAmount += Number(amount);
+  } else if (type === 'withdraw') {
+    newAmount -= Number(amount);
+  } else {
+    return new Response(JSON.stringify({ error: 'Invalid transaction type' }), { status: 400 });
+  }
+
+  // 3. Upsert account_balances
+  const { data: upsertData, error: upsertError } = await supabase
+    .from('account_balances')
+    .upsert({
+      user_id: userId,
+      account_id: account_id,
+      currency: currency,
+      amount: newAmount,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'account_id, currency' })
+    .select()
+    .single();
+
+  if (upsertError) {
+    console.error('Error upserting balance:', upsertError);
+    return new Response(JSON.stringify({ error: 'Database error updating balance' }), { status: 500 });
+  }
+
+  // 4. Insert cash_transactions
+  const { data: txData, error: txError } = await supabase
+    .from('cash_transactions')
+    .insert({
+      user_id: userId,
+      account_id: account_id,
+      currency: currency,
+      amount: Number(amount),
+      type: type,
+      transaction_date: transaction_date,
+      remark: remark
+    })
+    .select()
+    .single();
+
+  if (txError) {
+    console.error('Error inserting transaction:', txError);
+    // Note: If this fails, the balance is already updated.
+    return new Response(JSON.stringify({ error: 'Database error creating transaction' }), { status: 500 });
+  }
+
+  return new Response(JSON.stringify({
+    success: true,
+    transaction: txData,
+    balance: upsertData
+  }), { 
+    status: 201,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }

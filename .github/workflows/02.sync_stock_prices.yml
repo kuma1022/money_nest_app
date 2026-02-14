@@ -1,0 +1,64 @@
+name: Stock Price Sync
+
+on:
+  schedule:
+    # 日股抓取：每天 16:00 JST → UTC 7:00
+    - cron: "0 7 * * *"
+    # 日股重试：每天 17:00 JST → UTC 8:00
+    - cron: "0 8 * * *"
+    # 美股抓取：每天 7:00 JST → UTC 22:00
+    - cron: "0 22 * * *"
+    # 美股重试：每天 8:00 JST → UTC 23:00
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run Mode'
+        required: true
+        default: 'normal'
+        type: choice
+        options:
+          - initial
+          - normal
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install pandas yfinance requests supabase
+
+      - name: Run sync script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # 获取手动输入参数
+          INPUT_MODE: ${{ github.event.inputs.mode }}
+        run: |
+          UTC_HOUR=$(date -u +%H)
+
+          if [ "$UTC_HOUR" -eq 7 ]; then
+            echo "MARKET=JP" >> $GITHUB_ENV
+          elif [ "$UTC_HOUR" -eq 8 ]; then
+            echo "MARKET=JP" >> $GITHUB_ENV
+            echo "IS_RETRY=1" >> $GITHUB_ENV
+          elif [ "$UTC_HOUR" -eq 22 ]; then
+            echo "MARKET=US" >> $GITHUB_ENV
+          elif [ "$UTC_HOUR" -eq 23 ]; then
+            echo "MARKET=US" >> $GITHUB_ENV
+            echo "IS_RETRY=1" >> $GITHUB_ENV
+          fi
+          
+          # 设定默认模式
+          MODE=${INPUT_MODE:-normal}
+          echo "Current Mode: $MODE"
+          python scripts/02.sync_stock_prices.py $MODE

@@ -33,23 +33,6 @@ class TradeRecords extends Table {
       real().nullable().withDefault(const Constant(0))();
   // 手续费货币（可选，USD / JPY 等）
   TextColumn get feeCurrency => text().nullable()();
-
-  // -------- FX专用字段 --------
-  // 头寸类型（可选，'long' / 'short' 等）
-  TextColumn get positionType => text().nullable()();
-  // レバレッジ
-  RealColumn get leverage => real().nullable()();
-  // swap point（可选）
-  RealColumn get swapAmount =>
-      real().nullable().withDefault(const Constant(0))();
-  // swap货币（可选，USD / JPY 等）
-  TextColumn get swapCurrency => text().nullable()();
-
-  // -------- FX，暗号，贵金属专用字段 --------
-  // 手动输入汇率（可选，买入时的汇率）
-  BoolColumn get manualRateInput =>
-      boolean().nullable().withDefault(const Constant(false))();
-
   // 备注
   TextColumn get remark => text().nullable()();
   // 创建时间
@@ -295,6 +278,55 @@ class CryptoInfo extends Table {
   ];
 }
 
+// 账户余额表
+class AccountBalances extends Table {
+  // ID
+  IntColumn get id => integer()();
+  // 账户ID
+  IntColumn get accountId => integer()();
+  // 用户ID
+  TextColumn get userId => text()();
+  // 货币
+  TextColumn get currency => text()();
+  // 金额
+  RealColumn get amount => real().withDefault(const Constant(0))();
+  // 更新时间
+  DateTimeColumn get updatedAt => dateTime().nullable().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {accountId, currency},
+  ];
+}
+
+// 现金交易表
+class CashTransactions extends Table {
+  // ID
+  IntColumn get id => integer()();
+  // 用户ID
+  TextColumn get userId => text()();
+  // 账户ID
+  IntColumn get accountId => integer()();
+  // 货币
+  TextColumn get currency => text()();
+  // 金额
+  RealColumn get amount => real()();
+  // 类型 deposit, withdraw, etc.
+  TextColumn get type => text()();
+  // 关联交易ID (可选)
+  IntColumn get tradeId => integer().nullable()();
+  // 交易日期
+  DateTimeColumn get transactionDate => dateTime().withDefault(currentDateAndTime)();
+  // 备注
+  TextColumn get remark => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 // ----------以下需要修改----------
 /*
 // 汇率表（可选，用于多货币转换）
@@ -378,6 +410,8 @@ class MarketData extends Table {
     StockPrices,
     FxRates,
     CryptoInfo,
+    AccountBalances,
+    CashTransactions,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -386,12 +420,18 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase() => _instance;
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      if (from < 2) {
+        await m.createTable(accountBalances);
+        await m.createTable(cashTransactions);
+      }
     },
   );
 

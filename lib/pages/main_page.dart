@@ -29,8 +29,6 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
   bool _didInitialRefresh = false; // 新增：只执行一次的标志
   int _currentIndex = 0;
   Widget? _overlayPage;
-  late AnimationController _headerAnimController;
-  late Animation<double> _headerAnim;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final GlobalKey<HomeTabPageState> homeTabPageKey =
@@ -101,7 +99,6 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
     setState(() {
       _overlayPage = TradeAddEditPage(
         onClose: () {
-          _headerAnimController.reverse();
           setState(() {
             _overlayPage = null;
           });
@@ -136,20 +133,11 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
         ),
       );
     });
-    _headerAnimController.forward(from: 0);
   }
 
   @override
   void initState() {
     super.initState();
-    _headerAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _headerAnim = CurvedAnimation(
-      parent: _headerAnimController,
-      curve: Curves.easeInOut,
-    );
 
     // 在第一次 build 完成后，如果当前为首页（_currentIndex == 0）就触发 home tab 刷新（只执行一次）
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -186,22 +174,6 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
       Icons.menu,
     ];
 
-    // Header参数
-    final double minTitleSize = 18;
-    final double maxTitleSize = 26;
-    final double topPosition = statusBarHeight + 10.0;
-    final double maxHeaderHeight = statusBarHeight + 50.0;
-    final double minHeaderHeight = statusBarHeight + 40.0;
-    final double t = (_scrollPixels / 60).clamp(0, 1);
-    final double titleFontSize =
-        maxTitleSize - (maxTitleSize - minTitleSize) * t;
-    final double headerHeight =
-        maxHeaderHeight - (maxHeaderHeight - minHeaderHeight) * t;
-
-    final Color headerBgColor = isDark
-        ? const Color(0xFF23242A)
-        : AppColors.appBackground;
-
     void onTabChanged(int index) {
       setState(() {
         _currentIndex = index;
@@ -232,53 +204,9 @@ class MainPageState extends State<MainPage> with TickerProviderStateMixin {
           splashColor: Colors.transparent,
         ),
         child: Scaffold(
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.black, // Dark background
           body: Column(
             children: [
-              AnimatedBuilder(
-                animation: _headerAnim,
-                builder: (context, child) {
-                  // headerHeight: 动画期间从正常高度到0
-                  final double animatedHeight = (_overlayPage == null)
-                      ? headerHeight
-                      : headerHeight * (1 - _headerAnim.value);
-                  final double animatedOpacity = (_overlayPage == null)
-                      ? 1.0
-                      : 1.0 - _headerAnim.value;
-                  if (animatedHeight < 1) return const SizedBox.shrink();
-                  return Opacity(
-                    opacity: animatedOpacity,
-                    child: Container(
-                      height: animatedHeight,
-                      width: double.infinity,
-                      color: headerBgColor,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: Align(
-                              alignment: Alignment.topCenter,
-                              child: Padding(
-                                padding: EdgeInsets.only(top: topPosition),
-                                child: AnimatedDefaultTextStyle(
-                                  duration: const Duration(milliseconds: 180),
-                                  style: TextStyle(
-                                    fontSize: titleFontSize,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark
-                                        ? Colors.white
-                                        : Colors.black87,
-                                  ),
-                                  child: Text(titles[_currentIndex]),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
               // 页面内容
               Expanded(
                 child: Stack(
