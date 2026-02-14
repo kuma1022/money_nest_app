@@ -64,6 +64,12 @@ class AssetsTabPageState extends State<AssetsTabPage> {
     'すべて': null,
   };
 
+  @override
+  void initState() {
+    super.initState();
+    _initializeData();
+  }
+
   // 刷新总资产和总成本
   Future<void> _initializeData() async {
     if (!mounted) return;
