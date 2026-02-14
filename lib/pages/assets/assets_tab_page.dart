@@ -11,6 +11,7 @@ import 'package:money_nest_app/pages/assets/stock/stock_detail_page.dart';
 import 'package:money_nest_app/pages/assets/stock/domestic_stock_detail_page.dart';
 import 'package:money_nest_app/pages/assets/stock/us_stock_detail_page.dart';
 import 'package:money_nest_app/pages/assets/cash/cash_page.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:money_nest_app/pages/assets/custom/custom_assets_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
@@ -397,6 +398,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       final String name = item['name'] as String? ?? normalizedCode;
       final double buyPrice = (item['buyPrice'] as num? ?? 0).toDouble();
       final String itemCurrency = item['currency'] as String? ?? 'JPY';
+      final String? logo = item['logo'] as String?;
 
       if (normalizedCode.isEmpty) continue;
 
@@ -429,6 +431,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
         targetMap[key] = {
           'code': normalizedCode,
           'name': name,
+          'logo': logo,
           'quantity': qty,
           'currentPrice': currentPrice,
           'marketValue': marketValue,
@@ -471,6 +474,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
         return {
           'code': data['code'],
           'name': data['name'],
+          'logo': data['logo'],
           'quantity': qty,
           'currentPrice': data['currentPrice'],
           'avgCost': avgCost,
@@ -1173,6 +1177,7 @@ class _ExpandableAssetCard extends StatelessWidget {
     final isProfitPositive = profit >= 0;
     final profitColor = isProfitPositive ? AppColors.appUpGreen : AppColors.appDownRed;
     final currency = stock['currency'] ?? displayCurrency;
+    final String? logo = stock['logo'] as String?;
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1215,6 +1220,30 @@ class _ExpandableAssetCard extends StatelessWidget {
             color: Colors.grey.withOpacity(0.3),
           ),
           const SizedBox(width: 12),
+          // Logo
+          (logo != null && logo.isNotEmpty)
+            ? Container(
+                width: 40,
+                height: 40,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                clipBehavior: Clip.antiAlias,
+                padding: const EdgeInsets.all(4.0),
+                child: logo.toLowerCase().endsWith('.svg') 
+                    ? SvgPicture.network(logo, fit: BoxFit.contain, placeholderBuilder: (_) => Container(color: Colors.grey))
+                    : Image.network(logo, fit: BoxFit.contain, errorBuilder: (c,e,s) => Container(color: Colors.grey)),
+              )
+            : Container(
+                width: 40,
+                height: 40,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white24),
+                alignment: Alignment.center,
+                child: Text(
+                  (stock['name'] ?? stock['code']).isNotEmpty ? (stock['name'] ?? stock['code']).substring(0, 1) : 'S',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ),
           // Main Content
           Expanded(
             child: Column(

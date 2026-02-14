@@ -167,24 +167,27 @@ class _StockSearchPageState extends State<StockSearchPage> {
               itemBuilder: (context, index) {
                 final stock = displayList[index];
                 return ListTile(
-                  leading: Container(
-                    width: 40, 
-                    height: 40,
-                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
-                    clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: (stock.logo != null && stock.logo!.isNotEmpty)
-                        ? (stock.logo!.toLowerCase().endsWith('.svg') 
+                  leading: (stock.logo != null && stock.logo!.isNotEmpty)
+                    ? Container(
+                        width: 40, 
+                        height: 40,
+                        decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                        clipBehavior: Clip.antiAlias,
+                        padding: const EdgeInsets.all(4.0),
+                        child: stock.logo!.toLowerCase().endsWith('.svg') 
                             ? SvgPicture.network(stock.logo!, fit: BoxFit.contain, placeholderBuilder: (_) => Container(color: Colors.grey))
-                            : Image.network(stock.logo!, fit: BoxFit.contain, errorBuilder: (c,e,s) => Container(color: Colors.grey)))
-                        : Container(
-                            alignment: Alignment.center,
-                            color: Colors.grey,
-                            child: Text(stock.name.isNotEmpty ? stock.name.substring(0, 1) : 'S', style: const TextStyle(color: Colors.white))
+                            : Image.network(stock.logo!, fit: BoxFit.contain, errorBuilder: (c,e,s) => Container(color: Colors.grey)),
+                      )
+                    : Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.grey),
+                        alignment: Alignment.center,
+                        child: Text(
+                          stock.name.isNotEmpty ? stock.name.substring(0, 1) : 'S', 
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
                         ),
-                    ),
-                  ),
+                      ),
                   title: Text(
                     stock.name,
                     style: const TextStyle(color: Colors.white),
