@@ -1251,10 +1251,14 @@ class _ExpandableAssetCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      stock['name'] ?? stock['code'],
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    Expanded(
+                      child: Text(
+                        stock['name'] ?? stock['code'],
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       '${AppUtils().formatMoney(stock['marketValue'], displayCurrency)}',
                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
