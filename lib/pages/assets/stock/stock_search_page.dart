@@ -7,6 +7,7 @@ import 'package:money_nest_app/pages/trade_history/trade_history_tab_page.dart';
 import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/global_store.dart';
 import 'package:money_nest_app/models/trade_type.dart';
+import 'package:provider/provider.dart';
 
 class StockSearchPage extends StatefulWidget {
   final String exchange; // 'JP' or 'US'
@@ -86,7 +87,8 @@ class _StockSearchPageState extends State<StockSearchPage> {
     });
 
     try {
-      final results = await DataSyncService().fetchStockSuggestions(
+      final dataSync = Provider.of<DataSyncService>(context, listen: false);
+      final results = await dataSync.fetchStockSuggestions(
         query,
         limit: 20,
         exchange: widget.exchange,
