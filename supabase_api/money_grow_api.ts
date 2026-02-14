@@ -52,6 +52,11 @@ Deno.serve(async (req: { url: string | URL; method: any; headers: { get: (arg0: 
         const userId = url.searchParams.get('user_id');
         return handleCreateFund(userId, body);
       }
+      // 现金（入金/出金）追加
+      if (action === 'user-cash') {
+        const userId = url.searchParams.get('user_id');
+        return handleCreateCash(userId, body);
+      }
     }
 
     // GET actions
@@ -1064,4 +1069,92 @@ async function handleGetLastSyncTime(userId, accountId) {
     return new Response(JSON.stringify({ error: 'Account not found' }), { status: 404 });
   }
   return new Response(JSON.stringify({ last_sync_time: data.updated_at }), { status: 200 });
+}
+
+// ------------------- 现金交易（入金/出金）处理 -------------------
+async function handleCreateCash(userId, body) {
+  // Check parameters
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Missing userId' }), { status: 400 });
+  }
+  const { account_id, currency, amount, type, transaction_date, remark } = body;
+  
+  // Basic validation
+  if (!account_id || !currency || amount === undefined || !type || !transaction_date) {
+    return new Response(JSON.stringify({ 
+      error: 'Missing required fields: account_id, currency, amount, type, transaction_date' 
+    }), { status: 400 });
+  }
+
+  // 1. Get current balance for (account_id, currency)
+  const { data: balanceData, error: fetchError } = await supabase
+    .from('account_balances')
+    .select('amount')
+    .eq('user_id', userId)
+    .eq('account_id', account_id)
+    .eq('currency', currency)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error('Error fetching balance:', fetchError);
+    return new Response(JSON.stringify({ error: 'Database error fetching balance' }), { status: 500 });
+  }
+
+  const currentAmount = balanceData ? Number(balanceData.amount) : 0;
+  
+  // 2. Calculate new balance
+  let newAmount = currentAmount;
+  // If type is 'deposit', we add. If 'withdraw', we subtract.
+  if (type === 'deposit') {
+    newAmount += Number(amount);
+  } else if (type === 'withdraw') {
+    newAmount -= Number(amount);
+  } else {
+    return new Response(JSON.stringify({ error: 'Invalid transaction type' }), { status: 400 });
+  }
+
+  // 3. Upsert account_balances
+  const { data: upsertData, error: upsertError } = await supabase
+    .from('account_balances')
+    .upsert({
+      user_id: userId,
+      account_id: account_id,
+      currency: currency,
+      amount: newAmount,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'account_id, currency' })
+    .select()
+    .single();
+
+  if (upsertError) {
+    console.error('Error upserting balance:', upsertError);
+    return new Response(JSON.stringify({ error: 'Database error updating balance' }), { status: 500 });
+  }
+
+  // 4. Insert cash_transactions
+  const { data: txData, error: txError } = await supabase
+    .from('cash_transactions')
+    .insert({
+      user_id: userId,
+      account_id: account_id,
+      currency: currency,
+      amount: Number(amount),
+      type: type,
+      transaction_date: transaction_date,
+      remark: remark
+    })
+    .select()
+    .single();
+
+  if (txError) {
+    console.error('Error inserting transaction:', txError);
+    // Note: If this fails, the balance is already updated.
+    return new Response(JSON.stringify({ error: 'Database error creating transaction' }), { status: 500 });
+  }
+
+  return new Response(JSON.stringify({
+    success: true,
+    transaction: txData,
+    balance: upsertData
+  }), { status: 201 });
 }

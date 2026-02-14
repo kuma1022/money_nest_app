@@ -1253,54 +1253,31 @@ class DataSyncService {
       final userId = GlobalStore().userId!;
       final accountId = GlobalStore().accountId!;
 
-      // 1. 获取当前余额
-      final List<dynamic> balanceRes = await supabaseApi.client
-          .from('account_balances')
-          .select()
-          .eq('user_id', userId)
-          .eq('account_id', accountId)
-          .eq('currency', currency);
+      // 1. 调用 Supabase Edge Function 处理逻辑
+      final response = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {
+          'action': 'user-cash',
+          'user_id': userId,
+        },
+        body: {
+          'account_id': accountId,
+          'currency': currency,
+          'amount': amount,
+          'type': isDeposit ? 'deposit' : 'withdraw',
+          'transaction_date': date.toIso8601String(),
+          'remark': memo,
+        },
+        method: HttpMethod.post,
+      );
 
-      double currentAmount = 0.0;
-      if (balanceRes.isNotEmpty) {
-        currentAmount = (balanceRes.first['amount'] as num).toDouble();
+      if (response.status != 201 && response.status != 200) {
+        throw Exception('Failed to add cash transaction: ${response.data}');
       }
 
-      // 2. 计算新余额
-      double newAmount = isDeposit ? currentAmount + amount : currentAmount - amount;
-
-      // 3. Upsert 余额表
-      final balanceData = {
-        'user_id': userId,
-        'account_id': accountId,
-        'currency': currency,
-        'amount': newAmount,
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-      
-      // account_balances表有唯一约束 (account_id, currency)，可以用 upsert
-      final upsertRes = await supabaseApi.client
-          .from('account_balances')
-          .upsert(balanceData, onConflict: 'account_id, currency')
-          .select()
-          .single();
-
-      // 4. 追加交易记录
-      final txData = {
-        'user_id': userId,
-        'account_id': accountId,
-        'currency': currency,
-        'amount': amount,
-        'type': isDeposit ? 'deposit' : 'withdraw',
-        'transaction_date': date.toIso8601String(),
-        'remark': memo,
-      };
-
-      final txRes = await supabaseApi.client
-          .from('cash_transactions')
-          .insert(txData)
-          .select()
-          .single();
+      final data = response.data;
+      final txRes = data['transaction'];
+      final upsertRes = data['balance'];
 
       // 5. 保存到本地数据库 (需要先运行 build_runner 生成代码)
       // 由于 build_runner 未运行，这里暂时注释掉本地保存部分，或者使用 raw sql
@@ -1312,7 +1289,7 @@ class DataSyncService {
           accountId: Value(accountId),
           userId: Value(userId),
           currency: Value(currency),
-          amount: Value(newAmount),
+          amount: Value((upsertRes['amount'] as num).toDouble()),
           updatedAt: Value(DateTime.parse(upsertRes['updated_at'])),
         ),
       );
