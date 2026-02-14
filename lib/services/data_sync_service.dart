@@ -1300,7 +1300,7 @@ class DataSyncService {
       // 5. 保存到本地数据库 (需要先运行 build_runner 生成代码)
       // 由于 build_runner 未运行，这里暂时注释掉本地保存部分，或者使用 raw sql
       // TODO: Uncomment after generating drifted code
-      /*
+      
       await db.into(db.accountBalances).insertOnConflictUpdate(
         AccountBalancesCompanion(
           id: Value(upsertRes['id'] as int),
@@ -1324,7 +1324,7 @@ class DataSyncService {
           remark: Value(memo),
         ),
       );
-      */
+      
       
       // 更新 GlobalStore 缓存（简单版）
       // GlobalStore().totalAssetsAndCostsMap... 需要重新拉取或手动更新
