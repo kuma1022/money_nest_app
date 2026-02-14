@@ -134,66 +134,6 @@ class $TradeRecordsTable extends TradeRecords
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _positionTypeMeta = const VerificationMeta(
-    'positionType',
-  );
-  @override
-  late final GeneratedColumn<String> positionType = GeneratedColumn<String>(
-    'position_type',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _leverageMeta = const VerificationMeta(
-    'leverage',
-  );
-  @override
-  late final GeneratedColumn<double> leverage = GeneratedColumn<double>(
-    'leverage',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _swapAmountMeta = const VerificationMeta(
-    'swapAmount',
-  );
-  @override
-  late final GeneratedColumn<double> swapAmount = GeneratedColumn<double>(
-    'swap_amount',
-    aliasedName,
-    true,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _swapCurrencyMeta = const VerificationMeta(
-    'swapCurrency',
-  );
-  @override
-  late final GeneratedColumn<String> swapCurrency = GeneratedColumn<String>(
-    'swap_currency',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _manualRateInputMeta = const VerificationMeta(
-    'manualRateInput',
-  );
-  @override
-  late final GeneratedColumn<bool> manualRateInput = GeneratedColumn<bool>(
-    'manual_rate_input',
-    aliasedName,
-    true,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("manual_rate_input" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
   static const VerificationMeta _remarkMeta = const VerificationMeta('remark');
   @override
   late final GeneratedColumn<String> remark = GeneratedColumn<String>(
@@ -250,11 +190,6 @@ class $TradeRecordsTable extends TradeRecords
     price,
     feeAmount,
     feeCurrency,
-    positionType,
-    leverage,
-    swapAmount,
-    swapCurrency,
-    manualRateInput,
     remark,
     createdAt,
     updatedAt,
@@ -358,45 +293,6 @@ class $TradeRecordsTable extends TradeRecords
         ),
       );
     }
-    if (data.containsKey('position_type')) {
-      context.handle(
-        _positionTypeMeta,
-        positionType.isAcceptableOrUnknown(
-          data['position_type']!,
-          _positionTypeMeta,
-        ),
-      );
-    }
-    if (data.containsKey('leverage')) {
-      context.handle(
-        _leverageMeta,
-        leverage.isAcceptableOrUnknown(data['leverage']!, _leverageMeta),
-      );
-    }
-    if (data.containsKey('swap_amount')) {
-      context.handle(
-        _swapAmountMeta,
-        swapAmount.isAcceptableOrUnknown(data['swap_amount']!, _swapAmountMeta),
-      );
-    }
-    if (data.containsKey('swap_currency')) {
-      context.handle(
-        _swapCurrencyMeta,
-        swapCurrency.isAcceptableOrUnknown(
-          data['swap_currency']!,
-          _swapCurrencyMeta,
-        ),
-      );
-    }
-    if (data.containsKey('manual_rate_input')) {
-      context.handle(
-        _manualRateInputMeta,
-        manualRateInput.isAcceptableOrUnknown(
-          data['manual_rate_input']!,
-          _manualRateInputMeta,
-        ),
-      );
-    }
     if (data.containsKey('remark')) {
       context.handle(
         _remarkMeta,
@@ -478,26 +374,6 @@ class $TradeRecordsTable extends TradeRecords
         DriftSqlType.string,
         data['${effectivePrefix}fee_currency'],
       ),
-      positionType: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}position_type'],
-      ),
-      leverage: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}leverage'],
-      ),
-      swapAmount: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}swap_amount'],
-      ),
-      swapCurrency: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}swap_currency'],
-      ),
-      manualRateInput: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}manual_rate_input'],
-      ),
       remark: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}remark'],
@@ -536,11 +412,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
   final double price;
   final double? feeAmount;
   final String? feeCurrency;
-  final String? positionType;
-  final double? leverage;
-  final double? swapAmount;
-  final String? swapCurrency;
-  final bool? manualRateInput;
   final String? remark;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -558,11 +429,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     required this.price,
     this.feeAmount,
     this.feeCurrency,
-    this.positionType,
-    this.leverage,
-    this.swapAmount,
-    this.swapCurrency,
-    this.manualRateInput,
     this.remark,
     required this.createdAt,
     required this.updatedAt,
@@ -590,21 +456,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     }
     if (!nullToAbsent || feeCurrency != null) {
       map['fee_currency'] = Variable<String>(feeCurrency);
-    }
-    if (!nullToAbsent || positionType != null) {
-      map['position_type'] = Variable<String>(positionType);
-    }
-    if (!nullToAbsent || leverage != null) {
-      map['leverage'] = Variable<double>(leverage);
-    }
-    if (!nullToAbsent || swapAmount != null) {
-      map['swap_amount'] = Variable<double>(swapAmount);
-    }
-    if (!nullToAbsent || swapCurrency != null) {
-      map['swap_currency'] = Variable<String>(swapCurrency);
-    }
-    if (!nullToAbsent || manualRateInput != null) {
-      map['manual_rate_input'] = Variable<bool>(manualRateInput);
     }
     if (!nullToAbsent || remark != null) {
       map['remark'] = Variable<String>(remark);
@@ -639,21 +490,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       feeCurrency: feeCurrency == null && nullToAbsent
           ? const Value.absent()
           : Value(feeCurrency),
-      positionType: positionType == null && nullToAbsent
-          ? const Value.absent()
-          : Value(positionType),
-      leverage: leverage == null && nullToAbsent
-          ? const Value.absent()
-          : Value(leverage),
-      swapAmount: swapAmount == null && nullToAbsent
-          ? const Value.absent()
-          : Value(swapAmount),
-      swapCurrency: swapCurrency == null && nullToAbsent
-          ? const Value.absent()
-          : Value(swapCurrency),
-      manualRateInput: manualRateInput == null && nullToAbsent
-          ? const Value.absent()
-          : Value(manualRateInput),
       remark: remark == null && nullToAbsent
           ? const Value.absent()
           : Value(remark),
@@ -683,11 +519,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       price: serializer.fromJson<double>(json['price']),
       feeAmount: serializer.fromJson<double?>(json['feeAmount']),
       feeCurrency: serializer.fromJson<String?>(json['feeCurrency']),
-      positionType: serializer.fromJson<String?>(json['positionType']),
-      leverage: serializer.fromJson<double?>(json['leverage']),
-      swapAmount: serializer.fromJson<double?>(json['swapAmount']),
-      swapCurrency: serializer.fromJson<String?>(json['swapCurrency']),
-      manualRateInput: serializer.fromJson<bool?>(json['manualRateInput']),
       remark: serializer.fromJson<String?>(json['remark']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -710,11 +541,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       'price': serializer.toJson<double>(price),
       'feeAmount': serializer.toJson<double?>(feeAmount),
       'feeCurrency': serializer.toJson<String?>(feeCurrency),
-      'positionType': serializer.toJson<String?>(positionType),
-      'leverage': serializer.toJson<double?>(leverage),
-      'swapAmount': serializer.toJson<double?>(swapAmount),
-      'swapCurrency': serializer.toJson<String?>(swapCurrency),
-      'manualRateInput': serializer.toJson<bool?>(manualRateInput),
       'remark': serializer.toJson<String?>(remark),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -735,11 +561,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     double? price,
     Value<double?> feeAmount = const Value.absent(),
     Value<String?> feeCurrency = const Value.absent(),
-    Value<String?> positionType = const Value.absent(),
-    Value<double?> leverage = const Value.absent(),
-    Value<double?> swapAmount = const Value.absent(),
-    Value<String?> swapCurrency = const Value.absent(),
-    Value<bool?> manualRateInput = const Value.absent(),
     Value<String?> remark = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -757,13 +578,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     price: price ?? this.price,
     feeAmount: feeAmount.present ? feeAmount.value : this.feeAmount,
     feeCurrency: feeCurrency.present ? feeCurrency.value : this.feeCurrency,
-    positionType: positionType.present ? positionType.value : this.positionType,
-    leverage: leverage.present ? leverage.value : this.leverage,
-    swapAmount: swapAmount.present ? swapAmount.value : this.swapAmount,
-    swapCurrency: swapCurrency.present ? swapCurrency.value : this.swapCurrency,
-    manualRateInput: manualRateInput.present
-        ? manualRateInput.value
-        : this.manualRateInput,
     remark: remark.present ? remark.value : this.remark,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -785,19 +599,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
       feeCurrency: data.feeCurrency.present
           ? data.feeCurrency.value
           : this.feeCurrency,
-      positionType: data.positionType.present
-          ? data.positionType.value
-          : this.positionType,
-      leverage: data.leverage.present ? data.leverage.value : this.leverage,
-      swapAmount: data.swapAmount.present
-          ? data.swapAmount.value
-          : this.swapAmount,
-      swapCurrency: data.swapCurrency.present
-          ? data.swapCurrency.value
-          : this.swapCurrency,
-      manualRateInput: data.manualRateInput.present
-          ? data.manualRateInput.value
-          : this.manualRateInput,
       remark: data.remark.present ? data.remark.value : this.remark,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -820,11 +621,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
           ..write('price: $price, ')
           ..write('feeAmount: $feeAmount, ')
           ..write('feeCurrency: $feeCurrency, ')
-          ..write('positionType: $positionType, ')
-          ..write('leverage: $leverage, ')
-          ..write('swapAmount: $swapAmount, ')
-          ..write('swapCurrency: $swapCurrency, ')
-          ..write('manualRateInput: $manualRateInput, ')
           ..write('remark: $remark, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -834,7 +630,7 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
   }
 
   @override
-  int get hashCode => Object.hashAll([
+  int get hashCode => Object.hash(
     id,
     userId,
     accountId,
@@ -847,16 +643,11 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
     price,
     feeAmount,
     feeCurrency,
-    positionType,
-    leverage,
-    swapAmount,
-    swapCurrency,
-    manualRateInput,
     remark,
     createdAt,
     updatedAt,
     profit,
-  ]);
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -873,11 +664,6 @@ class TradeRecord extends DataClass implements Insertable<TradeRecord> {
           other.price == this.price &&
           other.feeAmount == this.feeAmount &&
           other.feeCurrency == this.feeCurrency &&
-          other.positionType == this.positionType &&
-          other.leverage == this.leverage &&
-          other.swapAmount == this.swapAmount &&
-          other.swapCurrency == this.swapCurrency &&
-          other.manualRateInput == this.manualRateInput &&
           other.remark == this.remark &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -897,11 +683,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
   final Value<double> price;
   final Value<double?> feeAmount;
   final Value<String?> feeCurrency;
-  final Value<String?> positionType;
-  final Value<double?> leverage;
-  final Value<double?> swapAmount;
-  final Value<String?> swapCurrency;
-  final Value<bool?> manualRateInput;
   final Value<String?> remark;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -919,11 +700,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     this.price = const Value.absent(),
     this.feeAmount = const Value.absent(),
     this.feeCurrency = const Value.absent(),
-    this.positionType = const Value.absent(),
-    this.leverage = const Value.absent(),
-    this.swapAmount = const Value.absent(),
-    this.swapCurrency = const Value.absent(),
-    this.manualRateInput = const Value.absent(),
     this.remark = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -942,11 +718,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     required double price,
     this.feeAmount = const Value.absent(),
     this.feeCurrency = const Value.absent(),
-    this.positionType = const Value.absent(),
-    this.leverage = const Value.absent(),
-    this.swapAmount = const Value.absent(),
-    this.swapCurrency = const Value.absent(),
-    this.manualRateInput = const Value.absent(),
     this.remark = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -971,11 +742,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     Expression<double>? price,
     Expression<double>? feeAmount,
     Expression<String>? feeCurrency,
-    Expression<String>? positionType,
-    Expression<double>? leverage,
-    Expression<double>? swapAmount,
-    Expression<String>? swapCurrency,
-    Expression<bool>? manualRateInput,
     Expression<String>? remark,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -994,11 +760,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
       if (price != null) 'price': price,
       if (feeAmount != null) 'fee_amount': feeAmount,
       if (feeCurrency != null) 'fee_currency': feeCurrency,
-      if (positionType != null) 'position_type': positionType,
-      if (leverage != null) 'leverage': leverage,
-      if (swapAmount != null) 'swap_amount': swapAmount,
-      if (swapCurrency != null) 'swap_currency': swapCurrency,
-      if (manualRateInput != null) 'manual_rate_input': manualRateInput,
       if (remark != null) 'remark': remark,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1019,11 +780,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     Value<double>? price,
     Value<double?>? feeAmount,
     Value<String?>? feeCurrency,
-    Value<String?>? positionType,
-    Value<double?>? leverage,
-    Value<double?>? swapAmount,
-    Value<String?>? swapCurrency,
-    Value<bool?>? manualRateInput,
     Value<String?>? remark,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -1042,11 +798,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
       price: price ?? this.price,
       feeAmount: feeAmount ?? this.feeAmount,
       feeCurrency: feeCurrency ?? this.feeCurrency,
-      positionType: positionType ?? this.positionType,
-      leverage: leverage ?? this.leverage,
-      swapAmount: swapAmount ?? this.swapAmount,
-      swapCurrency: swapCurrency ?? this.swapCurrency,
-      manualRateInput: manualRateInput ?? this.manualRateInput,
       remark: remark ?? this.remark,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1093,21 +844,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
     if (feeCurrency.present) {
       map['fee_currency'] = Variable<String>(feeCurrency.value);
     }
-    if (positionType.present) {
-      map['position_type'] = Variable<String>(positionType.value);
-    }
-    if (leverage.present) {
-      map['leverage'] = Variable<double>(leverage.value);
-    }
-    if (swapAmount.present) {
-      map['swap_amount'] = Variable<double>(swapAmount.value);
-    }
-    if (swapCurrency.present) {
-      map['swap_currency'] = Variable<String>(swapCurrency.value);
-    }
-    if (manualRateInput.present) {
-      map['manual_rate_input'] = Variable<bool>(manualRateInput.value);
-    }
     if (remark.present) {
       map['remark'] = Variable<String>(remark.value);
     }
@@ -1138,11 +874,6 @@ class TradeRecordsCompanion extends UpdateCompanion<TradeRecord> {
           ..write('price: $price, ')
           ..write('feeAmount: $feeAmount, ')
           ..write('feeCurrency: $feeCurrency, ')
-          ..write('positionType: $positionType, ')
-          ..write('leverage: $leverage, ')
-          ..write('swapAmount: $swapAmount, ')
-          ..write('swapCurrency: $swapCurrency, ')
-          ..write('manualRateInput: $manualRateInput, ')
           ..write('remark: $remark, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -5347,11 +5078,6 @@ typedef $$TradeRecordsTableCreateCompanionBuilder =
       required double price,
       Value<double?> feeAmount,
       Value<String?> feeCurrency,
-      Value<String?> positionType,
-      Value<double?> leverage,
-      Value<double?> swapAmount,
-      Value<String?> swapCurrency,
-      Value<bool?> manualRateInput,
       Value<String?> remark,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -5371,11 +5097,6 @@ typedef $$TradeRecordsTableUpdateCompanionBuilder =
       Value<double> price,
       Value<double?> feeAmount,
       Value<String?> feeCurrency,
-      Value<String?> positionType,
-      Value<double?> leverage,
-      Value<double?> swapAmount,
-      Value<String?> swapCurrency,
-      Value<bool?> manualRateInput,
       Value<String?> remark,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -5448,31 +5169,6 @@ class $$TradeRecordsTableFilterComposer
 
   ColumnFilters<String> get feeCurrency => $composableBuilder(
     column: $table.feeCurrency,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get positionType => $composableBuilder(
-    column: $table.positionType,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get leverage => $composableBuilder(
-    column: $table.leverage,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get swapAmount => $composableBuilder(
-    column: $table.swapAmount,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get swapCurrency => $composableBuilder(
-    column: $table.swapCurrency,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get manualRateInput => $composableBuilder(
-    column: $table.manualRateInput,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5566,31 +5262,6 @@ class $$TradeRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get positionType => $composableBuilder(
-    column: $table.positionType,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get leverage => $composableBuilder(
-    column: $table.leverage,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get swapAmount => $composableBuilder(
-    column: $table.swapAmount,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get swapCurrency => $composableBuilder(
-    column: $table.swapCurrency,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get manualRateInput => $composableBuilder(
-    column: $table.manualRateInput,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get remark => $composableBuilder(
     column: $table.remark,
     builder: (column) => ColumnOrderings(column),
@@ -5659,29 +5330,6 @@ class $$TradeRecordsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get positionType => $composableBuilder(
-    column: $table.positionType,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get leverage =>
-      $composableBuilder(column: $table.leverage, builder: (column) => column);
-
-  GeneratedColumn<double> get swapAmount => $composableBuilder(
-    column: $table.swapAmount,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get swapCurrency => $composableBuilder(
-    column: $table.swapCurrency,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get manualRateInput => $composableBuilder(
-    column: $table.manualRateInput,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<String> get remark =>
       $composableBuilder(column: $table.remark, builder: (column) => column);
 
@@ -5738,11 +5386,6 @@ class $$TradeRecordsTableTableManager
                 Value<double> price = const Value.absent(),
                 Value<double?> feeAmount = const Value.absent(),
                 Value<String?> feeCurrency = const Value.absent(),
-                Value<String?> positionType = const Value.absent(),
-                Value<double?> leverage = const Value.absent(),
-                Value<double?> swapAmount = const Value.absent(),
-                Value<String?> swapCurrency = const Value.absent(),
-                Value<bool?> manualRateInput = const Value.absent(),
                 Value<String?> remark = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -5760,11 +5403,6 @@ class $$TradeRecordsTableTableManager
                 price: price,
                 feeAmount: feeAmount,
                 feeCurrency: feeCurrency,
-                positionType: positionType,
-                leverage: leverage,
-                swapAmount: swapAmount,
-                swapCurrency: swapCurrency,
-                manualRateInput: manualRateInput,
                 remark: remark,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -5784,11 +5422,6 @@ class $$TradeRecordsTableTableManager
                 required double price,
                 Value<double?> feeAmount = const Value.absent(),
                 Value<String?> feeCurrency = const Value.absent(),
-                Value<String?> positionType = const Value.absent(),
-                Value<double?> leverage = const Value.absent(),
-                Value<double?> swapAmount = const Value.absent(),
-                Value<String?> swapCurrency = const Value.absent(),
-                Value<bool?> manualRateInput = const Value.absent(),
                 Value<String?> remark = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -5806,11 +5439,6 @@ class $$TradeRecordsTableTableManager
                 price: price,
                 feeAmount: feeAmount,
                 feeCurrency: feeCurrency,
-                positionType: positionType,
-                leverage: leverage,
-                swapAmount: swapAmount,
-                swapCurrency: swapCurrency,
-                manualRateInput: manualRateInput,
                 remark: remark,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

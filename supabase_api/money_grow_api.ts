@@ -486,15 +486,10 @@ async function handleCreateAsset(userId, body) {
       p_action: body.action,
       p_trade_type: body.trade_type ?? null,
       p_exchange: body.exchange,
-      p_position_type: body.position_type ?? null,
       p_quantity: body.quantity,
       p_price: body.price,
-      p_leverage: body.leverage ?? null,
-      p_swap_amount: body.swap_amount ?? null,
-      p_swap_currency: body.swap_currency ?? null,
       p_fee_amount: body.fee_amount ?? null,
       p_fee_currency: body.fee_currency ?? null,
-      p_manual_rate_input: body.manual_rate_input ?? null,
       p_remark: body.remark ?? null,
       p_sell_mappings: body.sell_mappings ?? []
     });
@@ -562,12 +557,8 @@ async function handleUpdateAsset(userId, body) {
       p_exchange: body.exchange,
       p_quantity: body.quantity,
       p_price: body.price,
-      p_leverage: body.leverage ?? null,
-      p_swap_amount: body.swap_amount ?? null,
-      p_swap_currency: body.swap_currency ?? null,
       p_fee_amount: body.fee_amount ?? null,
       p_fee_currency: body.fee_currency ?? null,
-      p_manual_rate_input: body.manual_rate_input ?? null,
       p_remark: body.remark ?? null,
       p_sell_mappings: body.sell_mappings ?? []
     });

@@ -33,23 +33,6 @@ class TradeRecords extends Table {
       real().nullable().withDefault(const Constant(0))();
   // 手续费货币（可选，USD / JPY 等）
   TextColumn get feeCurrency => text().nullable()();
-
-  // -------- FX专用字段 --------
-  // 头寸类型（可选，'long' / 'short' 等）
-  TextColumn get positionType => text().nullable()();
-  // レバレッジ
-  RealColumn get leverage => real().nullable()();
-  // swap point（可选）
-  RealColumn get swapAmount =>
-      real().nullable().withDefault(const Constant(0))();
-  // swap货币（可选，USD / JPY 等）
-  TextColumn get swapCurrency => text().nullable()();
-
-  // -------- FX，暗号，贵金属专用字段 --------
-  // 手动输入汇率（可选，买入时的汇率）
-  BoolColumn get manualRateInput =>
-      boolean().nullable().withDefault(const Constant(false))();
-
   // 备注
   TextColumn get remark => text().nullable()();
   // 创建时间

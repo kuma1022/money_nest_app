@@ -242,21 +242,6 @@ class DataSyncService {
                         .toDouble(),
                   ),
                   feeCurrency: Value(trade['fee_currency']),
-                  positionType: Value(trade['position_type']),
-                  leverage: Value(
-                    trade['leverage'] != null
-                        ? (num.tryParse(trade['leverage'].toString()) ?? 0)
-                              .toDouble()
-                        : null,
-                  ),
-                  swapAmount: Value(
-                    trade['swap_amount'] != null
-                        ? (num.tryParse(trade['swap_amount'].toString()) ?? 0)
-                              .toDouble()
-                        : null,
-                  ),
-                  swapCurrency: Value(trade['swap_currency']),
-                  manualRateInput: Value(trade['manual_rate_input'] ?? false),
                   remark: Value(trade['remark']),
                   profit: Value(
                     trade['profit'] != null
@@ -560,25 +545,6 @@ class DataSyncService {
                           .toDouble(),
                     ),
                     feeCurrency: Value(assetData['fee_currency']),
-                    positionType: Value(assetData['position_type']),
-                    leverage: Value(
-                      assetData['leverage'] != null
-                          ? num.tryParse(
-                              assetData['leverage'].toString(),
-                            )?.toDouble()
-                          : null,
-                    ),
-                    swapAmount: Value(
-                      assetData['swap_amount'] != null
-                          ? (num.tryParse(
-                              assetData['swap_amount'].toString(),
-                            ))?.toDouble()
-                          : null,
-                    ),
-                    swapCurrency: Value(assetData['swap_currency']),
-                    manualRateInput: Value(
-                      assetData['manual_rate_input'] ?? false,
-                    ),
                     remark: Value(assetData['remark']),
                     profit: Value(profit),
                   ),
@@ -606,23 +572,6 @@ class DataSyncService {
                       .toDouble(),
                 ),
                 feeCurrency: Value(assetData['fee_currency']),
-                positionType: Value(assetData['position_type']),
-                leverage: Value(
-                  assetData['leverage'] != null
-                      ? num.tryParse(
-                          assetData['leverage'].toString(),
-                        )?.toDouble()
-                      : null,
-                ),
-                swapAmount: Value(
-                  assetData['swap_amount'] != null
-                      ? (num.tryParse(
-                          assetData['swap_amount'].toString(),
-                        ))?.toDouble()
-                      : null,
-                ),
-                swapCurrency: Value(assetData['swap_currency']),
-                manualRateInput: Value(assetData['manual_rate_input'] ?? false),
                 remark: Value(assetData['remark']),
                 profit: Value(profit),
               ),

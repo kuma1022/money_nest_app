@@ -471,7 +471,9 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24),
                               ),
-                              backgroundColor: const Color(0xFF1C1C1E), // Dark button
+                              backgroundColor: const Color(
+                                0xFF1C1C1E,
+                              ), // Dark button
                             ),
                             child: const Text(
                               'キャンセル',
@@ -922,7 +924,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
         // サブカテゴリ
         if (assetCategoriesWithSub[assetCategoryCode]?.isNotEmpty ?? false)
           _buildSubCategorySelector(isAsset: true),
-        
+
         // 动态表单内容
         if (assetSubCategoryCode.isNotEmpty ||
             (assetCategoriesWithSub[assetCategoryCode]?.isEmpty ?? true))
@@ -953,11 +955,11 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
         const SizedBox(height: 16),
         // サブカテゴリ
         if (debtCategoriesWithSub[debtCategoryCode]?.isNotEmpty ?? false)
-           _buildSubCategorySelector(isAsset: false),
+          _buildSubCategorySelector(isAsset: false),
 
         // 动态表单内容
         if (debtSubCategoryCode.isNotEmpty ||
-             (debtCategoriesWithSub[debtCategoryCode]?.isEmpty ?? true))
+            (debtCategoriesWithSub[debtCategoryCode]?.isEmpty ?? true))
           _buildDebtDynamicFields(),
       ],
     );
@@ -1024,7 +1026,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
     );
   }
 
-  Widget _buildFormHeader({required String title, required VoidCallback onBack}) {
+  Widget _buildFormHeader({
+    required String title,
+    required VoidCallback onBack,
+  }) {
     return Row(
       children: [
         InkWell(
@@ -1058,7 +1063,9 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
 
   Widget _buildSubCategorySelector({required bool isAsset}) {
     final categoryCode = isAsset ? assetCategoryCode : debtCategoryCode;
-    final subCategoryCode = isAsset ? assetSubCategoryCode : debtSubCategoryCode;
+    final subCategoryCode = isAsset
+        ? assetSubCategoryCode
+        : debtSubCategoryCode;
     final subCategories = isAsset
         ? assetCategoriesWithSub[categoryCode] ?? []
         : debtCategoriesWithSub[categoryCode] ?? [];
@@ -1066,12 +1073,13 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-         color: const Color(0xFF1C1C1E),
-         borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: subCategoryCode.isNotEmpty &&
+          value:
+              subCategoryCode.isNotEmpty &&
                   subCategories.any((e) => e['code'] == subCategoryCode)
               ? subCategoryCode
               : null,
@@ -1128,7 +1136,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
         assetCategoryCode == 'fund' && assetSubCategoryCode == 'fund') {
       final children = {
         ActionType.buy: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8), // Revert to standard padding
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 8,
+          ), // Revert to standard padding
           child: Text(
             '買い',
             style: TextStyle(
@@ -1148,21 +1159,23 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: tradeAction == ActionType.sell
-                  ? const Color(0xFF4F8CFF) // Blue? Or Red for Sell? sticking to standard or reversed? 
+                  ? const Color(
+                      0xFF4F8CFF,
+                    ) // Blue? Or Red for Sell? sticking to standard or reversed?
                   // User said "Red accent" for the "Stock" form. Usually that means the primary action.
                   // Im going to assume red for selected, or standard financial colors (Red Sell / Blue Buy).
                   // But the user specially mentioned "Red accent color" in the context of the form.
                   // Let's just use Red for Buy as per request, or stick to financial colors but dark mode.
                   // I'll stick to financial colors (Buy: Blue/Green, Sell: Red) on dark background for safety,
                   // unless "Red accent" meant the whole UI theme.
-                  // Wait, Screenshot 2 description: "tabs (Red accent)". 
+                  // Wait, Screenshot 2 description: "tabs (Red accent)".
                   // I will make the ACTIVE tab Red.
                   : Colors.grey,
             ),
           ),
         ),
       };
-      
+
       return StatefulBuilder(
         builder: (context, setInnerState) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1175,8 +1188,9 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                 children: children,
                 onValueChanged: (v) {
                   setState(() => tradeAction = v!);
-                  if (tradeAction == ActionType.sell && assetCategoryCode == 'stock') {
-                      _loadSellHoldings();
+                  if (tradeAction == ActionType.sell &&
+                      assetCategoryCode == 'stock') {
+                    _loadSellHoldings();
                   }
                 },
                 disabledChildren: widget.mode == 'edit'
@@ -1208,7 +1222,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('銘柄情報', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        const Text(
+          '銘柄情報',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         const SizedBox(height: 8),
         // 銘柄コード（自动补全）
         CustomInputFormFieldBySuggestion(
@@ -1217,8 +1234,14 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
           focusNode: _stockCodeFocusNode,
           suggestions: _stockSuggestions.map((e) {
             return ListTile(
-              title: Text(e.ticker!, style: const TextStyle(color: Colors.white)),
-              subtitle: Text(e.name, style: const TextStyle(color: Colors.grey)),
+              title: Text(
+                e.ticker!,
+                style: const TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                e.name,
+                style: const TextStyle(color: Colors.grey),
+              ),
               onTap: () {
                 _stockCodeController.text = e.ticker!;
                 _onStockSelected(e);
@@ -1257,7 +1280,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
           enabled: widget.mode != 'edit',
         ),
         const SizedBox(height: 24),
-        const Text('取引詳細', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        const Text(
+          '取引詳細',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         const SizedBox(height: 8),
         // 取引日
         CustomDateDropdownField(
@@ -1306,7 +1332,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                 children: [
                   const Text(
                     '数量',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   CustomTextFormField(
@@ -1349,7 +1378,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                 children: [
                   const Text(
                     '単価',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   CustomTextFormField(
@@ -1389,11 +1421,17 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
         ),
         const SizedBox(height: 12),
         // 金額（自動計算）
-        const Text('金額（自動計算）', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        const Text(
+          '金額（自動計算）',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         const SizedBox(height: 6),
         TextFormField(
           controller: _amountController,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
           decoration: InputDecoration(
             filled: true,
             fillColor: const Color(0xFF2C2C2E), // Dark
@@ -1418,7 +1456,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                 children: [
                   const Text(
                     '手数料（任意）',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   CustomTextFormField(
@@ -1462,7 +1503,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                 children: [
                   const Text(
                     '手数料通貨',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   ModernHudDropdown<String>(
@@ -1490,7 +1534,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
         ),
         const SizedBox(height: 12),
         // メモ
-        const Text('メモ（任意）', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        const Text(
+          'メモ（任意）',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         const SizedBox(height: 6),
         TextFormField(
           controller: _memoController,
@@ -1525,7 +1572,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('売却する銘柄', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        const Text(
+          '売却する銘柄',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         const SizedBox(height: 8),
         ModernHudDropdown<String>(
           hintText: '売却する銘柄を選択してください',
@@ -1554,7 +1604,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
             style: const TextStyle(color: Colors.grey),
           ),
           const SizedBox(height: 12),
-          const Text('取引詳細', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+          const Text(
+            '取引詳細',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
           const SizedBox(height: 8),
           CustomDateDropdownField(
             labelText: '取引日',
@@ -1571,7 +1624,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
             },
           ),
           const SizedBox(height: 12),
-          const Text('売却数量を選択', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+          const Text(
+            '売却数量を選択',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
           const SizedBox(height: 4),
           // 批次输入
           Column(
@@ -1671,7 +1727,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                   children: [
                     const Text(
                       '単価',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     CustomTextFormField(
@@ -1708,13 +1767,19 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                   children: [
                     const Text(
                       '売却金額（自動計算）',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _sellAmountController,
                       readOnly: true,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: const Color(0xFF2C2C2E), // Dark
@@ -1743,7 +1808,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                   children: [
                     const Text(
                       '手数料（任意）',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     CustomTextFormField(
@@ -1787,7 +1855,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                   children: [
                     const Text(
                       '手数料通貨',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 6),
 
@@ -1818,7 +1889,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
           ),
           const SizedBox(height: 12),
           // メモ
-          const Text('メモ（任意）', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+          const Text(
+            'メモ（任意）',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
           const SizedBox(height: 6),
           TextFormField(
             controller: _sellMemoController,
@@ -1986,7 +2060,11 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
             children: [
               const Text(
                 'メモ（任意）',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 8),
               Container(
@@ -3146,15 +3224,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                   "exchange": selectedStockInfo!.exchange,
                   "action": 'buy',
                   "trade_type": tradeTypeCode,
-                  "position_type": null,
                   "quantity": quantityValue,
                   "price": unitPriceValue,
-                  "leverage": null,
-                  "swap_amount": null,
-                  "swap_currency": null,
                   "fee_amount": commissionValue,
                   "fee_currency": commissionCurrency,
-                  "manual_rate_input": false,
                   "remark": memoValue,
                   "sell_mappings": [],
                 },
@@ -3186,12 +3259,8 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                   "quantity": quantityValue,
                   "exchange": selectedStockInfo!.exchange,
                   "price": unitPriceValue,
-                  "leverage": null,
-                  "swap_amount": null,
-                  "swap_currency": null,
                   "fee_amount": commissionValue,
                   "fee_currency": commissionCurrency,
-                  "manual_rate_input": false,
                   "remark": memoValue,
                   "sell_mappings": [],
                 },
@@ -3214,15 +3283,10 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                   "exchange": selectedSellStockExchange,
                   "action": 'sell',
                   "trade_type": null,
-                  "position_type": null,
                   "quantity": sellTotalQty,
                   "price": sellUnitPrice,
-                  "leverage": null,
-                  "swap_amount": null,
-                  "swap_currency": null,
                   "fee_amount": sellCommissionValue,
                   "fee_currency": sellCommissionCurrency,
-                  "manual_rate_input": false,
                   "remark": sellMemoValue,
                   "sell_mappings": sellBatches
                       .where(
@@ -3248,12 +3312,8 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                   "quantity": sellTotalQty,
                   "price": sellUnitPrice,
                   "exchange": selectedSellStockExchange,
-                  "leverage": null,
-                  "swap_amount": null,
-                  "swap_currency": null,
                   "fee_amount": sellCommissionValue,
                   "fee_currency": sellCommissionCurrency,
-                  "manual_rate_input": false,
                   "remark": sellMemoValue,
                   "sell_mappings": sellBatches
                       .where(
