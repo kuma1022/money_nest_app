@@ -1242,11 +1242,16 @@ class DataSyncService {
   // -------------------------------------------------
   // 现金交易（入金/出金）追加
   // -------------------------------------------------
-  Future<void> addCashTransaction(
-      bool isDeposit, double amount, String currency, DateTime date, String? memo) async {
+  Future<void> addCashTransaction({
+    required bool isDeposit,
+    required double amount,
+    required String currency,
+    required DateTime date,
+    String? memo,
+  }) async {
     try {
       final userId = GlobalStore().userId!;
-      final accountId = GlobalStore().currentAccountId!;
+      final accountId = GlobalStore().accountId!;
 
       // 1. 获取当前余额
       final List<dynamic> balanceRes = await supabaseApi.client
@@ -1335,8 +1340,5 @@ class DataSyncService {
       print('Error adding cash transaction: $e');
       rethrow;
     }
-  }
-
-    return {'priceHistory': [], 'costBasisHistory': []};
   }
 }
