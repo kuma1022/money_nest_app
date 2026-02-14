@@ -365,16 +365,15 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       if (qty <= 0) continue; 
 
       final String code = (item['code'] as String? ?? '').trim();
-      // Use stockId as primary key for aggregation to ensure exact matches merge
-      final int stockId = item['stockId'] as int? ?? 0;
-      final String key = (stockId != 0) ? stockId.toString() : code.toUpperCase();
+      // Use code + exchange as primary key for aggregation to ensure visual merging by ticker
+      final String exchange = (item['exchange'] as String? ?? 'JP').toUpperCase();
+      final String key = '${code.toUpperCase()}_$exchange';
       
       final String name = item['name'] as String? ?? code;
       final double buyPrice = (item['buyPrice'] as num? ?? 0).toDouble();
-      final String exchange = (item['exchange'] as String? ?? 'JP').toUpperCase();
       final String itemCurrency = item['currency'] as String? ?? 'JPY';
 
-      if (code.isEmpty && stockId == 0) continue;
+      if (code.isEmpty) continue;
 
       final rate = GlobalStore().currentStockPrices[
               '${itemCurrency == 'USD' ? '' : itemCurrency}${currency}=X'] ??
