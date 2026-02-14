@@ -362,23 +362,29 @@ class AssetsTabPageState extends State<AssetsTabPage> {
 
     for (var item in GlobalStore().portfolio) {
       final qty = item['quantity'] as num? ?? 0;
-      if (qty <= 0) continue; // Skip if quantity is 0
+      if (qty <= 0) continue; 
 
-      final code = item['code'] as String? ?? '';
-      final name = item['name'] as String? ?? code;
-      final buyPrice = item['buyPrice'] as num? ?? 0;
-      final exchange = item['exchange'] as String? ?? 'JP';
-      final itemCurrency = item['currency'] as String? ?? 'JPY';
+      final String code = (item['code'] as String? ?? '').trim();
+      final String name = item['name'] as String? ?? code;
+      final double buyPrice = (item['buyPrice'] as num? ?? 0).toDouble();
+      final String exchange = (item['exchange'] as String? ?? 'JP').toUpperCase();
+      final String itemCurrency = item['currency'] as String? ?? 'JPY';
+
+      if (code.isEmpty) continue;
 
       final rate = GlobalStore().currentStockPrices[
               '${itemCurrency == 'USD' ? '' : itemCurrency}${currency}=X'] ??
           1.0;
       final currentPrice = GlobalStore().currentStockPrices[
               exchange == 'JP' ? '$code.T' : code] ??
-          buyPrice; // Fallback to buyPrice if current price missing
+          buyPrice;
 
-      final marketValue = qty * currentPrice * rate;
-      final totalCost = qty * buyPrice * rate;
+      // Values in display currency (roughly) for sorting/total
+      final double marketValue = qty * currentPrice * rate;
+      
+      // We want to calculate weighted average buy price in ORIGINAL currency.
+      // So we accumulate (qty * buyPrice)
+      final double totalBuyCostOriginal = qty * buyPrice;
 
       // Determine which map to use
       final targetMap = (exchange == 'JP') ? jpStockMap : usStockMap;
@@ -386,11 +392,10 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       if (targetMap.containsKey(code)) {
         // Aggregate
         final existing = targetMap[code]!;
-        existing['quantity'] += qty;
-        existing['marketValue'] += marketValue;
-        existing['totalCost'] += totalCost;
-        // Keep current price (should be same for same stock)
-        // Keep currency (should be same for same stock)
+        existing['quantity'] = (existing['quantity'] as num) + qty;
+        existing['marketValue'] = (existing['marketValue'] as double) + marketValue;
+        // Accumulate original cost
+        existing['totalBuyCostOriginal'] = (existing['totalBuyCostOriginal'] as double) + totalBuyCostOriginal;
       } else {
         // New entry
         targetMap[code] = {
@@ -399,30 +404,37 @@ class AssetsTabPageState extends State<AssetsTabPage> {
           'quantity': qty,
           'currentPrice': currentPrice,
           'marketValue': marketValue,
-          'totalCost': totalCost,
+          'totalBuyCostOriginal': totalBuyCostOriginal,
           'currency': itemCurrency,
         };
       }
     }
 
-    // Process maps to lists: Calculate averages and profits, then sort
+    // Process maps to lists
     List<Map<String, dynamic>> processStockMap(
         Map<String, Map<String, dynamic>> sourceMap) {
       final list = sourceMap.values.map((data) {
         final qty = data['quantity'] as num;
-        final totalCost = data['totalCost'] as double;
+        final totalBuyCostOriginal = data['totalBuyCostOriginal'] as double;
         final marketValue = data['marketValue'] as double;
+        
+        // Calculate Avg Cost in Original Currency
+        final avgCost = (qty > 0) ? (totalBuyCostOriginal / qty) : 0.0;
+        
+        // Calculate Profit: Market Value (Display Curr) - Total Cost (Display Curr)
+        // We need Total Cost in Display Currency for Profit calc.
+        // We approximate Total Cost (Display) = Total Cost (Original) * Rate
+        // But Rate might change? Assuming we use CURRENT rate for simplified profit view 
+        // OR we should have accumulated (qty * buyPrice * historicalRate).
+        // Standard practice: (Current Price - Avg Buy Price) * Qty * Rate
+        
         final currencyRate = GlobalStore().currentStockPrices[
                 '${data['currency'] == 'USD' ? '' : data['currency']}${currency}=X'] ??
             1.0;
 
-        // Avg Cost in original currency (for display)
-        // Total Cost (in display currency) / Quantity / Rate = Avg Cost per unit in original currency
-        final avgCost = (qty > 0) ? (totalCost / qty / currencyRate) : 0.0;
-
-        final profit = marketValue - totalCost;
-        final profitPercent =
-            totalCost == 0 ? 0.0 : (profit / totalCost) * 100;
+        final double currentTotalCostDisplay = totalBuyCostOriginal * currencyRate;
+        final double profit = marketValue - currentTotalCostDisplay;
+        final double profitPercent = currentTotalCostDisplay == 0 ? 0.0 : (profit / currentTotalCostDisplay) * 100;
 
         return {
           'code': data['code'],
