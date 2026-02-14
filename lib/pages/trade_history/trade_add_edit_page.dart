@@ -702,9 +702,15 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
            _buildFormRow(
              label: '配当期間',
              child: Row(
-               children: const [
-                  Text('その他', style: TextStyle(border: Border(bottom: BorderSide(color: Colors.green)), color: Colors.green)),
-                  Icon(Icons.chevron_right, color: Colors.white),
+               mainAxisSize: MainAxisSize.min,
+               children: [
+                  Container(
+                    decoration: const BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Colors.green)),
+                    ),
+                    child: const Text('その他', style: TextStyle(color: Colors.green)),
+                  ),
+                  const Icon(Icons.chevron_right, color: Colors.white),
                ],
              )
            ),
