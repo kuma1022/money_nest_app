@@ -336,6 +336,62 @@ class DataSyncService {
                 'Sync crypto info time: ${t5.difference(t4).inMilliseconds} ms',
               );
 
+              // 5. 同步 Account Balances
+              final accountBalances = accountInfoMap['account_balances'] as List? ?? [];
+              console.log('Syncing ${accountBalances.length} account balances');
+
+              final List<AccountBalancesCompanion> accountBalancesInsert = [];
+              for (var balance in accountBalances) {
+                if (balance is! Map<String, dynamic>) continue;
+                
+                accountBalancesInsert.add(AccountBalancesCompanion(
+                  id: Value(balance['id']),
+                  accountId: Value(balance['account_id']),
+                  userId: Value(balance['user_id']),
+                  currency: Value(balance['currency']),
+                  amount: Value((num.tryParse(balance['amount'].toString()) ?? 0).toDouble()),
+                  updatedAt: Value(DateTime.tryParse(balance['updated_at'].toString()) ?? DateTime.now()),
+                ));
+              }
+              
+              await db.batch((batch) {
+                batch.insertAllOnConflictUpdate(db.accountBalances, accountBalancesInsert);
+              });
+              
+              final t6 = DateTime.now();
+              console.log(
+                'Sync account balances time: ${t6.difference(t5).inMilliseconds} ms',
+              );
+
+              // 6. 同步 Cash Transactions
+              final cashTransactions = accountInfoMap['cash_transactions'] as List? ?? [];
+              console.log('Syncing ${cashTransactions.length} cash transactions');
+              
+              final List<CashTransactionsCompanion> cashTransactionsInsert = [];
+              for (var tx in cashTransactions) {
+                if (tx is! Map<String, dynamic>) continue;
+
+                cashTransactionsInsert.add(CashTransactionsCompanion(
+                  id: Value(tx['id']),
+                  userId: Value(tx['user_id']),
+                  accountId: Value(tx['account_id']),
+                  currency: Value(tx['currency']),
+                  amount: Value((num.tryParse(tx['amount'].toString()) ?? 0).toDouble()),
+                  type: Value(tx['type']),
+                  transactionDate: Value(DateTime.tryParse(tx['transaction_date'].toString()) ?? DateTime.now()),
+                  remark: Value(tx['remark']),
+                ));
+              }
+
+              await db.batch((batch) {
+                batch.insertAllOnConflictUpdate(db.cashTransactions, cashTransactionsInsert);
+              });
+              
+              final t7 = DateTime.now();
+              console.log(
+                'Sync cash transactions time: ${t7.difference(t6).inMilliseconds} ms',
+              );
+
               console.log('Account $accountId sync completed successfully');
             }
           }

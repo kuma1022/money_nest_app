@@ -796,6 +796,23 @@ async function handleGetUserSummary(userId) {
   }), {
     status: 500
   });
+
+  // 4. 查询account_balances
+  const { data: balanceData, error: balanceError } = await supabase.from('account_balances').select('*').in('account_id', accIds);
+  if (balanceError) return new Response(JSON.stringify({
+    error: balanceError.message
+  }), {
+    status: 500
+  });
+
+  // 5. 查询cash_transactions
+  const { data: cashTxData, error: cashTxError } = await supabase.from('cash_transactions').select('*').in('account_id', accIds);
+  if (cashTxError) return new Response(JSON.stringify({
+    error: cashTxError.message
+  }), {
+    status: 500
+  });
+
   const cryptoMap = {};
   if (cryptoData) {
     cryptoData.forEach((ci)=>{
@@ -803,6 +820,26 @@ async function handleGetUserSummary(userId) {
         cryptoMap[ci.account_id] = [];
       }
       cryptoMap[ci.account_id].push(ci);
+    });
+  }
+
+  const balanceMap = {};
+  if (balanceData) {
+    balanceData.forEach((row)=>{
+      if (!balanceMap[row.account_id]) {
+        balanceMap[row.account_id] = [];
+      }
+      balanceMap[row.account_id].push(row);
+    });
+  }
+
+  const cashTxMap = {};
+  if (cashTxData) {
+    cashTxData.forEach((row)=>{
+      if (!cashTxMap[row.account_id]) {
+        cashTxMap[row.account_id] = [];
+      }
+      cashTxMap[row.account_id].push(row);
     });
   }
   const t_db3 = Date.now();
@@ -822,6 +859,8 @@ async function handleGetUserSummary(userId) {
         stocks: [],
         trade_sell_mapping: [],
         crypto_info: cryptoMap[accId] || [],
+        account_balances: balanceMap[accId] || [],
+        cash_transactions: cashTxMap[accId] || [],
       };
     }
     const acc = accountsMap[accId];
