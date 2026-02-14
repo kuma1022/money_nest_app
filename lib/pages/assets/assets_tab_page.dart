@@ -364,22 +364,34 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       final qty = item['quantity'] as num? ?? 0;
       if (qty <= 0) continue; 
 
-      final String code = (item['code'] as String? ?? '').trim();
-      // Use code + exchange as primary key for aggregation to ensure visual merging by ticker
-      final String exchange = (item['exchange'] as String? ?? 'JP').toUpperCase();
-      final String key = '${code.toUpperCase()}_$exchange';
+      // Normalize code: trim, uppercase, remove .T suffix if JP
+      String normalizedCode = (item['code'] as String? ?? '').trim().toUpperCase();
+      String exchange = (item['exchange'] as String? ?? 'JP').toUpperCase();
       
-      final String name = item['name'] as String? ?? code;
+      // Normalize exchange names (TSE -> JP, TYO -> JP)
+      if (['TSE', 'TYO', 'JP'].contains(exchange)) {
+        exchange = 'JP';
+      }
+
+      if (exchange == 'JP' && normalizedCode.endsWith('.T')) {
+        normalizedCode = normalizedCode.substring(0, normalizedCode.length - 2);
+      }
+
+      // Use Name + Exchange as key if code is missing, otherwise Code + Exchange
+      // Ideally Code should be unique. 
+      final String key = '${normalizedCode}_$exchange';
+      
+      final String name = item['name'] as String? ?? normalizedCode;
       final double buyPrice = (item['buyPrice'] as num? ?? 0).toDouble();
       final String itemCurrency = item['currency'] as String? ?? 'JPY';
 
-      if (code.isEmpty) continue;
+      if (normalizedCode.isEmpty) continue;
 
       final rate = GlobalStore().currentStockPrices[
               '${itemCurrency == 'USD' ? '' : itemCurrency}${currency}=X'] ??
           1.0;
       final currentPrice = GlobalStore().currentStockPrices[
-              exchange == 'JP' ? '$code.T' : code] ??
+              exchange == 'JP' ? '$normalizedCode.T' : normalizedCode] ??
           buyPrice;
 
       // Values in display currency (roughly) for sorting/total
@@ -402,7 +414,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       } else {
         // New entry
         targetMap[key] = {
-          'code': code,
+          'code': normalizedCode,
           'name': name,
           'quantity': qty,
           'currentPrice': currentPrice,
