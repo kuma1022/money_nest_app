@@ -425,9 +425,16 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       }
     }
 
-    // Process maps to lists
+    // Process maps to lists, calculating display percentage
     List<Map<String, dynamic>> processStockMap(
         Map<String, Map<String, dynamic>> sourceMap) {
+      
+      // First pass: Calculate total market value for this category
+      double totalCategoryValue = 0.0;
+      for (var data in sourceMap.values) {
+        totalCategoryValue += (data['marketValue'] as double);
+      }
+
       final list = sourceMap.values.map((data) {
         final qty = data['quantity'] as num;
         final totalBuyCostOriginal = data['totalBuyCostOriginal'] as double;
@@ -436,13 +443,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
         // Calculate Avg Cost in Original Currency
         final avgCost = (qty > 0) ? (totalBuyCostOriginal / qty) : 0.0;
         
-        // Calculate Profit: Market Value (Display Curr) - Total Cost (Display Curr)
-        // We need Total Cost in Display Currency for Profit calc.
-        // We approximate Total Cost (Display) = Total Cost (Original) * Rate
-        // But Rate might change? Assuming we use CURRENT rate for simplified profit view 
-        // OR we should have accumulated (qty * buyPrice * historicalRate).
-        // Standard practice: (Current Price - Avg Buy Price) * Qty * Rate
-        
+        // Calculate Profit
         final currencyRate = GlobalStore().currentStockPrices[
                 '${data['currency'] == 'USD' ? '' : data['currency']}${currency}=X'] ??
             1.0;
@@ -450,6 +451,9 @@ class AssetsTabPageState extends State<AssetsTabPage> {
         final double currentTotalCostDisplay = totalBuyCostOriginal * currencyRate;
         final double profit = marketValue - currentTotalCostDisplay;
         final double profitPercent = currentTotalCostDisplay == 0 ? 0.0 : (profit / currentTotalCostDisplay) * 100;
+
+        // Calculate Portfolio Percentage relative to this category
+        final double portfolioPercent = totalCategoryValue == 0 ? 0.0 : (marketValue / totalCategoryValue) * 100;
 
         return {
           'code': data['code'],
@@ -460,6 +464,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
           'marketValue': marketValue,
           'profit': profit,
           'profitPercent': profitPercent,
+          'portfolioPercent': portfolioPercent,
           'currency': data['currency'],
         };
       }).toList();
@@ -1151,75 +1156,108 @@ class _ExpandableAssetCard extends StatelessWidget {
   Widget _buildStockRow(Map<String, dynamic> stock) {
     final profit = stock['profit'] as double;
     final profitPercent = stock['profitPercent'] as double;
+    final portfolioPercent = stock['portfolioPercent'] as double? ?? 0.0;
     final isProfitPositive = profit >= 0;
     final profitColor = isProfitPositive ? AppColors.appUpGreen : AppColors.appDownRed;
     final currency = stock['currency'] ?? displayCurrency;
-    // For unit prices, we might want to use native currency or displayCurrency depending on requirement.
-    // Usually User wants to see native price for Unit Price, and converted or native for Total.
-    // Assuming 'marketValue' is in converted currency (displayCurrency) because we summed it up in createAssetList?
-    // Wait, in createAssetList: `marketValue = qty * currentPrice * rate`. So marketValue is in `currency` (JPY usually).
-    // `currentPrice` is likely in native currency (USD/JPY).
-    // `avgCost` is likely in native currency (USD/JPY).
-    
-    // User requested fields:
-    // Quantity (股数), Current Market Value (当前市价 - Total?), Avg Cost (平均取得), Current Price (现在价格), Profit (损益)
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: Color(0xFF2C2C2E))),
       ),
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                stock['name'] ?? stock['code'],
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                '${AppUtils().formatMoney(stock['marketValue'], displayCurrency)}',
-                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-            ],
+          // Percentage Display (Left Side)
+          SizedBox(
+            width: 50,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '${portfolioPercent.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    color: dotColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  '占比',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Left Column: Quantity, Avg Cost
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   Text('保有数: ${AppUtils().formatNumber(stock['quantity'])}', 
-                     style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                   Text('取得単価: ${AppUtils().formatMoney(stock['avgCost'], currency)}',
-                     style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                ],
-              ),
-              // Right Column: Current Price, Profit
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                   Text('現在値: ${AppUtils().formatMoney(stock['currentPrice'], currency)}',
-                     style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                   Row(
-                     children: [
-                       Text(
-                         '${AppUtils().formatMoney(profit, displayCurrency)}',
-                         style: TextStyle(color: profitColor, fontSize: 12),
-                       ),
-                       const SizedBox(width: 4),
-                       Text(
-                         '(${AppUtils().formatNumberByTwoDigits(profitPercent)}%)',
-                         style: TextStyle(color: profitColor, fontSize: 12),
-                       ),
-                     ],
-                   ),
-                ],
-              ),
-            ],
+          const SizedBox(width: 8),
+          // Vertical Divider
+          Container(
+            width: 1,
+            height: 40,
+            color: Colors.grey.withOpacity(0.3),
+          ),
+          const SizedBox(width: 12),
+          // Main Content
+          Expanded(
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      stock['name'] ?? stock['code'],
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '${AppUtils().formatMoney(stock['marketValue'], displayCurrency)}',
+                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Left Column: Quantity, Avg Cost
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                         Text('保有数: ${AppUtils().formatNumber(stock['quantity'])}', 
+                           style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                         Text('取得単価: ${AppUtils().formatMoney(stock['avgCost'], currency)}',
+                           style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
+                    // Right Column: Current Price, Profit
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                         Text('現在値: ${AppUtils().formatMoney(stock['currentPrice'], currency)}',
+                           style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                         Row(
+                           children: [
+                             Text(
+                               '${AppUtils().formatMoney(profit, displayCurrency)}',
+                               style: TextStyle(color: profitColor, fontSize: 12),
+                             ),
+                             const SizedBox(width: 4),
+                             Text(
+                               '(${AppUtils().formatNumberByTwoDigits(profitPercent)}%)',
+                               style: TextStyle(color: profitColor, fontSize: 12),
+                             ),
+                           ],
+                         ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
