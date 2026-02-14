@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
+import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/app_utils.dart';
+import 'package:provider/provider.dart';
 
 class CashEditPage extends StatefulWidget {
   final AppDatabase db;
@@ -22,6 +24,7 @@ class _CashEditPageState extends State<CashEditPage> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _memoController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+  String _currency = 'USD'; // Default currency
 
   @override
   void initState() {
@@ -248,9 +251,42 @@ class _CashEditPageState extends State<CashEditPage> {
                     backgroundColor: _activeColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  onPressed: () {
-                    // TODO: Implement save logic
-                    Navigator.of(context).pop();
+                  onPressed: () async {
+                    final amountText = _amountController.text;
+                    if (amountText.isEmpty) return;
+                    final amount = double.tryParse(amountText);
+                    if (amount == null || amount <= 0) return;
+
+                    final dataSync = Provider.of<DataSyncService>(context, listen: false);
+                    
+                    try {
+                      // Show Loading
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (ctx) => const Center(child: CircularProgressIndicator()),
+                      );
+
+                      await dataSync.addCashTransaction(
+                        isDeposit: _isDeposit,
+                        amount: amount,
+                        currency: _currency,
+                        date: _selectedDate,
+                        memo: _memoController.text,
+                      );
+                      
+                      if (context.mounted) {
+                        Navigator.of(context).pop(); // Dismiss loading
+                        Navigator.of(context).pop(); // Back to list
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        Navigator.of(context).pop(); // Dismiss loading
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
+                    }
                   },
                   child: const Text(
                     '取引を追加',

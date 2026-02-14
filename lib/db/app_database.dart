@@ -278,6 +278,55 @@ class CryptoInfo extends Table {
   ];
 }
 
+// 账户余额表
+class AccountBalances extends Table {
+  // ID
+  IntColumn get id => integer()();
+  // 账户ID
+  IntColumn get accountId => integer()();
+  // 用户ID
+  TextColumn get userId => text()();
+  // 货币
+  TextColumn get currency => text()();
+  // 金额
+  RealColumn get amount => real().withDefault(const Constant(0))();
+  // 更新时间
+  DateTimeColumn get updatedAt => dateTime().nullable().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {accountId, currency},
+  ];
+}
+
+// 现金交易表
+class CashTransactions extends Table {
+  // ID
+  IntColumn get id => integer()();
+  // 用户ID
+  TextColumn get userId => text()();
+  // 账户ID
+  IntColumn get accountId => integer()();
+  // 货币
+  TextColumn get currency => text()();
+  // 金额
+  RealColumn get amount => real()();
+  // 类型 deposit, withdraw, etc.
+  TextColumn get type => text()();
+  // 关联交易ID (可选)
+  IntColumn get tradeId => integer().nullable()();
+  // 交易日期
+  DateTimeColumn get transactionDate => dateTime().withDefault(currentDateAndTime)();
+  // 备注
+  TextColumn get remark => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 // ----------以下需要修改----------
 /*
 // 汇率表（可选，用于多货币转换）
@@ -361,6 +410,8 @@ class MarketData extends Table {
     StockPrices,
     FxRates,
     CryptoInfo,
+    AccountBalances,
+    CashTransactions,
   ],
 )
 class AppDatabase extends _$AppDatabase {

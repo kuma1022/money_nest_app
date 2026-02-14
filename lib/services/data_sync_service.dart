@@ -1237,6 +1237,105 @@ class DataSyncService {
     GlobalStore().syncStartDate = syncStartDate;
     GlobalStore().syncEndDate = syncEndDate;
     GlobalStore().saveSyncDateToPrefs();
+  }
+
+  // -------------------------------------------------
+  // 现金交易（入金/出金）追加
+  // -------------------------------------------------
+  Future<void> addCashTransaction(
+      bool isDeposit, double amount, String currency, DateTime date, String? memo) async {
+    try {
+      final userId = GlobalStore().userId!;
+      final accountId = GlobalStore().currentAccountId!;
+
+      // 1. 获取当前余额
+      final List<dynamic> balanceRes = await supabaseApi.client
+          .from('account_balances')
+          .select()
+          .eq('user_id', userId)
+          .eq('account_id', accountId)
+          .eq('currency', currency);
+
+      double currentAmount = 0.0;
+      if (balanceRes.isNotEmpty) {
+        currentAmount = (balanceRes.first['amount'] as num).toDouble();
+      }
+
+      // 2. 计算新余额
+      double newAmount = isDeposit ? currentAmount + amount : currentAmount - amount;
+
+      // 3. Upsert 余额表
+      final balanceData = {
+        'user_id': userId,
+        'account_id': accountId,
+        'currency': currency,
+        'amount': newAmount,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      
+      // account_balances表有唯一约束 (account_id, currency)，可以用 upsert
+      final upsertRes = await supabaseApi.client
+          .from('account_balances')
+          .upsert(balanceData, onConflict: 'account_id, currency')
+          .select()
+          .single();
+
+      // 4. 追加交易记录
+      final txData = {
+        'user_id': userId,
+        'account_id': accountId,
+        'currency': currency,
+        'amount': amount,
+        'type': isDeposit ? 'deposit' : 'withdraw',
+        'transaction_date': date.toIso8601String(),
+        'remark': memo,
+      };
+
+      final txRes = await supabaseApi.client
+          .from('cash_transactions')
+          .insert(txData)
+          .select()
+          .single();
+
+      // 5. 保存到本地数据库 (需要先运行 build_runner 生成代码)
+      // 由于 build_runner 未运行，这里暂时注释掉本地保存部分，或者使用 raw sql
+      // TODO: Uncomment after generating drifted code
+      /*
+      await db.into(db.accountBalances).insertOnConflictUpdate(
+        AccountBalancesCompanion(
+          id: Value(upsertRes['id'] as int),
+          accountId: Value(accountId),
+          userId: Value(userId),
+          currency: Value(currency),
+          amount: Value(newAmount),
+          updatedAt: Value(DateTime.parse(upsertRes['updated_at'])),
+        ),
+      );
+      
+      await db.into(db.cashTransactions).insert(
+        CashTransactionsCompanion(
+          id: Value(txRes['id'] as int),
+          userId: Value(userId),
+          accountId: Value(accountId),
+          currency: Value(currency),
+          amount: Value(amount),
+          type: Value(isDeposit ? 'deposit' : 'withdraw'),
+          transactionDate: Value(DateTime.parse(txRes['transaction_date'])),
+          remark: Value(memo),
+        ),
+      );
+      */
+      
+      // 更新 GlobalStore 缓存（简单版）
+      // GlobalStore().totalAssetsAndCostsMap... 需要重新拉取或手动更新
+      // 暂时只打印日志
+      print('Cash Transaction Added: $txRes');
+
+    } catch (e) {
+      print('Error adding cash transaction: $e');
+      rethrow;
+    }
+  }
 
     return {'priceHistory': [], 'costBasisHistory': []};
   }
