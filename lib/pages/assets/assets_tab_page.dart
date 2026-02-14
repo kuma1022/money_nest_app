@@ -5,6 +5,7 @@ import 'package:money_nest_app/components/custom_line_chart.dart';
 import 'package:money_nest_app/components/custom_tab.dart';
 import 'package:money_nest_app/components/summary_category_card.dart';
 import 'package:money_nest_app/db/app_database.dart';
+import 'package:money_nest_app/pages/assets/crypto/crypto_detail_page.dart';
 import 'package:money_nest_app/pages/assets/stock/domestic_stock_detail_page.dart';
 import 'package:money_nest_app/pages/assets/stock/us_stock_detail_page.dart';
 import 'package:money_nest_app/pages/assets/cash/cash_page.dart';
@@ -402,7 +403,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => UsStockDetailPage(db: widget.db),
+                builder: (context) => USStockDetailPage(db: widget.db),
               ),
             );
           },

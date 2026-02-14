@@ -366,7 +366,7 @@ class HomeTabPageState extends State<HomeTabPage> {
                 );
               } else if (category['categoryCode'] == 'us_stock_summary') {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => UsStockDetailPage(db: widget.db)),
+                  MaterialPageRoute(builder: (context) => USStockDetailPage(db: widget.db)),
                 );
               } else if (category['categoryCode'] == 'cash_summary') {
                  Navigator.of(context).push(
