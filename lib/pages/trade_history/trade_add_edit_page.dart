@@ -647,9 +647,9 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
         ),
         
         _buildFormRow(
-          label: '日付と時刻',
+          label: '日付',
           child: Text(
-             tradeDate ?? DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
+             tradeDate ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
              style: const TextStyle(color: Colors.white, fontSize: 16),
           ),
           onTap: () async {
@@ -669,7 +669,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
         
         if (tradeAction != ActionType.dividend) ...[
             _buildFormRow(
-              label: tradeAction == ActionType.buy ? '未調整の購入価格 $currency' : '未調整の販売価格 $currency',
+              label: tradeAction == ActionType.buy ? '購入価格 $currency' : '売却価格 $currency',
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -694,35 +694,115 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                 ],
               )
             ),
-            _buildFormRow(
-              label: tradeAction == ActionType.buy ? '購入数量' : '売却数量',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                   SizedBox(
-                     width: 100,
-                     child: TextField(
-                        controller: _quantityController, // Using same controller for simplicity in this view
-                        // Warning: Save logic might need this to be populated for Sell
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
-                        textAlign: TextAlign.right,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(border: InputBorder.none, hintText: '0', hintStyle: TextStyle(color: Colors.grey)),
-                        onChanged: (v) {
-                             final val = num.tryParse(v);
-                             setState(() {
-                               quantityValue = val;
-                               // Also update sell logic if needed
-                               if (tradeAction == ActionType.sell) sellTotalQty = val ?? 0;
-                             });
-                        },
-                     ),
-                   ),
-                   if (tradeAction == ActionType.sell)
-                      Text('保有数量: $holdingQty', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                ],
-              )
-            ),
+            if (tradeAction == ActionType.buy)
+              _buildFormRow(
+                label: '購入数量',
+                child: SizedBox(
+                  width: 100,
+                  child: TextField(
+                    controller: _quantityController,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    textAlign: TextAlign.right,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(border: InputBorder.none, hintText: '0', hintStyle: TextStyle(color: Colors.grey)),
+                    onChanged: (v) {
+                      final val = num.tryParse(v);
+                      setState(() {
+                        quantityValue = val;
+                      });
+                    },
+                  ),
+                ),
+              ),
+            
+            if (tradeAction == ActionType.sell) ...[
+              _buildFormRow(
+                label: '売却数量(合計)',
+                child: Text(
+                  AppUtils().formatMoney(sellTotalQty.toDouble(), '', decimals: 4),
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (sellBatches.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text('売却可能な保有資産がありません', style: TextStyle(color: Colors.red)),
+                  )
+              else
+                Column(
+                  children: sellBatches.map((batch) {
+                    final key = batch['id'].toString();
+                    final DateFormat ymd = DateFormat('yyyy-MM-dd');
+                    // Ensure date is parsed correctly if it's a string, or formatted if DateTime
+                    String dateStr = '-';
+                    if (batch['date'] != null) {
+                        if (batch['date'] is DateTime) {
+                            dateStr = ymd.format(batch['date']);
+                        } else if (batch['date'] is String) {
+                             // Try parse
+                             try {
+                               dateStr = ymd.format(DateTime.parse(batch['date']));
+                             } catch(e) {
+                               dateStr = batch['date'];
+                             }
+                        }
+                    }
+                    
+                    final qty = batch['quantity'] ?? 0;
+                    final price = batch['price'] ?? 0;
+                    
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1C1E),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('購入日: $dateStr', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                              Text('単価: ${AppUtils().formatMoney((price as num).toDouble(), currency)}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('保有: $qty', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                              Row(
+                                children: [
+                                  const Text('売却: ', style: TextStyle(color: Colors.green, fontSize: 14)),
+                                  SizedBox(
+                                    width: 80,
+                                    child: TextField(
+                                      controller: sellBatchControllers[key],
+                                      focusNode: sellBatchFocusNodes[key],
+                                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                                      textAlign: TextAlign.right,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(vertical: 4),
+                                        border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+            ],
             
             // Expected Amount Row (Auto-calc)
             _buildFormRow(
@@ -780,8 +860,29 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                  ),
                ),
                const SizedBox(width: 8),
-               Text(commissionCurrency, style: const TextStyle(color: Colors.white)),
-               const Icon(Icons.keyboard_arrow_down, color: Colors.grey, size: 16),
+               DropdownButtonHideUnderline(
+                 child: DropdownButton<String>(
+                   value: tradeAction == ActionType.sell ? sellCommissionCurrency : commissionCurrency,
+                   dropdownColor: const Color(0xFF1C1C1E),
+                   style: const TextStyle(color: Colors.white, fontSize: 16),
+                   icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey, size: 16),
+                   onChanged: (v) {
+                     if (v != null) {
+                       setState(() {
+                         if (tradeAction == ActionType.sell) {
+                           sellCommissionCurrency = v;
+                         } else {
+                           commissionCurrency = v;
+                         }
+                       });
+                     }
+                   },
+                   items: const [
+                     DropdownMenuItem(value: 'JPY', child: Text('JPY')),
+                     DropdownMenuItem(value: 'USD', child: Text('USD')),
+                   ],
+                 ),
+               ),
             ],
           )
         ),
@@ -813,26 +914,18 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
              )
            ),
 
-        ExpansionTile(
-           title: const Text('その他の設定', style: TextStyle(color: Colors.white, fontSize: 14)),
-           iconColor: Colors.white,
-           collapsedIconColor: Colors.white,
-           children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: TextField(
-                   controller: tradeAction == ActionType.sell ? _sellMemoController : _memoController,
-                   style: const TextStyle(color: Colors.white),
-                   decoration: const InputDecoration(
-                     filled: true,
-                     fillColor: Color(0xFF1C1C1E),
-                     hintText: 'メモ',
-                     hintStyle: TextStyle(color: Colors.grey),
-                     border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
-                   ),
-                ),
-              )
-           ],
+        _buildFormRow(
+          label: 'メモ',
+          child: TextField(
+             controller: tradeAction == ActionType.sell ? _sellMemoController : _memoController,
+             style: const TextStyle(color: Colors.white, fontSize: 16),
+             textAlign: TextAlign.right,
+             decoration: const InputDecoration(
+               border: InputBorder.none, 
+               hintText: 'メモを入力', 
+               hintStyle: TextStyle(color: Colors.grey)
+             ),
+          ),
         ),
       ],
     );
