@@ -8,6 +8,10 @@ import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/pages/assets/crypto/crypto_detail_page.dart';
 import 'package:money_nest_app/pages/assets/fund/fund_detail_page.dart';
 import 'package:money_nest_app/pages/assets/stock/stock_detail_page.dart';
+import 'package:money_nest_app/pages/assets/stock/domestic_stock_detail_page.dart';
+import 'package:money_nest_app/pages/assets/stock/us_stock_detail_page.dart';
+import 'package:money_nest_app/pages/assets/cash/cash_page.dart';
+import 'package:money_nest_app/pages/assets/custom/custom_assets_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/presentation/resources/app_texts.dart';
 import 'package:money_nest_app/services/data_sync_service.dart';
@@ -341,130 +345,203 @@ class AssetsTabPageState extends State<AssetsTabPage> {
           ],
         ),
       ),
+    );stockData = GlobalStore().totalAssetsAndCostsMap['stock'];
+    final otherData = GlobalStore().totalAssetsAndCostsMap['other_asset'];
+    final currency = GlobalStore().selectedCurrencyCode ?? 'JPY';
+
+    // 1. Japan Stock
+    final jpData = stockData?['details']?['jp_stock'];
+    double jpVal = jpData?['totalAssets']?.toDouble() ?? 0.0;
+    double jpCost = jpData?['totalCosts']?.toDouble() ?? 0.0;
+    double jpProfit = jpVal - jpCost;
+    double jpRate = jpCost == 0 ? 0.0 : (jpProfit / jpCost) * 100;
+
+    // 2. US Stock
+    final usData = stockData?['details']?['us_stock'];
+    double usVal = usData?['totalAssets']?.toDouble() ?? 0.0;
+    double usCost = usData?['totalCosts']?.toDouble() ?? 0.0;
+    double usProfit = usVal - usCost;
+    double usRate = usCost == 0 ? 0.0 : (usProfit / usCost) * 100;
+
+    // 3. Cash
+    final cashDetails = otherData?['details']?['cash'];
+    double cashVal = cashDetails?['totalAssets']?.toDouble() ?? 0.0;
+    double cashCost = cashDetails?['totalCosts']?.toDouble() ?? 0.0;
+    double cashProfit = cashVal - cashCost;
+
+    // 4. Custom
+    double customVal = 0.0;
+    double customProfit = 0.0;
+
+    return Column(
+      children: [
+        _buildAssetCard(
+          title: '日本株',
+          dotColor: AppColors.appChartGreen,
+          value:
+              AppUtils().formatMoney(jpVal, currency),
+          profitText: AppUtils().formatMoney(
+            jpProfit,
+            currency,
+          ),
+          profitRateText: '(${AppUtils().formatNumberByTwoDigits(jpRate)}%)',
+          profitColor:
+              jpProfit >= 0 ? AppColors.appUpGreen : AppColors.appDownRed,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => DomesticStockDetailPage(db: widget.db),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildAssetCard(
+          title: '米国株',
+          dotColor: AppColors.appChartBlue,
+          value:
+              AppUtils().formatMoney(usVal, currency),
+          profitText: AppUtils().formatMoney(
+            usProfit,
+            currency,
+          ),
+          profitRateText: '(${AppUtils().formatNumberByTwoDigits(usRate)}%)',
+          profitColor:
+              usProfit >= 0 ? AppColors.appUpGreen : AppColors.appDownRed,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => USStockDetailPage(db: widget.db),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildAssetCard(
+          title: '現金',
+          dotColor: AppColors.appChartOrange,
+          value: AppUtils().formatMoney(cashVal, currency),
+          profitText: AppUtils().formatMoney(cashProfit, currency),
+          profitRateText: '-',
+          profitColor: Colors.grey,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => CashPage(db: widget.db),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildAssetCard(
+          title: 'その他資産',
+          dotColor: Colors.purple,
+          value: AppUtils().formatMoney(customVal, currency),
+          profitText: AppUtils().formatMoney(customProfit, currency),
+          profitRateText: '-',
+          profitColor: Colors.grey,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => CustomAssetsPage(db: widget.db),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
-  Widget createAssetList() {
-    final List categories = AppUtils().getAssetsHoldingList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: categories.map((category) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1E),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () {
-              if (category['categoryCode'] == 'stock') {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => StockDetailPage(db: widget.db),
+  Widget _buildAssetCard({
+    required String title,
+    required Color dotColor,
+    required String value,
+    required String profitText,
+    required String profitRateText,
+    required Color profitColor,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: dotColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    title.substring(0, 1),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                );
-              } else if (category['categoryCode'] == 'crypto') {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => CryptoDetailPage(
-                        key: cryptoDetailPageKey, db: widget.db),
-                  ),
-                );
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  cryptoDetailPageKey.currentState?.initializeData();
-                });
-              } else if (category['categoryCode'] == 'fund') {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => FundDetailPage(db: widget.db),
-                  ),
-                );
-              }
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Icon
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: category['dotColor'] ?? Colors.grey,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        (category['label'] as String).substring(0, 1),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  // Name and Quantity
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                ],
+              ),
+              const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
                     children: [
                       Text(
-                        category['label'],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                        profitText,
+                        style: TextStyle(
+                          color: profitColor,
+                          fontSize: 12,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(width: 4),
                       Text(
-                        category['rateLabel'] ?? '',
-                        style: const TextStyle(
-                          color: Colors.grey,
+                        profitRateText,
+                        style: TextStyle(
+                          color: profitColor,
                           fontSize: 12,
                         ),
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  // Value and Change
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        category['value'],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            category['profitText'] ?? '',
-                            style: TextStyle(
-                              color: category['profitColor'] ?? Colors.grey,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            category['profitRateText'] ?? '',
-                            style: TextStyle(
-                              color: category['profitColor'] ?? Colors.grey,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
                 ],
               ),
+            ],
+          ),
+        ),
+      
             ),
           ),
         );
