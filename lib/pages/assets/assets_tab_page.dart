@@ -356,7 +356,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
     // -------------------------------------------------------------------------
     // Prepare Stock Lists (Re-calculate for display)
     // -------------------------------------------------------------------------
-    // Use Maps for aggregation: code -> data
+    // Use Maps for aggregation: key (stockId or code) -> data
     final Map<String, Map<String, dynamic>> jpStockMap = {};
     final Map<String, Map<String, dynamic>> usStockMap = {};
 
@@ -365,12 +365,16 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       if (qty <= 0) continue; 
 
       final String code = (item['code'] as String? ?? '').trim();
+      // Use stockId as primary key for aggregation to ensure exact matches merge
+      final int stockId = item['stockId'] as int? ?? 0;
+      final String key = (stockId != 0) ? stockId.toString() : code.toUpperCase();
+      
       final String name = item['name'] as String? ?? code;
       final double buyPrice = (item['buyPrice'] as num? ?? 0).toDouble();
       final String exchange = (item['exchange'] as String? ?? 'JP').toUpperCase();
       final String itemCurrency = item['currency'] as String? ?? 'JPY';
 
-      if (code.isEmpty) continue;
+      if (code.isEmpty && stockId == 0) continue;
 
       final rate = GlobalStore().currentStockPrices[
               '${itemCurrency == 'USD' ? '' : itemCurrency}${currency}=X'] ??
@@ -389,16 +393,16 @@ class AssetsTabPageState extends State<AssetsTabPage> {
       // Determine which map to use
       final targetMap = (exchange == 'JP') ? jpStockMap : usStockMap;
 
-      if (targetMap.containsKey(code)) {
+      if (targetMap.containsKey(key)) {
         // Aggregate
-        final existing = targetMap[code]!;
+        final existing = targetMap[key]!;
         existing['quantity'] = (existing['quantity'] as num) + qty;
         existing['marketValue'] = (existing['marketValue'] as double) + marketValue;
         // Accumulate original cost
         existing['totalBuyCostOriginal'] = (existing['totalBuyCostOriginal'] as double) + totalBuyCostOriginal;
       } else {
         // New entry
-        targetMap[code] = {
+        targetMap[key] = {
           'code': code,
           'name': name,
           'quantity': qty,
