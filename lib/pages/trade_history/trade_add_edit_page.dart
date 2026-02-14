@@ -21,6 +21,7 @@ import 'package:money_nest_app/util/app_utils.dart';
 import 'package:money_nest_app/util/global_store.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'trade_history_tab_page.dart'; // 导入 TradeRecord/TradeType
 
 class TradeAddEditPage extends StatefulWidget {
@@ -439,7 +440,9 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
                     width: 24, height: 24,
                     decoration: const BoxDecoration(shape: BoxShape.circle),
                     clipBehavior: Clip.antiAlias,
-                    child: Image.network(stock!.logo!, errorBuilder: (c,e,s) => Container(color: Colors.grey)),
+                    child: stock!.logo!.toLowerCase().endsWith('.svg') 
+                        ? SvgPicture.network(stock.logo!, width: 24, height: 24, fit: BoxFit.cover, placeholderBuilder: (_) => Container(color: Colors.grey))
+                        : Image.network(stock.logo!, errorBuilder: (c,e,s) => Container(color: Colors.grey), fit: BoxFit.cover),
                  )
               else 
                  Container(
