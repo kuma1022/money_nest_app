@@ -356,8 +356,9 @@ class AssetsTabPageState extends State<AssetsTabPage> {
     // -------------------------------------------------------------------------
     // Prepare Stock Lists (Re-calculate for display)
     // -------------------------------------------------------------------------
-    final List<Map<String, dynamic>> jpStockList = [];
-    final List<Map<String, dynamic>> usStockList = [];
+    // Use Maps for aggregation: code -> data
+    final Map<String, Map<String, dynamic>> jpStockMap = {};
+    final Map<String, Map<String, dynamic>> usStockMap = {};
 
     for (var item in GlobalStore().portfolio) {
       final qty = item['quantity'] as num? ?? 0;
@@ -378,27 +379,72 @@ class AssetsTabPageState extends State<AssetsTabPage> {
 
       final marketValue = qty * currentPrice * rate;
       final totalCost = qty * buyPrice * rate;
-      final profit = marketValue - totalCost;
-      final profitPercent = totalCost == 0 ? 0.0 : (profit / totalCost) * 100;
 
-      final stockMap = {
-        'code': code,
-        'name': name,
-        'quantity': qty,
-        'currentPrice': currentPrice,
-        'avgCost': buyPrice,
-        'marketValue': marketValue,
-        'profit': profit,
-        'profitPercent': profitPercent,
-        'currency': itemCurrency, // Display currency for unit prices usually
-      };
+      // Determine which map to use
+      final targetMap = (exchange == 'JP') ? jpStockMap : usStockMap;
 
-      if (exchange == 'JP') {
-        jpStockList.add(stockMap);
-      } else if (exchange == 'US') {
-        usStockList.add(stockMap);
+      if (targetMap.containsKey(code)) {
+        // Aggregate
+        final existing = targetMap[code]!;
+        existing['quantity'] += qty;
+        existing['marketValue'] += marketValue;
+        existing['totalCost'] += totalCost;
+        // Keep current price (should be same for same stock)
+        // Keep currency (should be same for same stock)
+      } else {
+        // New entry
+        targetMap[code] = {
+          'code': code,
+          'name': name,
+          'quantity': qty,
+          'currentPrice': currentPrice,
+          'marketValue': marketValue,
+          'totalCost': totalCost,
+          'currency': itemCurrency,
+        };
       }
     }
+
+    // Process maps to lists: Calculate averages and profits, then sort
+    List<Map<String, dynamic>> processStockMap(
+        Map<String, Map<String, dynamic>> sourceMap) {
+      final list = sourceMap.values.map((data) {
+        final qty = data['quantity'] as num;
+        final totalCost = data['totalCost'] as double;
+        final marketValue = data['marketValue'] as double;
+        final currencyRate = GlobalStore().currentStockPrices[
+                '${data['currency'] == 'USD' ? '' : data['currency']}${currency}=X'] ??
+            1.0;
+
+        // Avg Cost in original currency (for display)
+        // Total Cost (in display currency) / Quantity / Rate = Avg Cost per unit in original currency
+        final avgCost = (qty > 0) ? (totalCost / qty / currencyRate) : 0.0;
+
+        final profit = marketValue - totalCost;
+        final profitPercent =
+            totalCost == 0 ? 0.0 : (profit / totalCost) * 100;
+
+        return {
+          'code': data['code'],
+          'name': data['name'],
+          'quantity': qty,
+          'currentPrice': data['currentPrice'],
+          'avgCost': avgCost,
+          'marketValue': marketValue,
+          'profit': profit,
+          'profitPercent': profitPercent,
+          'currency': data['currency'],
+        };
+      }).toList();
+
+      // Sort by marketValue descending
+      list.sort((a, b) => (b['marketValue'] as double)
+          .compareTo(a['marketValue'] as double));
+      return list;
+    }
+
+    final jpStockList = processStockMap(jpStockMap);
+    final usStockList = processStockMap(usStockMap);
 
     // 1. Japan Stock
     final jpData = stockData?['details']?['jp_stock'];
