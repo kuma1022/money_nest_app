@@ -3,6 +3,7 @@ import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/app_utils.dart';
+import 'package:money_nest_app/util/global_store.dart';
 import 'package:provider/provider.dart';
 
 class CashEditPage extends StatefulWidget {
@@ -25,11 +26,29 @@ class _CashEditPageState extends State<CashEditPage> {
   final TextEditingController _memoController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   String _currency = 'USD'; // Default currency
+  double _currentBalance = 0.0;
 
   @override
   void initState() {
     super.initState();
     _isDeposit = widget.isDeposit;
+    _refreshBalance();
+  }
+
+  Future<void> _refreshBalance() async {
+    final accountId = GlobalStore().accountId;
+    if (accountId == null) return;
+
+    final balanceRow = await (widget.db.select(widget.db.accountBalances)
+      ..where((t) =>
+          t.accountId.equals(accountId) & t.currency.equals(_currency)))
+        .getSingleOrNull();
+
+    if (mounted) {
+      setState(() {
+        _currentBalance = balanceRow?.amount ?? 0.0;
+      });
+    }
   }
 
   @override
@@ -40,6 +59,44 @@ class _CashEditPageState extends State<CashEditPage> {
   }
 
   Color get _activeColor => _isDeposit ? Colors.red : const Color(0xFF00C853);
+
+  void _showCurrencyPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1E),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('米ドル (USD)', style: TextStyle(color: Colors.white)),
+                trailing: _currency == 'USD'
+                    ? Icon(Icons.check, color: _activeColor)
+                    : null,
+                onTap: () {
+                  setState(() => _currency = 'USD');
+                  _refreshBalance();
+                  Navigator.pop(ctx);
+                },
+              ),
+              ListTile(
+                title: const Text('日本円 (JPY)', style: TextStyle(color: Colors.white)),
+                trailing: _currency == 'JPY'
+                    ? Icon(Icons.check, color: _activeColor)
+                    : null,
+                onTap: () {
+                  setState(() => _currency = 'JPY');
+                  _refreshBalance();
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +122,7 @@ class _CashEditPageState extends State<CashEditPage> {
                             fontSize: 16),
                       ),
                       Text(
-                        '合計残高: \$4.96', // Demo value
+                        '合計残高: ${AppUtils().formatMoney(_currentBalance, _currency)}',
                         style: TextStyle(color: Colors.grey[400], fontSize: 12),
                       ),
                     ],
@@ -147,11 +204,12 @@ class _CashEditPageState extends State<CashEditPage> {
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text('通貨', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                      subtitle: const Text('米ドル (USD)', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      subtitle: Text(
+                        _currency == 'USD' ? '米ドル (USD)' : '日本円 (JPY)',
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                      ),
                       trailing: const Icon(Icons.chevron_right, color: Colors.white),
-                      onTap: () {
-                        // TODO: Implement currency selection
-                      },
+                      onTap: _showCurrencyPicker,
                     ),
                     const Divider(color: Color(0xFF2C2C2E)),
 
@@ -200,21 +258,6 @@ class _CashEditPageState extends State<CashEditPage> {
                       cursorColor: _activeColor,
                       decoration: const InputDecoration(
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 8),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2C2C2E))),
-                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2C2C2E))),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Depository (保管所)
-                    const Text('保管所', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    const TextField(
-                      readOnly: true, // Assuming default or selectable
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        hintText: '', // Placeholder
                         contentPadding: EdgeInsets.symmetric(vertical: 8),
                         enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2C2C2E))),
                         focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF2C2C2E))),

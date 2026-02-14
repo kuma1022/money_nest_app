@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:drift/drift.dart' as drift;
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/pages/assets/cash/cash_edit_page.dart';
 import 'package:money_nest_app/util/app_utils.dart';
+import 'package:money_nest_app/util/global_store.dart';
 
 class CashPage extends StatefulWidget {
   final AppDatabase db;
@@ -13,10 +15,15 @@ class CashPage extends StatefulWidget {
 }
 
 class _CashPageState extends State<CashPage> {
-  // Demo Data
-  final double _totalBalance = 4.96;
-  final String _currency = 'USD';
-  
+  Stream<List<AccountBalance>> _getBalancesStream() {
+    final accountId = GlobalStore().accountId;
+    if (accountId == null) return const Stream.empty();
+
+    return (widget.db.select(widget.db.accountBalances)
+          ..where((t) => t.accountId.equals(accountId)))
+        .watch();
+  }
+
   final List<Map<String, dynamic>> _demoTransactions = [
     {
       'date': '2026-02-09',
@@ -71,25 +78,53 @@ class _CashPageState extends State<CashPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        centerTitle: true,
-        title: Column(
-          children: [
-            const Text(
-              '利用可能な現金',
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              '合計残高: ${AppUtils().formatMoney(_totalBalance, _currency)}',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
-        actions: [
+    return StreamBuilder<List<AccountBalance>>(
+        stream: _getBalancesStream(),
+        builder: (context, snapshot) {
+          final balances = snapshot.data ?? [];
+          final usdBalance = balances
+              .firstWhere((b) => b.currency == 'USD',
+                  orElse: () => const AccountBalance(
+                      id: 0,
+                      accountId: 0,
+                      userId: '',
+                      currency: 'USD',
+                      amount: 0.0,
+                      updatedAt: null))
+              .amount;
+          final jpyBalance = balances
+              .firstWhere((b) => b.currency == 'JPY',
+                  orElse: () => const AccountBalance(
+                      id: 0,
+                      accountId: 0,
+                      userId: '',
+                      currency: 'JPY',
+                      amount: 0.0,
+                      updatedAt: null))
+              .amount;
+
+          return Scaffold(
+            backgroundColor: Colors.black,
+            appBar: AppBar(
+              backgroundColor: Colors.black,
+              iconTheme: const IconThemeData(color: Colors.white),
+              centerTitle: true,
+              title: Column(
+                children: [
+                   const Text(
+                    '利用可能な現金',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
+                  ),
+                   Text(
+                    '合計: ${AppUtils().formatMoney(usdBalance, 'USD')} / ${AppUtils().formatMoney(jpyBalance, 'JPY')}',
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+              ),
+              actions: [
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () {},
@@ -102,7 +137,16 @@ class _CashPageState extends State<CashPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16),
-            _buildSummaryCard(),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildSummaryCard(usdBalance, 'USD', '🇺🇸'),
+                        const SizedBox(width: 16),
+                        _buildSummaryCard(jpyBalance, 'JPY', '🇯🇵'),
+                      ],
+                    ),
+                  ),
             const SizedBox(height: 32),
             
             // New Transaction Button Row
@@ -207,9 +251,10 @@ class _CashPageState extends State<CashPage> {
         ),
       ),
     );
+        });
   }
 
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard(double balance, String currency, String flag) {
     return Container(
       width: 180,
       padding: const EdgeInsets.all(16),
@@ -226,13 +271,14 @@ class _CashPageState extends State<CashPage> {
             height: 32,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-               color: Color(0xFF002a8f), // US Blue approx
+              color: Color(0xFF002a8f), 
             ),
-             child: const Center(child: Text("🇺🇸", style: TextStyle(fontSize: 20))),
+            child: Center(
+                child: Text(flag, style: const TextStyle(fontSize: 20))),
           ),
           const SizedBox(height: 12),
           Text(
-            AppUtils().formatMoney(_totalBalance, _currency),
+            AppUtils().formatMoney(balance, currency),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -240,9 +286,9 @@ class _CashPageState extends State<CashPage> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            '利用可能なUSD',
-            style: TextStyle(
+          Text(
+            '利用可能な$currency',
+            style: const TextStyle(
               color: Colors.grey,
               fontSize: 12,
             ),
