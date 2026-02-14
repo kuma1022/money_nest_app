@@ -8,6 +8,7 @@ import 'package:money_nest_app/services/data_sync_service.dart';
 import 'package:money_nest_app/util/global_store.dart';
 import 'package:money_nest_app/models/trade_type.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class StockSearchPage extends StatefulWidget {
   final String exchange; // 'JP' or 'US'
@@ -166,6 +167,24 @@ class _StockSearchPageState extends State<StockSearchPage> {
               itemBuilder: (context, index) {
                 final stock = displayList[index];
                 return ListTile(
+                  leading: Container(
+                    width: 40, 
+                    height: 40,
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: (stock.logo != null && stock.logo!.isNotEmpty)
+                        ? (stock.logo!.toLowerCase().endsWith('.svg') 
+                            ? SvgPicture.network(stock.logo!, fit: BoxFit.contain, placeholderBuilder: (_) => Container(color: Colors.grey))
+                            : Image.network(stock.logo!, fit: BoxFit.contain, errorBuilder: (c,e,s) => Container(color: Colors.grey)))
+                        : Container(
+                            alignment: Alignment.center,
+                            color: Colors.grey,
+                            child: Text(stock.name.isNotEmpty ? stock.name.substring(0, 1) : 'S', style: const TextStyle(color: Colors.white))
+                        ),
+                    ),
+                  ),
                   title: Text(
                     stock.name,
                     style: const TextStyle(color: Colors.white),

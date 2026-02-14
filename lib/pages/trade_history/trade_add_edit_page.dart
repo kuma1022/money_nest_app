@@ -438,11 +438,14 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
               if (stock?.logo != null && stock!.logo!.isNotEmpty)
                  Container(
                     width: 24, height: 24,
-                    decoration: const BoxDecoration(shape: BoxShape.circle),
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
                     clipBehavior: Clip.antiAlias,
-                    child: stock!.logo!.toLowerCase().endsWith('.svg') 
-                        ? SvgPicture.network(stock.logo!, width: 24, height: 24, fit: BoxFit.cover, placeholderBuilder: (_) => Container(color: Colors.grey))
-                        : Image.network(stock.logo!, errorBuilder: (c,e,s) => Container(color: Colors.grey), fit: BoxFit.cover),
+                    child: Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child: stock!.logo!.toLowerCase().endsWith('.svg') 
+                        ? SvgPicture.network(stock.logo!, fit: BoxFit.contain, placeholderBuilder: (_) => Container(color: Colors.grey))
+                        : Image.network(stock.logo!, errorBuilder: (c,e,s) => Container(color: Colors.grey), fit: BoxFit.contain),
+                    ),
                  )
               else 
                  Container(
