@@ -729,8 +729,8 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
               label: tradeAction == ActionType.buy ? '概算支払額' : '概算受取額',
               child: Text(
                  AppUtils().formatMoney(
-                    (quantityValue ?? 0) * (tradeAction == ActionType.sell ? (sellUnitPrice ?? 0) : (unitPriceValue ?? 0)) 
-                    + (tradeAction == ActionType.buy ? (commissionValue ?? 0) : -(sellCommissionValue ?? 0)), // Buy adds fee (cost basis?), actually payment = price*qty + fee. Sell receipt = price*qty - fee.
+                    ((quantityValue ?? 0) * (tradeAction == ActionType.sell ? (sellUnitPrice ?? 0) : (unitPriceValue ?? 0)) 
+                    + (tradeAction == ActionType.buy ? (commissionValue ?? 0) : -(sellCommissionValue ?? 0))).toDouble(), // Buy adds fee (cost basis?), actually payment = price*qty + fee. Sell receipt = price*qty - fee.
                     currency
                  ),
                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
