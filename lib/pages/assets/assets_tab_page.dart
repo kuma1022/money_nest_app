@@ -329,6 +329,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
               right: 16,
               bottom: bottomPadding + 16,
               child: FloatingActionButton(
+                heroTag: 'assets_fab', // Unique tag to prevent collision with other FABs
                 backgroundColor: Colors.white,
                 child: const Icon(Icons.add, color: Colors.black),
                 onPressed: () {},
