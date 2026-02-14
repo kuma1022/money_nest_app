@@ -1275,7 +1275,10 @@ class DataSyncService {
         throw Exception('Failed to add cash transaction: ${response.data}');
       }
 
-      final data = response.data;
+      dynamic data = response.data;
+      if (data is String) {
+        data = jsonDecode(data);
+      }
       final txRes = data['transaction'];
       final upsertRes = data['balance'];
 

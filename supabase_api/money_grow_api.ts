@@ -1156,5 +1156,8 @@ async function handleCreateCash(userId, body) {
     success: true,
     transaction: txData,
     balance: upsertData
-  }), { status: 201 });
+  }), { 
+    status: 201,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
