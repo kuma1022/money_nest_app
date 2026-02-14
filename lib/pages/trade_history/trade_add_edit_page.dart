@@ -719,7 +719,7 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
               _buildFormRow(
                 label: '売却数量(合計)',
                 child: Text(
-                  AppUtils().formatMoney(sellTotalQty.toDouble(), '', decimals: 4),
+                  _numberFormatter.format(sellTotalQty),
                   style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
