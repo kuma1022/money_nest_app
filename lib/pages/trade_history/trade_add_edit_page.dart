@@ -516,6 +516,48 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
     );
   }
 
+  void _setupSellMode() {
+    if (selectedStockInfo == null) return;
+    setState(() {
+      selectedSellStockId = selectedStockInfo!.id;
+      selectedSellStockCode = selectedStockInfo!.ticker ?? '';
+      selectedSellStockName = selectedStockInfo!.name;
+      selectedSellStockExchange = selectedStockInfo!.exchange ?? '';
+      tradeAction = ActionType.sell;
+    });
+    // Load holdings (batches) for this stock
+    // This populates sellBatches
+    _loadSellHoldings(notNeedRefresh: true);
+  }
+
+  // FIFO Allocation for Simple UI
+  void _autoDistributeSellQuantity() {
+    if (tradeAction != ActionType.sell || sellTotalQty <= 0) return;
+    
+    // Check if user manually allocated (if using the old UI). 
+    // In new UI, they can't, so we assume we must allocate.
+    // If sellBatches is empty, we can't allocate (error state or no holdings).
+    
+    double remaining = sellTotalQty.toDouble();
+    for (var batch in sellBatches) {
+      if (remaining <= 0) {
+        batch['sell'] = 0;
+        continue;
+      }
+      
+      double available = (batch['quantity'] as num).toDouble();
+      double allocate = 0;
+      if (remaining >= available) {
+        allocate = available;
+      } else {
+        allocate = remaining;
+      }
+      
+      batch['sell'] = allocate;
+      remaining -= allocate;
+    }
+  }
+
   Widget _buildActionBtn(String label, ActionType type) {
     final isSelected = tradeAction == type;
     final color = _getActionColor(); // Use the current action color for border if selected
@@ -542,7 +584,14 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
         onTap: () {
           setState(() {
             tradeAction = type;
-             // Reset controllers/logic if needed on switch
+            // Clean up or setup based on type
+            if (type == ActionType.sell) {
+               _setupSellMode();
+            } else {
+               // Reset sell specific controllers if switching back to buy?
+               // Maybe keeping them is fine.
+               // Ensure buy controllers are synced if needed.
+            }
           });
         },
         child: Container(
@@ -568,8 +617,35 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
   Widget _buildTradeFormUI() {
     final currency = selectedStockInfo?.currency ?? '';
     
+    // Calculate total holding for display
+    num holdingQty = 0;
+    if (tradeAction == ActionType.sell) {
+       for(var b in sellBatches) {
+         holdingQty += (b['quantity'] as num);
+       }
+    }
+
     return Column(
       children: [
+        _buildFormRow(
+          label: '口座区分',
+          child: DropdownButtonHideUnderline(
+             child: DropdownButton<String>(
+               value: tradeTypeCode,
+               dropdownColor: const Color(0xFF1C1C1E),
+               style: const TextStyle(color: Colors.white, fontSize: 16),
+               icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey, size: 16),
+               onChanged: (v) {
+                 if (v != null) setState(() => tradeTypeCode = v);
+               },
+               items: tradeTypes.map((e) => DropdownMenuItem(
+                  value: e['code'] as String,
+                  child: Text(e['name'] as String),
+               )).toList(),
+             )
+          )
+        ),
+        
         _buildFormRow(
           label: '日付と時刻',
           child: Text(
@@ -620,23 +696,45 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
             ),
             _buildFormRow(
               label: tradeAction == ActionType.buy ? '購入数量' : '売却数量',
-              child: SizedBox(
-                 width: 100,
-                 child: TextField(
-                    controller: _quantityController, // Using same controller for simplicity in this view
-                    // Warning: Save logic might need this to be populated for Sell
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                    textAlign: TextAlign.right,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(border: InputBorder.none, hintText: '0', hintStyle: TextStyle(color: Colors.grey)),
-                    onChanged: (v) {
-                         final val = num.tryParse(v);
-                         quantityValue = val;
-                         // Also update sell logic if needed
-                         if (tradeAction == ActionType.sell) sellTotalQty = val ?? 0;
-                    },
-                 ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                   SizedBox(
+                     width: 100,
+                     child: TextField(
+                        controller: _quantityController, // Using same controller for simplicity in this view
+                        // Warning: Save logic might need this to be populated for Sell
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        textAlign: TextAlign.right,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(border: InputBorder.none, hintText: '0', hintStyle: TextStyle(color: Colors.grey)),
+                        onChanged: (v) {
+                             final val = num.tryParse(v);
+                             setState(() {
+                               quantityValue = val;
+                               // Also update sell logic if needed
+                               if (tradeAction == ActionType.sell) sellTotalQty = val ?? 0;
+                             });
+                        },
+                     ),
+                   ),
+                   if (tradeAction == ActionType.sell)
+                      Text('保有数量: $holdingQty', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                ],
               )
+            ),
+            
+            // Expected Amount Row (Auto-calc)
+            _buildFormRow(
+              label: tradeAction == ActionType.buy ? '概算支払額' : '概算受取額',
+              child: Text(
+                 AppUtils().formatMoney(
+                    (quantityValue ?? 0) * (tradeAction == ActionType.sell ? (sellUnitPrice ?? 0) : (unitPriceValue ?? 0)) 
+                    + (tradeAction == ActionType.buy ? (commissionValue ?? 0) : -(sellCommissionValue ?? 0)), // Buy adds fee (cost basis?), actually payment = price*qty + fee. Sell receipt = price*qty - fee.
+                    currency
+                 ),
+                 style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
+              ),
             ),
         ],
 
@@ -3578,6 +3676,13 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
       // 保存逻辑
       bool success = false;
       final dataSync = Provider.of<DataSyncService>(context, listen: false);
+
+      // New UI Check: Auto-distribute sell quantity if needed
+      if ((assetCategoryCode == 'stock' || widget.initialStock != null) && 
+          tradeAction == ActionType.sell) {
+             _autoDistributeSellQuantity();
+      }
+
       // 資産tab保存逻辑
       if (tabIndex == 0) {
         // 株式（国内株式,米国株式）
