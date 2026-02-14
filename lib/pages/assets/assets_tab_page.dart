@@ -345,7 +345,11 @@ class AssetsTabPageState extends State<AssetsTabPage> {
           ],
         ),
       ),
-    );stockData = GlobalStore().totalAssetsAndCostsMap['stock'];
+    );
+  }
+
+  Widget createAssetList() {
+    final stockData = GlobalStore().totalAssetsAndCostsMap['stock'];
     final otherData = GlobalStore().totalAssetsAndCostsMap['other_asset'];
     final currency = GlobalStore().selectedCurrencyCode ?? 'JPY';
 
@@ -541,11 +545,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
             ],
           ),
         ),
-      
-            ),
-          ),
-        );
-      }).toList(),
+      ),
     );
   }
 
