@@ -90,8 +90,8 @@ class _StockSearchPageState extends State<StockSearchPage> {
       final dataSync = Provider.of<DataSyncService>(context, listen: false);
       final results = await dataSync.fetchStockSuggestions(
         query,
-        limit: 20,
-        exchange: widget.exchange,
+        widget.exchange, // Position 2 match signature (String exchange)
+        // limit is not supported in fetchStockSuggestions signature currently
       );
       if (mounted) {
         setState(() {
