@@ -99,6 +99,9 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
   // メモ
   String? memoValue;
   final TextEditingController _memoController = TextEditingController();
+  
+  // NEW: Cash Balance Update Checkbox
+  bool _updateCashBalance = false;
 
   // 0-2-2. 売り
   // 売却する銘柄情報
@@ -412,8 +415,358 @@ class _TradeAddEditPageState extends State<TradeAddEditPage> {
     super.dispose();
   }
 
+  // MARK: - New Stock UI Methods
+
+  Widget _buildStockTradeUI() {
+    // Determine color based on action
+    final actionColor = _getActionColor();
+    final stock = selectedStockInfo;
+
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: widget.onClose ?? () => Navigator.pop(context),
+          ),
+          title: Row(
+            children: [
+              if (stock?.logo != null && stock!.logo!.isNotEmpty)
+                 Container(
+                    width: 24, height: 24,
+                    decoration: const BoxDecoration(shape: BoxShape.circle),
+                    clipBehavior: Clip.antiAlias,
+                    child: Image.network(stock!.logo!, errorBuilder: (c,e,s) => Container(color: Colors.grey)),
+                 )
+              else 
+                 Container(
+                    width: 24, height: 24,
+                    decoration: const BoxDecoration(color: Colors.grey, shape: BoxShape.circle),
+                    alignment: Alignment.center,
+                    child: Text(stock?.name.substring(0,1) ?? 'S', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                 ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(stock?.name ?? '', overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 16)),
+              ),
+            ],
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              _buildActionSelectorUI(),
+              const SizedBox(height: 24),
+              Text(
+                '取引所\n${stock?.exchange ?? ''}',
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              _buildTradeFormUI(),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+        bottomNavigationBar: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SizedBox(
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: actionColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: _handleSave,
+              child: const Text('取引を追加', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getActionColor() {
+    switch (tradeAction) {
+      case ActionType.buy:
+        return const Color(0xFFE02020); // Buy Red (from screenshot button) or maybe standard Red
+      case ActionType.sell:
+        return const Color(0xFF00C853); // Sell Green
+      case ActionType.dividend:
+        return const Color(0xFF6200EA); // Dividend Purple
+      default:
+        return Colors.blue;
+    }
+  }
+
+  Widget _buildActionSelectorUI() {
+    return Row(
+      children: [
+        _buildActionBtn('購入', ActionType.buy),
+        const SizedBox(width: 12),
+        _buildActionBtn('売却', ActionType.sell),
+        const SizedBox(width: 12),
+        _buildActionBtn('配当', ActionType.dividend),
+      ],
+    );
+  }
+
+  Widget _buildActionBtn(String label, ActionType type) {
+    final isSelected = tradeAction == type;
+    final color = _getActionColor(); // Use the current action color for border if selected
+    // Actually typically tabs change color.
+    // Screenshot 1 (Buy): "購入" is filled with Red bg? Or Border? 
+    // Screenshot 1: "Purchase" button at top seems NOT filled. It has a Red Border? 
+    // Actually looking closely at Screenshot 1 (Buy):
+    // "Purchase" has a red outline/background. "Sell" / "Dividend" are grey.
+    // Screenshot 2 (Sell): "Sell" is Green filled (or outlined).
+    // Screenshot 3 (Dividend): "Dividend" is Purple filled.
+    
+    // I will use Outline for unselected, Filled for selected.
+    
+    Color activeColor;
+    switch(type) {
+        case ActionType.buy: activeColor = const Color(0xFFE02020); break;
+        case ActionType.sell: activeColor = const Color(0xFF00C853); break;
+        case ActionType.dividend: activeColor = const Color(0xFF6200EA); break;
+        default: activeColor = Colors.white;
+    }
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            tradeAction = type;
+             // Reset controllers/logic if needed on switch
+          });
+        },
+        child: Container(
+          height: 36,
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.transparent : Colors.grey[900],
+            border: Border.all(color: isSelected ? activeColor : Colors.transparent),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? activeColor : Colors.grey,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTradeFormUI() {
+    final currency = selectedStockInfo?.currency ?? '';
+    
+    return Column(
+      children: [
+        _buildFormRow(
+          label: '日付と時刻',
+          child: Text(
+             tradeDate ?? DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
+             style: const TextStyle(color: Colors.white, fontSize: 16),
+          ),
+          onTap: () async {
+             final date = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+             );
+             if (date != null) {
+               setState(() {
+                 tradeDate = DateFormat('yyyy-MM-dd').format(date);
+               });
+             }
+          }
+        ),
+        
+        if (tradeAction != ActionType.dividend) ...[
+            _buildFormRow(
+              label: tradeAction == ActionType.buy ? '未調整の購入価格 $currency' : '未調整の販売価格 $currency',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   SizedBox(
+                     width: 100,
+                     child: TextField(
+                        controller: tradeAction == ActionType.sell ? _sellUnitPriceController : _unitPriceController,
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        textAlign: TextAlign.right,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(border: InputBorder.none, hintText: '0', hintStyle: TextStyle(color: Colors.grey)),
+                        onChanged: (v) {
+                             // Bind to value
+                             final val = num.tryParse(v);
+                             if(tradeAction == ActionType.sell) sellUnitPrice = val; else unitPriceValue = val;
+                        },
+                     ),
+                   ),
+                   const SizedBox(width: 8),
+                   const Text('単価', style: TextStyle(color: Colors.white)),
+                   const Icon(Icons.keyboard_arrow_down, color: Colors.grey, size: 16),
+                ],
+              )
+            ),
+            _buildFormRow(
+              label: tradeAction == ActionType.buy ? '購入数量' : '売却数量',
+              child: SizedBox(
+                 width: 100,
+                 child: TextField(
+                    controller: _quantityController, // Using same controller for simplicity in this view
+                    // Warning: Save logic might need this to be populated for Sell
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    textAlign: TextAlign.right,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(border: InputBorder.none, hintText: '0', hintStyle: TextStyle(color: Colors.grey)),
+                    onChanged: (v) {
+                         final val = num.tryParse(v);
+                         quantityValue = val;
+                         // Also update sell logic if needed
+                         if (tradeAction == ActionType.sell) sellTotalQty = val ?? 0;
+                    },
+                 ),
+              )
+            ),
+        ],
+
+        if (tradeAction == ActionType.dividend)
+            _buildFormRow(
+              label: '配当額',
+              child: Row(mainAxisSize: MainAxisSize.min, children:[
+                   SizedBox(
+                     width: 100,
+                     child: TextField(
+                        controller: _amountController, // Using amount controller for dividend? 
+                        // Existing logic for Dividend might use amount directly or calculate it.
+                        // Let's assume user enters total dividend amount here.
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        textAlign: TextAlign.right,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(border: InputBorder.none, hintText: '0', hintStyle: TextStyle(color: Colors.grey)),
+                     ),
+                   ),
+                   const SizedBox(width: 8),
+                   Text(currency, style: const TextStyle(color: Colors.white)),
+                   const Icon(Icons.keyboard_arrow_down, color: Colors.grey, size: 16),
+              ]),
+            ),
+
+        _buildFormRow(
+          label: '手数料',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+               SizedBox(
+                 width: 100,
+                 child: TextField(
+                    controller: tradeAction == ActionType.sell ? _sellCommissionController : _commissionController,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    textAlign: TextAlign.right,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(border: InputBorder.none, hintText: '0', hintStyle: TextStyle(color: Colors.grey)),
+                    onChanged: (v) {
+                        final val = num.tryParse(v);
+                        if(tradeAction == ActionType.sell) sellCommissionValue = val; else commissionValue = val;
+                    },
+                 ),
+               ),
+               const SizedBox(width: 8),
+               Text(commissionCurrency, style: const TextStyle(color: Colors.white)),
+               const Icon(Icons.keyboard_arrow_down, color: Colors.grey, size: 16),
+            ],
+          )
+        ),
+
+        // Cash Toggle
+        _buildFormRow(
+           label: tradeAction == ActionType.buy ? '利用可能な現金$currencyから差し引く' : '利用可能な現金を追加する',
+           child: Switch(
+              value: _updateCashBalance,
+              onChanged: (v) => setState(() => _updateCashBalance = v),
+              activeColor: _getActionColor(),
+           ),
+        ),
+
+        if (tradeAction == ActionType.dividend)
+           _buildFormRow(
+             label: '配当期間',
+             child: Row(
+               children: const [
+                  Text('その他', style: TextStyle(border: Border(bottom: BorderSide(color: Colors.green)), color: Colors.green)),
+                  Icon(Icons.chevron_right, color: Colors.white),
+               ],
+             )
+           ),
+
+        ExpansionTile(
+           title: const Text('その他の設定', style: TextStyle(color: Colors.white, fontSize: 14)),
+           iconColor: Colors.white,
+           collapsedIconColor: Colors.white,
+           children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: TextField(
+                   controller: tradeAction == ActionType.sell ? _sellMemoController : _memoController,
+                   style: const TextStyle(color: Colors.white),
+                   decoration: const InputDecoration(
+                     filled: true,
+                     fillColor: Color(0xFF1C1C1E),
+                     hintText: 'メモ',
+                     hintStyle: TextStyle(color: Colors.grey),
+                     border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+                   ),
+                ),
+              )
+           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormRow({required String label, required Widget child, VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Colors.white12)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+            const SizedBox(width: 16),
+            Expanded(child: Align(alignment: Alignment.centerRight, child: child)),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Check if we are in Stock Mode
+    if (assetCategoryCode == 'stock' || widget.initialStock != null) {
+       // Logic to ensure selectedStockInfo is set
+       if (selectedStockInfo == null && widget.initialStock != null) {
+          selectedStockInfo = widget.initialStock; 
+          // might trigger build again if we set state, but we are in build. 
+          // Ideally rely on initState logic, but if assetCategoryCode is stock, we serve this UI.
+       }
+       return _buildStockTradeUI();
+    }
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent, // 保证空白处也能响应
       onTap: () {

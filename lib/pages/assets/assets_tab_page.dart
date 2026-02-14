@@ -334,7 +334,7 @@ class AssetsTabPageState extends State<AssetsTabPage> {
             // Floating Action Button
             Positioned(
               right: 16,
-              bottom: bottomPadding + 16,
+              bottom: bottomPadding + 16 + 40, // 40 is the height of the FAB
               child: FloatingActionButton(
                 heroTag: 'assets_fab', // Unique tag to prevent collision with other FABs
                 backgroundColor: Colors.white,
