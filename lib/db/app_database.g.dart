@@ -5972,6 +5972,1405 @@ class CashTransactionsCompanion extends UpdateCompanion<CashTransaction> {
   }
 }
 
+class $CustomAssetCategoriesTable extends CustomAssetCategories
+    with TableInfo<$CustomAssetCategoriesTable, CustomAssetCategory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CustomAssetCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 100,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconPointMeta = const VerificationMeta(
+    'iconPoint',
+  );
+  @override
+  late final GeneratedColumn<int> iconPoint = GeneratedColumn<int>(
+    'icon_point',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _colorHexMeta = const VerificationMeta(
+    'colorHex',
+  );
+  @override
+  late final GeneratedColumn<String> colorHex = GeneratedColumn<String>(
+    'color_hex',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    name,
+    iconPoint,
+    colorHex,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'custom_asset_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CustomAssetCategory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('icon_point')) {
+      context.handle(
+        _iconPointMeta,
+        iconPoint.isAcceptableOrUnknown(data['icon_point']!, _iconPointMeta),
+      );
+    }
+    if (data.containsKey('color_hex')) {
+      context.handle(
+        _colorHexMeta,
+        colorHex.isAcceptableOrUnknown(data['color_hex']!, _colorHexMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CustomAssetCategory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CustomAssetCategory(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      iconPoint: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}icon_point'],
+      ),
+      colorHex: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color_hex'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CustomAssetCategoriesTable createAlias(String alias) {
+    return $CustomAssetCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class CustomAssetCategory extends DataClass
+    implements Insertable<CustomAssetCategory> {
+  final int id;
+  final String userId;
+  final String name;
+  final int? iconPoint;
+  final String? colorHex;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const CustomAssetCategory({
+    required this.id,
+    required this.userId,
+    required this.name,
+    this.iconPoint,
+    this.colorHex,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || iconPoint != null) {
+      map['icon_point'] = Variable<int>(iconPoint);
+    }
+    if (!nullToAbsent || colorHex != null) {
+      map['color_hex'] = Variable<String>(colorHex);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CustomAssetCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return CustomAssetCategoriesCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      name: Value(name),
+      iconPoint: iconPoint == null && nullToAbsent
+          ? const Value.absent()
+          : Value(iconPoint),
+      colorHex: colorHex == null && nullToAbsent
+          ? const Value.absent()
+          : Value(colorHex),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CustomAssetCategory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CustomAssetCategory(
+      id: serializer.fromJson<int>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      name: serializer.fromJson<String>(json['name']),
+      iconPoint: serializer.fromJson<int?>(json['iconPoint']),
+      colorHex: serializer.fromJson<String?>(json['colorHex']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'userId': serializer.toJson<String>(userId),
+      'name': serializer.toJson<String>(name),
+      'iconPoint': serializer.toJson<int?>(iconPoint),
+      'colorHex': serializer.toJson<String?>(colorHex),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CustomAssetCategory copyWith({
+    int? id,
+    String? userId,
+    String? name,
+    Value<int?> iconPoint = const Value.absent(),
+    Value<String?> colorHex = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => CustomAssetCategory(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    name: name ?? this.name,
+    iconPoint: iconPoint.present ? iconPoint.value : this.iconPoint,
+    colorHex: colorHex.present ? colorHex.value : this.colorHex,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CustomAssetCategory copyWithCompanion(CustomAssetCategoriesCompanion data) {
+    return CustomAssetCategory(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      name: data.name.present ? data.name.value : this.name,
+      iconPoint: data.iconPoint.present ? data.iconPoint.value : this.iconPoint,
+      colorHex: data.colorHex.present ? data.colorHex.value : this.colorHex,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomAssetCategory(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('name: $name, ')
+          ..write('iconPoint: $iconPoint, ')
+          ..write('colorHex: $colorHex, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, userId, name, iconPoint, colorHex, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CustomAssetCategory &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.name == this.name &&
+          other.iconPoint == this.iconPoint &&
+          other.colorHex == this.colorHex &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CustomAssetCategoriesCompanion
+    extends UpdateCompanion<CustomAssetCategory> {
+  final Value<int> id;
+  final Value<String> userId;
+  final Value<String> name;
+  final Value<int?> iconPoint;
+  final Value<String?> colorHex;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const CustomAssetCategoriesCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.iconPoint = const Value.absent(),
+    this.colorHex = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  CustomAssetCategoriesCompanion.insert({
+    this.id = const Value.absent(),
+    required String userId,
+    required String name,
+    this.iconPoint = const Value.absent(),
+    this.colorHex = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  }) : userId = Value(userId),
+       name = Value(name);
+  static Insertable<CustomAssetCategory> custom({
+    Expression<int>? id,
+    Expression<String>? userId,
+    Expression<String>? name,
+    Expression<int>? iconPoint,
+    Expression<String>? colorHex,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (name != null) 'name': name,
+      if (iconPoint != null) 'icon_point': iconPoint,
+      if (colorHex != null) 'color_hex': colorHex,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  CustomAssetCategoriesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? userId,
+    Value<String>? name,
+    Value<int?>? iconPoint,
+    Value<String?>? colorHex,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return CustomAssetCategoriesCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      iconPoint: iconPoint ?? this.iconPoint,
+      colorHex: colorHex ?? this.colorHex,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (iconPoint.present) {
+      map['icon_point'] = Variable<int>(iconPoint.value);
+    }
+    if (colorHex.present) {
+      map['color_hex'] = Variable<String>(colorHex.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomAssetCategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('name: $name, ')
+          ..write('iconPoint: $iconPoint, ')
+          ..write('colorHex: $colorHex, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CustomAssetsTable extends CustomAssets
+    with TableInfo<$CustomAssetsTable, CustomAsset> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CustomAssetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
+    'category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES custom_asset_categories (id)',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 100,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('JPY'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    categoryId,
+    name,
+    description,
+    currency,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'custom_assets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CustomAsset> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CustomAsset map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CustomAsset(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}category_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CustomAssetsTable createAlias(String alias) {
+    return $CustomAssetsTable(attachedDatabase, alias);
+  }
+}
+
+class CustomAsset extends DataClass implements Insertable<CustomAsset> {
+  final int id;
+  final String userId;
+  final int categoryId;
+  final String name;
+  final String? description;
+  final String currency;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const CustomAsset({
+    required this.id,
+    required this.userId,
+    required this.categoryId,
+    required this.name,
+    this.description,
+    required this.currency,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['category_id'] = Variable<int>(categoryId);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    map['currency'] = Variable<String>(currency);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  CustomAssetsCompanion toCompanion(bool nullToAbsent) {
+    return CustomAssetsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      categoryId: Value(categoryId),
+      name: Value(name),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      currency: Value(currency),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CustomAsset.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CustomAsset(
+      id: serializer.fromJson<int>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      categoryId: serializer.fromJson<int>(json['categoryId']),
+      name: serializer.fromJson<String>(json['name']),
+      description: serializer.fromJson<String?>(json['description']),
+      currency: serializer.fromJson<String>(json['currency']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'userId': serializer.toJson<String>(userId),
+      'categoryId': serializer.toJson<int>(categoryId),
+      'name': serializer.toJson<String>(name),
+      'description': serializer.toJson<String?>(description),
+      'currency': serializer.toJson<String>(currency),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  CustomAsset copyWith({
+    int? id,
+    String? userId,
+    int? categoryId,
+    String? name,
+    Value<String?> description = const Value.absent(),
+    String? currency,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => CustomAsset(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    categoryId: categoryId ?? this.categoryId,
+    name: name ?? this.name,
+    description: description.present ? description.value : this.description,
+    currency: currency ?? this.currency,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CustomAsset copyWithCompanion(CustomAssetsCompanion data) {
+    return CustomAsset(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      name: data.name.present ? data.name.value : this.name,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomAsset(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('currency: $currency, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    categoryId,
+    name,
+    description,
+    currency,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CustomAsset &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.categoryId == this.categoryId &&
+          other.name == this.name &&
+          other.description == this.description &&
+          other.currency == this.currency &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CustomAssetsCompanion extends UpdateCompanion<CustomAsset> {
+  final Value<int> id;
+  final Value<String> userId;
+  final Value<int> categoryId;
+  final Value<String> name;
+  final Value<String?> description;
+  final Value<String> currency;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const CustomAssetsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.description = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  CustomAssetsCompanion.insert({
+    this.id = const Value.absent(),
+    required String userId,
+    required int categoryId,
+    required String name,
+    this.description = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  }) : userId = Value(userId),
+       categoryId = Value(categoryId),
+       name = Value(name);
+  static Insertable<CustomAsset> custom({
+    Expression<int>? id,
+    Expression<String>? userId,
+    Expression<int>? categoryId,
+    Expression<String>? name,
+    Expression<String>? description,
+    Expression<String>? currency,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (categoryId != null) 'category_id': categoryId,
+      if (name != null) 'name': name,
+      if (description != null) 'description': description,
+      if (currency != null) 'currency': currency,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  CustomAssetsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? userId,
+    Value<int>? categoryId,
+    Value<String>? name,
+    Value<String?>? description,
+    Value<String>? currency,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return CustomAssetsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      categoryId: categoryId ?? this.categoryId,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      currency: currency ?? this.currency,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<int>(categoryId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomAssetsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('name: $name, ')
+          ..write('description: $description, ')
+          ..write('currency: $currency, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CustomAssetHistoryTable extends CustomAssetHistory
+    with TableInfo<$CustomAssetHistoryTable, CustomAssetHistoryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CustomAssetHistoryTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _assetIdMeta = const VerificationMeta(
+    'assetId',
+  );
+  @override
+  late final GeneratedColumn<int> assetId = GeneratedColumn<int>(
+    'asset_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES custom_assets (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _recordDateMeta = const VerificationMeta(
+    'recordDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> recordDate = GeneratedColumn<DateTime>(
+    'record_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<double> value = GeneratedColumn<double>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _costMeta = const VerificationMeta('cost');
+  @override
+  late final GeneratedColumn<double> cost = GeneratedColumn<double>(
+    'cost',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    assetId,
+    recordDate,
+    value,
+    cost,
+    note,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'custom_asset_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CustomAssetHistoryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('asset_id')) {
+      context.handle(
+        _assetIdMeta,
+        assetId.isAcceptableOrUnknown(data['asset_id']!, _assetIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_assetIdMeta);
+    }
+    if (data.containsKey('record_date')) {
+      context.handle(
+        _recordDateMeta,
+        recordDate.isAcceptableOrUnknown(data['record_date']!, _recordDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordDateMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    }
+    if (data.containsKey('cost')) {
+      context.handle(
+        _costMeta,
+        cost.isAcceptableOrUnknown(data['cost']!, _costMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {assetId, recordDate},
+  ];
+  @override
+  CustomAssetHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CustomAssetHistoryData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      assetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}asset_id'],
+      )!,
+      recordDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}record_date'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}value'],
+      )!,
+      cost: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}cost'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CustomAssetHistoryTable createAlias(String alias) {
+    return $CustomAssetHistoryTable(attachedDatabase, alias);
+  }
+}
+
+class CustomAssetHistoryData extends DataClass
+    implements Insertable<CustomAssetHistoryData> {
+  final int id;
+  final int assetId;
+  final DateTime recordDate;
+  final double value;
+  final double cost;
+  final String? note;
+  final DateTime createdAt;
+  const CustomAssetHistoryData({
+    required this.id,
+    required this.assetId,
+    required this.recordDate,
+    required this.value,
+    required this.cost,
+    this.note,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['asset_id'] = Variable<int>(assetId);
+    map['record_date'] = Variable<DateTime>(recordDate);
+    map['value'] = Variable<double>(value);
+    map['cost'] = Variable<double>(cost);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  CustomAssetHistoryCompanion toCompanion(bool nullToAbsent) {
+    return CustomAssetHistoryCompanion(
+      id: Value(id),
+      assetId: Value(assetId),
+      recordDate: Value(recordDate),
+      value: Value(value),
+      cost: Value(cost),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CustomAssetHistoryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CustomAssetHistoryData(
+      id: serializer.fromJson<int>(json['id']),
+      assetId: serializer.fromJson<int>(json['assetId']),
+      recordDate: serializer.fromJson<DateTime>(json['recordDate']),
+      value: serializer.fromJson<double>(json['value']),
+      cost: serializer.fromJson<double>(json['cost']),
+      note: serializer.fromJson<String?>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'assetId': serializer.toJson<int>(assetId),
+      'recordDate': serializer.toJson<DateTime>(recordDate),
+      'value': serializer.toJson<double>(value),
+      'cost': serializer.toJson<double>(cost),
+      'note': serializer.toJson<String?>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  CustomAssetHistoryData copyWith({
+    int? id,
+    int? assetId,
+    DateTime? recordDate,
+    double? value,
+    double? cost,
+    Value<String?> note = const Value.absent(),
+    DateTime? createdAt,
+  }) => CustomAssetHistoryData(
+    id: id ?? this.id,
+    assetId: assetId ?? this.assetId,
+    recordDate: recordDate ?? this.recordDate,
+    value: value ?? this.value,
+    cost: cost ?? this.cost,
+    note: note.present ? note.value : this.note,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  CustomAssetHistoryData copyWithCompanion(CustomAssetHistoryCompanion data) {
+    return CustomAssetHistoryData(
+      id: data.id.present ? data.id.value : this.id,
+      assetId: data.assetId.present ? data.assetId.value : this.assetId,
+      recordDate: data.recordDate.present
+          ? data.recordDate.value
+          : this.recordDate,
+      value: data.value.present ? data.value.value : this.value,
+      cost: data.cost.present ? data.cost.value : this.cost,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomAssetHistoryData(')
+          ..write('id: $id, ')
+          ..write('assetId: $assetId, ')
+          ..write('recordDate: $recordDate, ')
+          ..write('value: $value, ')
+          ..write('cost: $cost, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, assetId, recordDate, value, cost, note, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CustomAssetHistoryData &&
+          other.id == this.id &&
+          other.assetId == this.assetId &&
+          other.recordDate == this.recordDate &&
+          other.value == this.value &&
+          other.cost == this.cost &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class CustomAssetHistoryCompanion
+    extends UpdateCompanion<CustomAssetHistoryData> {
+  final Value<int> id;
+  final Value<int> assetId;
+  final Value<DateTime> recordDate;
+  final Value<double> value;
+  final Value<double> cost;
+  final Value<String?> note;
+  final Value<DateTime> createdAt;
+  const CustomAssetHistoryCompanion({
+    this.id = const Value.absent(),
+    this.assetId = const Value.absent(),
+    this.recordDate = const Value.absent(),
+    this.value = const Value.absent(),
+    this.cost = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  CustomAssetHistoryCompanion.insert({
+    this.id = const Value.absent(),
+    required int assetId,
+    required DateTime recordDate,
+    this.value = const Value.absent(),
+    this.cost = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : assetId = Value(assetId),
+       recordDate = Value(recordDate);
+  static Insertable<CustomAssetHistoryData> custom({
+    Expression<int>? id,
+    Expression<int>? assetId,
+    Expression<DateTime>? recordDate,
+    Expression<double>? value,
+    Expression<double>? cost,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (assetId != null) 'asset_id': assetId,
+      if (recordDate != null) 'record_date': recordDate,
+      if (value != null) 'value': value,
+      if (cost != null) 'cost': cost,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  CustomAssetHistoryCompanion copyWith({
+    Value<int>? id,
+    Value<int>? assetId,
+    Value<DateTime>? recordDate,
+    Value<double>? value,
+    Value<double>? cost,
+    Value<String?>? note,
+    Value<DateTime>? createdAt,
+  }) {
+    return CustomAssetHistoryCompanion(
+      id: id ?? this.id,
+      assetId: assetId ?? this.assetId,
+      recordDate: recordDate ?? this.recordDate,
+      value: value ?? this.value,
+      cost: cost ?? this.cost,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (assetId.present) {
+      map['asset_id'] = Variable<int>(assetId.value);
+    }
+    if (recordDate.present) {
+      map['record_date'] = Variable<DateTime>(recordDate.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<double>(value.value);
+    }
+    if (cost.present) {
+      map['cost'] = Variable<double>(cost.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CustomAssetHistoryCompanion(')
+          ..write('id: $id, ')
+          ..write('assetId: $assetId, ')
+          ..write('recordDate: $recordDate, ')
+          ..write('value: $value, ')
+          ..write('cost: $cost, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5993,6 +7392,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CashTransactionsTable cashTransactions = $CashTransactionsTable(
     this,
   );
+  late final $CustomAssetCategoriesTable customAssetCategories =
+      $CustomAssetCategoriesTable(this);
+  late final $CustomAssetsTable customAssets = $CustomAssetsTable(this);
+  late final $CustomAssetHistoryTable customAssetHistory =
+      $CustomAssetHistoryTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6009,7 +7413,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cryptoInfo,
     accountBalances,
     cashTransactions,
+    customAssetCategories,
+    customAssets,
+    customAssetHistory,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'custom_assets',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('custom_asset_history', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$TradeRecordsTableCreateCompanionBuilder =
@@ -8973,6 +10390,1214 @@ typedef $$CashTransactionsTableProcessedTableManager =
       CashTransaction,
       PrefetchHooks Function()
     >;
+typedef $$CustomAssetCategoriesTableCreateCompanionBuilder =
+    CustomAssetCategoriesCompanion Function({
+      Value<int> id,
+      required String userId,
+      required String name,
+      Value<int?> iconPoint,
+      Value<String?> colorHex,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+typedef $$CustomAssetCategoriesTableUpdateCompanionBuilder =
+    CustomAssetCategoriesCompanion Function({
+      Value<int> id,
+      Value<String> userId,
+      Value<String> name,
+      Value<int?> iconPoint,
+      Value<String?> colorHex,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+final class $$CustomAssetCategoriesTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $CustomAssetCategoriesTable,
+          CustomAssetCategory
+        > {
+  $$CustomAssetCategoriesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$CustomAssetsTable, List<CustomAsset>>
+  _customAssetsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.customAssets,
+    aliasName: $_aliasNameGenerator(
+      db.customAssetCategories.id,
+      db.customAssets.categoryId,
+    ),
+  );
+
+  $$CustomAssetsTableProcessedTableManager get customAssetsRefs {
+    final manager = $$CustomAssetsTableTableManager(
+      $_db,
+      $_db.customAssets,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_customAssetsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$CustomAssetCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $CustomAssetCategoriesTable> {
+  $$CustomAssetCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get iconPoint => $composableBuilder(
+    column: $table.iconPoint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get colorHex => $composableBuilder(
+    column: $table.colorHex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> customAssetsRefs(
+    Expression<bool> Function($$CustomAssetsTableFilterComposer f) f,
+  ) {
+    final $$CustomAssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.customAssets,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CustomAssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.customAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CustomAssetCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CustomAssetCategoriesTable> {
+  $$CustomAssetCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get iconPoint => $composableBuilder(
+    column: $table.iconPoint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get colorHex => $composableBuilder(
+    column: $table.colorHex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CustomAssetCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CustomAssetCategoriesTable> {
+  $$CustomAssetCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get iconPoint =>
+      $composableBuilder(column: $table.iconPoint, builder: (column) => column);
+
+  GeneratedColumn<String> get colorHex =>
+      $composableBuilder(column: $table.colorHex, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> customAssetsRefs<T extends Object>(
+    Expression<T> Function($$CustomAssetsTableAnnotationComposer a) f,
+  ) {
+    final $$CustomAssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.customAssets,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CustomAssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.customAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CustomAssetCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CustomAssetCategoriesTable,
+          CustomAssetCategory,
+          $$CustomAssetCategoriesTableFilterComposer,
+          $$CustomAssetCategoriesTableOrderingComposer,
+          $$CustomAssetCategoriesTableAnnotationComposer,
+          $$CustomAssetCategoriesTableCreateCompanionBuilder,
+          $$CustomAssetCategoriesTableUpdateCompanionBuilder,
+          (CustomAssetCategory, $$CustomAssetCategoriesTableReferences),
+          CustomAssetCategory,
+          PrefetchHooks Function({bool customAssetsRefs})
+        > {
+  $$CustomAssetCategoriesTableTableManager(
+    _$AppDatabase db,
+    $CustomAssetCategoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CustomAssetCategoriesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$CustomAssetCategoriesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CustomAssetCategoriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int?> iconPoint = const Value.absent(),
+                Value<String?> colorHex = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => CustomAssetCategoriesCompanion(
+                id: id,
+                userId: userId,
+                name: name,
+                iconPoint: iconPoint,
+                colorHex: colorHex,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String userId,
+                required String name,
+                Value<int?> iconPoint = const Value.absent(),
+                Value<String?> colorHex = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => CustomAssetCategoriesCompanion.insert(
+                id: id,
+                userId: userId,
+                name: name,
+                iconPoint: iconPoint,
+                colorHex: colorHex,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CustomAssetCategoriesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({customAssetsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (customAssetsRefs) db.customAssets],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (customAssetsRefs)
+                    await $_getPrefetchedData<
+                      CustomAssetCategory,
+                      $CustomAssetCategoriesTable,
+                      CustomAsset
+                    >(
+                      currentTable: table,
+                      referencedTable: $$CustomAssetCategoriesTableReferences
+                          ._customAssetsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$CustomAssetCategoriesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).customAssetsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.categoryId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CustomAssetCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CustomAssetCategoriesTable,
+      CustomAssetCategory,
+      $$CustomAssetCategoriesTableFilterComposer,
+      $$CustomAssetCategoriesTableOrderingComposer,
+      $$CustomAssetCategoriesTableAnnotationComposer,
+      $$CustomAssetCategoriesTableCreateCompanionBuilder,
+      $$CustomAssetCategoriesTableUpdateCompanionBuilder,
+      (CustomAssetCategory, $$CustomAssetCategoriesTableReferences),
+      CustomAssetCategory,
+      PrefetchHooks Function({bool customAssetsRefs})
+    >;
+typedef $$CustomAssetsTableCreateCompanionBuilder =
+    CustomAssetsCompanion Function({
+      Value<int> id,
+      required String userId,
+      required int categoryId,
+      required String name,
+      Value<String?> description,
+      Value<String> currency,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+typedef $$CustomAssetsTableUpdateCompanionBuilder =
+    CustomAssetsCompanion Function({
+      Value<int> id,
+      Value<String> userId,
+      Value<int> categoryId,
+      Value<String> name,
+      Value<String?> description,
+      Value<String> currency,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+final class $$CustomAssetsTableReferences
+    extends BaseReferences<_$AppDatabase, $CustomAssetsTable, CustomAsset> {
+  $$CustomAssetsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $CustomAssetCategoriesTable _categoryIdTable(_$AppDatabase db) =>
+      db.customAssetCategories.createAlias(
+        $_aliasNameGenerator(
+          db.customAssets.categoryId,
+          db.customAssetCategories.id,
+        ),
+      );
+
+  $$CustomAssetCategoriesTableProcessedTableManager get categoryId {
+    final $_column = $_itemColumn<int>('category_id')!;
+
+    final manager = $$CustomAssetCategoriesTableTableManager(
+      $_db,
+      $_db.customAssetCategories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $CustomAssetHistoryTable,
+    List<CustomAssetHistoryData>
+  >
+  _customAssetHistoryRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.customAssetHistory,
+        aliasName: $_aliasNameGenerator(
+          db.customAssets.id,
+          db.customAssetHistory.assetId,
+        ),
+      );
+
+  $$CustomAssetHistoryTableProcessedTableManager get customAssetHistoryRefs {
+    final manager = $$CustomAssetHistoryTableTableManager(
+      $_db,
+      $_db.customAssetHistory,
+    ).filter((f) => f.assetId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _customAssetHistoryRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$CustomAssetsTableFilterComposer
+    extends Composer<_$AppDatabase, $CustomAssetsTable> {
+  $$CustomAssetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CustomAssetCategoriesTableFilterComposer get categoryId {
+    final $$CustomAssetCategoriesTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.categoryId,
+          referencedTable: $db.customAssetCategories,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CustomAssetCategoriesTableFilterComposer(
+                $db: $db,
+                $table: $db.customAssetCategories,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  Expression<bool> customAssetHistoryRefs(
+    Expression<bool> Function($$CustomAssetHistoryTableFilterComposer f) f,
+  ) {
+    final $$CustomAssetHistoryTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.customAssetHistory,
+      getReferencedColumn: (t) => t.assetId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CustomAssetHistoryTableFilterComposer(
+            $db: $db,
+            $table: $db.customAssetHistory,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CustomAssetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CustomAssetsTable> {
+  $$CustomAssetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CustomAssetCategoriesTableOrderingComposer get categoryId {
+    final $$CustomAssetCategoriesTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.categoryId,
+          referencedTable: $db.customAssetCategories,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CustomAssetCategoriesTableOrderingComposer(
+                $db: $db,
+                $table: $db.customAssetCategories,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$CustomAssetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CustomAssetsTable> {
+  $$CustomAssetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$CustomAssetCategoriesTableAnnotationComposer get categoryId {
+    final $$CustomAssetCategoriesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.categoryId,
+          referencedTable: $db.customAssetCategories,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CustomAssetCategoriesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.customAssetCategories,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  Expression<T> customAssetHistoryRefs<T extends Object>(
+    Expression<T> Function($$CustomAssetHistoryTableAnnotationComposer a) f,
+  ) {
+    final $$CustomAssetHistoryTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.customAssetHistory,
+          getReferencedColumn: (t) => t.assetId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CustomAssetHistoryTableAnnotationComposer(
+                $db: $db,
+                $table: $db.customAssetHistory,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$CustomAssetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CustomAssetsTable,
+          CustomAsset,
+          $$CustomAssetsTableFilterComposer,
+          $$CustomAssetsTableOrderingComposer,
+          $$CustomAssetsTableAnnotationComposer,
+          $$CustomAssetsTableCreateCompanionBuilder,
+          $$CustomAssetsTableUpdateCompanionBuilder,
+          (CustomAsset, $$CustomAssetsTableReferences),
+          CustomAsset,
+          PrefetchHooks Function({bool categoryId, bool customAssetHistoryRefs})
+        > {
+  $$CustomAssetsTableTableManager(_$AppDatabase db, $CustomAssetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CustomAssetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CustomAssetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CustomAssetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> categoryId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => CustomAssetsCompanion(
+                id: id,
+                userId: userId,
+                categoryId: categoryId,
+                name: name,
+                description: description,
+                currency: currency,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String userId,
+                required int categoryId,
+                required String name,
+                Value<String?> description = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => CustomAssetsCompanion.insert(
+                id: id,
+                userId: userId,
+                categoryId: categoryId,
+                name: name,
+                description: description,
+                currency: currency,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CustomAssetsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({categoryId = false, customAssetHistoryRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (customAssetHistoryRefs) db.customAssetHistory,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (categoryId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.categoryId,
+                                    referencedTable:
+                                        $$CustomAssetsTableReferences
+                                            ._categoryIdTable(db),
+                                    referencedColumn:
+                                        $$CustomAssetsTableReferences
+                                            ._categoryIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (customAssetHistoryRefs)
+                        await $_getPrefetchedData<
+                          CustomAsset,
+                          $CustomAssetsTable,
+                          CustomAssetHistoryData
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CustomAssetsTableReferences
+                              ._customAssetHistoryRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CustomAssetsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).customAssetHistoryRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.assetId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$CustomAssetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CustomAssetsTable,
+      CustomAsset,
+      $$CustomAssetsTableFilterComposer,
+      $$CustomAssetsTableOrderingComposer,
+      $$CustomAssetsTableAnnotationComposer,
+      $$CustomAssetsTableCreateCompanionBuilder,
+      $$CustomAssetsTableUpdateCompanionBuilder,
+      (CustomAsset, $$CustomAssetsTableReferences),
+      CustomAsset,
+      PrefetchHooks Function({bool categoryId, bool customAssetHistoryRefs})
+    >;
+typedef $$CustomAssetHistoryTableCreateCompanionBuilder =
+    CustomAssetHistoryCompanion Function({
+      Value<int> id,
+      required int assetId,
+      required DateTime recordDate,
+      Value<double> value,
+      Value<double> cost,
+      Value<String?> note,
+      Value<DateTime> createdAt,
+    });
+typedef $$CustomAssetHistoryTableUpdateCompanionBuilder =
+    CustomAssetHistoryCompanion Function({
+      Value<int> id,
+      Value<int> assetId,
+      Value<DateTime> recordDate,
+      Value<double> value,
+      Value<double> cost,
+      Value<String?> note,
+      Value<DateTime> createdAt,
+    });
+
+final class $$CustomAssetHistoryTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $CustomAssetHistoryTable,
+          CustomAssetHistoryData
+        > {
+  $$CustomAssetHistoryTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CustomAssetsTable _assetIdTable(_$AppDatabase db) =>
+      db.customAssets.createAlias(
+        $_aliasNameGenerator(db.customAssetHistory.assetId, db.customAssets.id),
+      );
+
+  $$CustomAssetsTableProcessedTableManager get assetId {
+    final $_column = $_itemColumn<int>('asset_id')!;
+
+    final manager = $$CustomAssetsTableTableManager(
+      $_db,
+      $_db.customAssets,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_assetIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CustomAssetHistoryTableFilterComposer
+    extends Composer<_$AppDatabase, $CustomAssetHistoryTable> {
+  $$CustomAssetHistoryTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get recordDate => $composableBuilder(
+    column: $table.recordDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get cost => $composableBuilder(
+    column: $table.cost,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CustomAssetsTableFilterComposer get assetId {
+    final $$CustomAssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.customAssets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CustomAssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.customAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CustomAssetHistoryTableOrderingComposer
+    extends Composer<_$AppDatabase, $CustomAssetHistoryTable> {
+  $$CustomAssetHistoryTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get recordDate => $composableBuilder(
+    column: $table.recordDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get cost => $composableBuilder(
+    column: $table.cost,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CustomAssetsTableOrderingComposer get assetId {
+    final $$CustomAssetsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.customAssets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CustomAssetsTableOrderingComposer(
+            $db: $db,
+            $table: $db.customAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CustomAssetHistoryTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CustomAssetHistoryTable> {
+  $$CustomAssetHistoryTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get recordDate => $composableBuilder(
+    column: $table.recordDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<double> get cost =>
+      $composableBuilder(column: $table.cost, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$CustomAssetsTableAnnotationComposer get assetId {
+    final $$CustomAssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.customAssets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CustomAssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.customAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CustomAssetHistoryTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CustomAssetHistoryTable,
+          CustomAssetHistoryData,
+          $$CustomAssetHistoryTableFilterComposer,
+          $$CustomAssetHistoryTableOrderingComposer,
+          $$CustomAssetHistoryTableAnnotationComposer,
+          $$CustomAssetHistoryTableCreateCompanionBuilder,
+          $$CustomAssetHistoryTableUpdateCompanionBuilder,
+          (CustomAssetHistoryData, $$CustomAssetHistoryTableReferences),
+          CustomAssetHistoryData,
+          PrefetchHooks Function({bool assetId})
+        > {
+  $$CustomAssetHistoryTableTableManager(
+    _$AppDatabase db,
+    $CustomAssetHistoryTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CustomAssetHistoryTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CustomAssetHistoryTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CustomAssetHistoryTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> assetId = const Value.absent(),
+                Value<DateTime> recordDate = const Value.absent(),
+                Value<double> value = const Value.absent(),
+                Value<double> cost = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => CustomAssetHistoryCompanion(
+                id: id,
+                assetId: assetId,
+                recordDate: recordDate,
+                value: value,
+                cost: cost,
+                note: note,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int assetId,
+                required DateTime recordDate,
+                Value<double> value = const Value.absent(),
+                Value<double> cost = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => CustomAssetHistoryCompanion.insert(
+                id: id,
+                assetId: assetId,
+                recordDate: recordDate,
+                value: value,
+                cost: cost,
+                note: note,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CustomAssetHistoryTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({assetId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (assetId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.assetId,
+                                referencedTable:
+                                    $$CustomAssetHistoryTableReferences
+                                        ._assetIdTable(db),
+                                referencedColumn:
+                                    $$CustomAssetHistoryTableReferences
+                                        ._assetIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CustomAssetHistoryTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CustomAssetHistoryTable,
+      CustomAssetHistoryData,
+      $$CustomAssetHistoryTableFilterComposer,
+      $$CustomAssetHistoryTableOrderingComposer,
+      $$CustomAssetHistoryTableAnnotationComposer,
+      $$CustomAssetHistoryTableCreateCompanionBuilder,
+      $$CustomAssetHistoryTableUpdateCompanionBuilder,
+      (CustomAssetHistoryData, $$CustomAssetHistoryTableReferences),
+      CustomAssetHistoryData,
+      PrefetchHooks Function({bool assetId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8999,4 +11624,10 @@ class $AppDatabaseManager {
       $$AccountBalancesTableTableManager(_db, _db.accountBalances);
   $$CashTransactionsTableTableManager get cashTransactions =>
       $$CashTransactionsTableTableManager(_db, _db.cashTransactions);
+  $$CustomAssetCategoriesTableTableManager get customAssetCategories =>
+      $$CustomAssetCategoriesTableTableManager(_db, _db.customAssetCategories);
+  $$CustomAssetsTableTableManager get customAssets =>
+      $$CustomAssetsTableTableManager(_db, _db.customAssets);
+  $$CustomAssetHistoryTableTableManager get customAssetHistory =>
+      $$CustomAssetHistoryTableTableManager(_db, _db.customAssetHistory);
 }
