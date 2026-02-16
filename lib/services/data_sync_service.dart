@@ -1398,7 +1398,7 @@ class DataSyncService {
              userId: Value(cat['user_id']),
              name: Value(cat['name']),
              // iconPoint: Value(cat['icon_point']), // Check JSON keys from Supabase
-             colorHex: Value(cat['color_hex']),
+             colorHex: Value(cat['color']),
              createdAt: Value(DateTime.tryParse(cat['created_at'].toString()) ?? DateTime.now()),
              updatedAt: Value(DateTime.tryParse(cat['updated_at'].toString()) ?? DateTime.now()),
            ));
@@ -1420,7 +1420,7 @@ class DataSyncService {
              userId: Value(asset['user_id']),
              categoryId: Value(asset['category_id']),
              name: Value(asset['name']),
-             description: Value(asset['description']),
+             description: Value(asset['note']),
              currency: Value(asset['currency']),
              createdAt: Value(DateTime.tryParse(asset['created_at'].toString()) ?? DateTime.now()),
              updatedAt: Value(DateTime.tryParse(asset['updated_at'].toString()) ?? DateTime.now()),
@@ -1443,7 +1443,7 @@ class DataSyncService {
              assetId: Value(rec['asset_id']),
              recordDate: Value(DateTime.tryParse(rec['record_date'].toString()) ?? DateTime.now()),
              value: Value((rec['value'] as num).toDouble()),
-             cost: Value((rec['cost'] as num?)?.toDouble() ?? 0.0),
+             cost: Value((rec['cost_basis'] as num?)?.toDouble() ?? 0.0),
              note: Value(rec['note']),
              createdAt: Value(DateTime.tryParse(rec['created_at'].toString()) ?? DateTime.now()),
            ));
@@ -1478,7 +1478,7 @@ class DataSyncService {
         },
         body: {
           'name': name,
-          'color_hex': colorHex,
+          'color': colorHex,
         },
         method: HttpMethod.post,
       );
@@ -1490,7 +1490,7 @@ class DataSyncService {
                 id: Value(data['id']),
                 userId: Value(userId),
                 name: Value(data['name']),
-                colorHex: Value(data['color_hex']),
+                colorHex: Value(data['color']), // map remote 'color' to local 'colorHex'
                 createdAt: Value(DateTime.parse(data['created_at'])),
                 updatedAt: Value(DateTime.parse(data['updated_at'])),
               ),
@@ -1518,7 +1518,7 @@ class DataSyncService {
         body: {
           'id': id,
           'name': name,
-          'color_hex': colorHex,
+          'color': colorHex,
         },
         method: HttpMethod.put,
       );
@@ -1528,7 +1528,7 @@ class DataSyncService {
         await (db.update(db.customAssetCategories)..where((t) => t.id.equals(id)))
             .write(CustomAssetCategoriesCompanion(
               name: Value(data['name']),
-              colorHex: Value(data['color_hex']),
+              colorHex: Value(data['color']),
               updatedAt: Value(DateTime.parse(data['updated_at'])),
             ));
       }
@@ -1578,7 +1578,7 @@ class DataSyncService {
         body: {
           'category_id': categoryId,
           'name': name,
-          'description': description,
+          'note': description,
           'currency': currency,
         },
         method: HttpMethod.post,
@@ -1592,7 +1592,7 @@ class DataSyncService {
                 userId: Value(userId),
                 categoryId: Value(data['category_id']),
                 name: Value(data['name']),
-                description: Value(data['description']),
+                description: Value(data['note']),
                 currency: Value(data['currency']),
                 createdAt: Value(DateTime.parse(data['created_at'])),
                 updatedAt: Value(DateTime.parse(data['updated_at'])),
@@ -1621,7 +1621,7 @@ class DataSyncService {
         body: {
           'id': id,
           'name': name,
-          'description': description,
+          'note': description,
           'currency': currency,
         },
         method: HttpMethod.put,
@@ -1632,7 +1632,7 @@ class DataSyncService {
         await (db.update(db.customAssets)..where((t) => t.id.equals(id)))
             .write(CustomAssetsCompanion(
               name: Value(data['name']),
-              description: Value(data['description']),
+              description: Value(data['note']),
               currency: Value(data['currency']),
               updatedAt: Value(DateTime.parse(data['updated_at'])),
             ));
@@ -1684,7 +1684,7 @@ class DataSyncService {
           'asset_id': assetId,
           'record_date': recordDate.toIso8601String(),
           'value': value,
-          'cost': cost,
+          'cost_basis': cost,
           'note': note,
         },
         method: HttpMethod.post,
@@ -1698,7 +1698,7 @@ class DataSyncService {
                 assetId: Value(data['asset_id']),
                 recordDate: Value(DateTime.parse(data['record_date'])),
                 value: Value((data['value'] as num).toDouble()),
-                cost: Value((data['cost'] as num?)?.toDouble() ?? 0.0),
+                cost: Value((data['cost_basis'] as num?)?.toDouble() ?? 0.0),
                 note: Value(data['note']),
                 createdAt: Value(DateTime.parse(data['created_at'])),
               ),
@@ -1727,7 +1727,7 @@ class DataSyncService {
           'id': id,
           'record_date': recordDate.toIso8601String(),
           'value': value,
-          'cost': cost,
+          'cost_basis': cost,
           'note': note,
         },
         method: HttpMethod.put,
@@ -1739,7 +1739,7 @@ class DataSyncService {
             .write(CustomAssetHistoryCompanion(
               recordDate: Value(DateTime.parse(data['record_date'])),
               value: Value((data['value'] as num).toDouble()),
-              cost: Value((data['cost'] as num?)?.toDouble() ?? 0.0),
+              cost: Value((data['cost_basis'] as num?)?.toDouble() ?? 0.0),
               note: Value(data['note']),
             ));
       }
