@@ -1442,7 +1442,7 @@ class DataSyncService {
              id: Value(rec['id']),
              assetId: Value(rec['asset_id']),
              recordDate: Value(DateTime.tryParse(rec['record_date'].toString()) ?? DateTime.now()),
-             value: Value((rec['value'] as num).toDouble()),
+             value: Value((rec['asset_value'] as num).toDouble()),
              cost: Value((rec['cost_basis'] as num?)?.toDouble() ?? 0.0),
              note: Value(rec['remark']),
              createdAt: Value(DateTime.tryParse(rec['created_at'].toString()) ?? DateTime.now()),
@@ -1698,7 +1698,7 @@ class DataSyncService {
         body: {
           'asset_id': assetId,
           'record_date': recordDate.toIso8601String(),
-          'value': value,
+          'asset_value': value,
           'cost_basis': cost,
           'remark': note, 
         },
@@ -1712,7 +1712,7 @@ class DataSyncService {
                 id: Value(data['id']),
                 assetId: Value(data['asset_id']),
                 recordDate: Value(DateTime.tryParse(data['record_date'].toString()) ?? DateTime.now()),
-                value: Value((data['value'] as num?)?.toDouble() ?? 0.0),
+                value: Value((data['asset_value'] as num?)?.toDouble() ?? 0.0),
                 cost: Value((data['cost_basis'] as num?)?.toDouble() ?? 0.0),
                 note: Value(data['remark'] as String?),
                 createdAt: Value(DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now()),
@@ -1741,7 +1741,7 @@ class DataSyncService {
         body: {
           'id': id,
           'record_date': recordDate.toIso8601String(),
-          'value': value,
+          'asset_value': value,
           'cost_basis': cost,
           'remark': note,
         },
@@ -1760,7 +1760,7 @@ class DataSyncService {
         await (db.update(db.customAssetHistory)..where((t) => t.id.equals(id)))
             .write(CustomAssetHistoryCompanion(
               recordDate: Value(DateTime.tryParse(data['record_date'].toString()) ?? DateTime.now()),
-              value: Value((data['value'] as num?)?.toDouble() ?? 0.0),
+              value: Value((data['asset_value'] as num?)?.toDouble() ?? 0.0),
               cost: Value((data['cost_basis'] as num?)?.toDouble() ?? 0.0),
               note: Value(data['remark'] as String?),
             ));
