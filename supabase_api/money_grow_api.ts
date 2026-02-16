@@ -57,6 +57,12 @@ Deno.serve(async (req: { url: string | URL; method: any; headers: { get: (arg0: 
         const userId = url.searchParams.get('user_id');
         return handleCreateCash(userId, body);
       }
+      // Custom Assets (Category, Asset, History)
+      if (action === 'user-custom-assets') {
+        const userId = url.searchParams.get('user_id');
+        const type = url.searchParams.get('type');
+        return handleCreateCustomAsset(userId, type, body);
+      }
     }
 
     // GET actions
@@ -116,6 +122,13 @@ Deno.serve(async (req: { url: string | URL; method: any; headers: { get: (arg0: 
         const userId = url.searchParams.get('user_id');
         return handleUpdateAsset(userId, body);
       }
+      
+      // Update custom actions
+      if (action === 'user-custom-assets') {
+        const userId = url.searchParams.get('user_id');
+        const type = url.searchParams.get('type');
+        return handleUpdateCustomAsset(userId, type, body);
+      }
     }
 
     // DELETE actions
@@ -133,7 +146,15 @@ Deno.serve(async (req: { url: string | URL; method: any; headers: { get: (arg0: 
         const userId = url.searchParams.get('user_id');
         return handleDeleteCryptoInfo(userId, body);
       }
+      // Delete custom assets
+      if (action === 'user-custom-assets') {
+        const userId = url.searchParams.get('user_id');
+        const type = url.searchParams.get('type');
+        const id = url.searchParams.get('id');
+        return handleDeleteCustomAsset(userId, type, id);
+      }
     }
+
 
     return new Response(JSON.stringify({
       error: 'Not Found'
@@ -813,6 +834,21 @@ async function handleGetUserSummary(userId) {
     status: 500
   });
 
+  // 6. Query custom assets
+  const { data: customCategories, error: ccError } = await supabase.from('custom_asset_categories').select('*').eq('user_id', userId);
+  if (ccError) console.error('Error fetching custom categories:', ccError);
+
+  const { data: customAssets, error: caError } = await supabase.from('custom_assets').select('*').eq('user_id', userId);
+  if (caError) console.error('Error fetching custom assets:', caError);
+
+  let customAssetHistory = [];
+  if (customAssets && customAssets.length > 0) {
+      const assetIds = customAssets.map(a => a.id);
+      const { data: history, error: chError } = await supabase.from('custom_asset_history').select('*').in('asset_id', assetIds);
+      if (chError) console.error('Error fetching custom asset history:', chError);
+      if (history) customAssetHistory = history;
+  }
+
   const cryptoMap = {};
   if (cryptoData) {
     cryptoData.forEach((ci)=>{
@@ -897,7 +933,12 @@ async function handleGetUserSummary(userId) {
   const json = JSON.stringify({
     success: true,
     user_id: userId,
-    account_info: result
+    account_info: result,
+    custom_assets: {
+        categories: customCategories || [],
+        assets: customAssets || [],
+        history: customAssetHistory || []
+    }
   });
   const gzipped = gzip(new TextEncoder().encode(json));
   return new Response(gzipped, {
@@ -1197,6 +1238,117 @@ async function handleCreateCash(userId, body) {
     balance: upsertData
   }), { 
     status: 201,
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+// -------------------------------------------------
+// Custom Assets Functions
+// -------------------------------------------------
+
+async function handleCreateCustomAsset(userId, type, body) {
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Missing user_id' }), { status: 400 });
+  }
+
+  let table = '';
+  if (type === 'category') table = 'custom_asset_categories';
+  else if (type === 'asset') table = 'custom_assets';
+  else if (type === 'history') table = 'custom_asset_history';
+  else {
+    return new Response(JSON.stringify({ error: 'Invalid type' }), { status: 400 });
+  }
+
+  let dataToInsert = { ...body };
+  if (type === 'category' || type === 'asset') {
+    dataToInsert.user_id = userId;
+  }
+  
+  const { data, error } = await supabase
+    .from(table)
+    .insert(dataToInsert)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error creating custom ${type}:`, error);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  }
+
+  return new Response(JSON.stringify({ success: true, data: data }), { 
+    status: 201,
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+async function handleUpdateCustomAsset(userId, type, body) {
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Missing user_id' }), { status: 400 });
+  }
+
+  let table = '';
+  if (type === 'category') table = 'custom_asset_categories';
+  else if (type === 'asset') table = 'custom_assets';
+  else if (type === 'history') table = 'custom_asset_history';
+  else {
+    return new Response(JSON.stringify({ error: 'Invalid type' }), { status: 400 });
+  }
+
+  const { id, ...updates } = body;
+  if (!id) {
+    return new Response(JSON.stringify({ error: 'Missing ID' }), { status: 400 });
+  }
+
+  let query = supabase.from(table).update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id);
+
+  if (type === 'category' || type === 'asset') {
+    query = query.eq('user_id', userId);
+  }
+
+  const { data, error } = await query.select();
+
+  if (error) {
+     console.error(`Error updating custom ${type}:`, error);
+     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  }
+
+  return new Response(JSON.stringify({ success: true, data: data }), { 
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+async function handleDeleteCustomAsset(userId, type, id) {
+  if (userId == null) {
+      return new Response(JSON.stringify({ error: 'Missing user_id' }), { status: 400 });
+  }
+  if (!id) {
+    return new Response(JSON.stringify({ error: 'Missing ID' }), { status: 400 });
+  }
+
+  let table = '';
+  if (type === 'category') table = 'custom_asset_categories';
+  else if (type === 'asset') table = 'custom_assets';
+  else if (type === 'history') table = 'custom_asset_history';
+  else {
+    return new Response(JSON.stringify({ error: 'Invalid type' }), { status: 400 });
+  }
+
+  let query = supabase.from(table).delete().eq('id', id);
+
+  if (type === 'category' || type === 'asset') {
+    query = query.eq('user_id', userId);
+  }
+
+  const { error } = await query;
+
+  if (error) {
+     console.error(`Error deleting custom ${type}:`, error);
+     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  }
+
+  return new Response(JSON.stringify({ success: true }), { 
+    status: 200, 
     headers: { 'Content-Type': 'application/json' }
   });
 }

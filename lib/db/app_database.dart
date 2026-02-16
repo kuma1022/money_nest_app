@@ -398,6 +398,43 @@ class MarketData extends Table {
   Set<Column> get primaryKey => {code}; // 以股票代码作为主键
 }
 
+// --- Custom Assets Tables ---
+
+class CustomAssetCategories extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get userId => text()();
+  TextColumn get name => text().withLength(min: 1, max: 100)();
+  IntColumn get iconPoint => integer().nullable()(); 
+  TextColumn get colorHex => text().nullable()(); 
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class CustomAssets extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get userId => text()();
+  IntColumn get categoryId => integer().references(CustomAssetCategories, #id)();
+  TextColumn get name => text().withLength(min: 1, max: 100)();
+  TextColumn get description => text().nullable()();
+  TextColumn get currency => text().withDefault(const Constant('JPY'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class CustomAssetHistory extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get assetId => integer().references(CustomAssets, #id, onDelete: KeyAction.cascade)();
+  DateTimeColumn get recordDate => dateTime()();
+  RealColumn get value => real().withDefault(const Constant(0.0))();
+  TextColumn get note => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {assetId, recordDate},
+  ];
+}
+
 // 数据库类
 @DriftDatabase(
   tables: [
@@ -412,6 +449,9 @@ class MarketData extends Table {
     CryptoInfo,
     AccountBalances,
     CashTransactions,
+    CustomAssetCategories,
+    CustomAssets,
+    CustomAssetHistory,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -420,7 +460,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase() => _instance;
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -431,6 +471,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         await m.createTable(accountBalances);
         await m.createTable(cashTransactions);
+      }
+      if (from < 3) {
+        await m.createTable(customAssetCategories);
+        await m.createTable(customAssets);
+        await m.createTable(customAssetHistory);
       }
     },
   );

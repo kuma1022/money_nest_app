@@ -395,6 +395,12 @@ class DataSyncService {
               console.log('Account $accountId sync completed successfully');
             }
           }
+           
+          // Sync custom assets
+          if (data['custom_assets'] != null) {
+            await _syncCustomAssets(data['custom_assets'], userId);
+          }
+
         } else {
           console.log('No account_info found in response data');
         }
@@ -1375,6 +1381,81 @@ class DataSyncService {
     } catch (e) {
       print('Error adding cash transaction: $e');
       rethrow;
+    }
+  }
+
+  Future<void> _syncCustomAssets(Map<String, dynamic> customAssetsData, String userId) async {
+    try {
+      print('Syncing custom assets for user $userId');
+      
+      // Sync Categories
+      if (customAssetsData['categories'] != null) {
+        final categories = customAssetsData['categories'] as List;
+        final List<CustomAssetCategoriesCompanion> categoriesInsert = [];
+        for (var cat in categories) {
+           categoriesInsert.add(CustomAssetCategoriesCompanion(
+             id: Value(cat['id']),
+             userId: Value(cat['user_id']),
+             name: Value(cat['name']),
+             // iconPoint: Value(cat['icon_point']), // Check JSON keys from Supabase
+             colorHex: Value(cat['color_hex']),
+             createdAt: Value(DateTime.tryParse(cat['created_at'].toString()) ?? DateTime.now()),
+             updatedAt: Value(DateTime.tryParse(cat['updated_at'].toString()) ?? DateTime.now()),
+           ));
+        }
+        if (categoriesInsert.isNotEmpty) {
+           await db.batch((batch) {
+             batch.insertAllOnConflictUpdate(db.customAssetCategories, categoriesInsert);
+           });
+        }
+      }
+
+      // Sync Assets
+      if (customAssetsData['assets'] != null) {
+        final assets = customAssetsData['assets'] as List;
+        final List<CustomAssetsCompanion> assetsInsert = [];
+        for (var asset in assets) {
+           assetsInsert.add(CustomAssetsCompanion(
+             id: Value(asset['id']),
+             userId: Value(asset['user_id']),
+             categoryId: Value(asset['category_id']),
+             name: Value(asset['name']),
+             description: Value(asset['description']),
+             currency: Value(asset['currency']),
+             createdAt: Value(DateTime.tryParse(asset['created_at'].toString()) ?? DateTime.now()),
+             updatedAt: Value(DateTime.tryParse(asset['updated_at'].toString()) ?? DateTime.now()),
+           ));
+        }
+        if (assetsInsert.isNotEmpty) {
+           await db.batch((batch) {
+             batch.insertAllOnConflictUpdate(db.customAssets, assetsInsert);
+           });
+        }
+      }
+
+      // Sync History
+      if (customAssetsData['history'] != null) {
+        final history = customAssetsData['history'] as List;
+        final List<CustomAssetHistoryCompanion> historyInsert = [];
+        for (var rec in history) {
+           historyInsert.add(CustomAssetHistoryCompanion(
+             id: Value(rec['id']),
+             assetId: Value(rec['asset_id']),
+             recordDate: Value(DateTime.tryParse(rec['record_date'].toString()) ?? DateTime.now()),
+             value: Value((rec['value'] as num).toDouble()),
+             note: Value(rec['note']),
+             createdAt: Value(DateTime.tryParse(rec['created_at'].toString()) ?? DateTime.now()),
+           ));
+        }
+        if (historyInsert.isNotEmpty) {
+           await db.batch((batch) {
+             batch.insertAllOnConflictUpdate(db.customAssetHistory, historyInsert);
+           });
+        }
+      }
+
+    } catch (e) {
+      print('Error syncing custom assets: $e');
     }
   }
 }
