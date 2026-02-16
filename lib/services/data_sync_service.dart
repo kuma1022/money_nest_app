@@ -1443,6 +1443,7 @@ class DataSyncService {
              assetId: Value(rec['asset_id']),
              recordDate: Value(DateTime.tryParse(rec['record_date'].toString()) ?? DateTime.now()),
              value: Value((rec['value'] as num).toDouble()),
+             cost: Value((rec['cost'] as num?)?.toDouble() ?? 0.0),
              note: Value(rec['note']),
              createdAt: Value(DateTime.tryParse(rec['created_at'].toString()) ?? DateTime.now()),
            ));
@@ -1456,6 +1457,320 @@ class DataSyncService {
 
     } catch (e) {
       print('Error syncing custom assets: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Custom Asset CRUD Operations (Call API + Update Local DB)
+  // ---------------------------------------------------------------------------
+
+  Future<void> addCustomCategory(String name, String colorHex) async {
+    final userId = GlobalStore().userId;
+    if (userId == null) return;
+
+    try {
+      final res = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {
+          'action': 'user-custom-assets',
+          'user_id': userId,
+          'type': 'category'
+        },
+        body: {
+          'name': name,
+          'color_hex': colorHex,
+        },
+        method: HttpMethod.post,
+      );
+
+      if (res.status == 201 && res.data['success'] == true) {
+        final data = res.data['data'];
+        await db.into(db.customAssetCategories).insert(
+              CustomAssetCategoriesCompanion(
+                id: Value(data['id']),
+                userId: Value(userId),
+                name: Value(data['name']),
+                colorHex: Value(data['color_hex']),
+                createdAt: Value(DateTime.parse(data['created_at'])),
+                updatedAt: Value(DateTime.parse(data['updated_at'])),
+              ),
+              mode: InsertMode.insertOrReplace,
+            );
+      }
+    } catch (e) {
+      print('Error adding custom category: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateCustomCategory(int id, String name, String colorHex) async {
+    final userId = GlobalStore().userId;
+    if (userId == null) return;
+
+    try {
+      final res = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {
+          'action': 'user-custom-assets',
+          'user_id': userId,
+          'type': 'category'
+        },
+        body: {
+          'id': id,
+          'name': name,
+          'color_hex': colorHex,
+        },
+        method: HttpMethod.put,
+      );
+
+      if (res.status == 200 && res.data['success'] == true) {
+        final data = res.data['data'];
+        await (db.update(db.customAssetCategories)..where((t) => t.id.equals(id)))
+            .write(CustomAssetCategoriesCompanion(
+              name: Value(data['name']),
+              colorHex: Value(data['color_hex']),
+              updatedAt: Value(DateTime.parse(data['updated_at'])),
+            ));
+      }
+    } catch (e) {
+      print('Error updating custom category: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCustomCategory(int id) async {
+    final userId = GlobalStore().userId;
+    if (userId == null) return;
+
+    try {
+      final res = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {
+          'action': 'user-custom-assets',
+          'user_id': userId,
+          'type': 'category',
+          'id': id.toString(),
+        },
+        method: HttpMethod.delete,
+      );
+
+      if (res.status == 200 && res.data['success'] == true) {
+        await (db.delete(db.customAssetCategories)..where((t) => t.id.equals(id))).go();
+      }
+    } catch (e) {
+      print('Error deleting custom category: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> addCustomAsset(int categoryId, String name, String? description, String currency) async {
+    final userId = GlobalStore().userId;
+    if (userId == null) return;
+
+    try {
+      final res = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {
+          'action': 'user-custom-assets',
+          'user_id': userId,
+          'type': 'asset'
+        },
+        body: {
+          'category_id': categoryId,
+          'name': name,
+          'description': description,
+          'currency': currency,
+        },
+        method: HttpMethod.post,
+      );
+
+      if (res.status == 201 && res.data['success'] == true) {
+        final data = res.data['data'];
+        await db.into(db.customAssets).insert(
+              CustomAssetsCompanion(
+                id: Value(data['id']),
+                userId: Value(userId),
+                categoryId: Value(data['category_id']),
+                name: Value(data['name']),
+                description: Value(data['description']),
+                currency: Value(data['currency']),
+                createdAt: Value(DateTime.parse(data['created_at'])),
+                updatedAt: Value(DateTime.parse(data['updated_at'])),
+              ),
+              mode: InsertMode.insertOrReplace,
+            );
+      }
+    } catch (e) {
+      print('Error adding custom asset: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateCustomAsset(int id, String name, String? description, String currency) async {
+    final userId = GlobalStore().userId;
+    if (userId == null) return;
+
+    try {
+      final res = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {
+          'action': 'user-custom-assets',
+          'user_id': userId,
+          'type': 'asset'
+        },
+        body: {
+          'id': id,
+          'name': name,
+          'description': description,
+          'currency': currency,
+        },
+        method: HttpMethod.put,
+      );
+
+      if (res.status == 200 && res.data['success'] == true) {
+        final data = res.data['data'];
+        await (db.update(db.customAssets)..where((t) => t.id.equals(id)))
+            .write(CustomAssetsCompanion(
+              name: Value(data['name']),
+              description: Value(data['description']),
+              currency: Value(data['currency']),
+              updatedAt: Value(DateTime.parse(data['updated_at'])),
+            ));
+      }
+    } catch (e) {
+      print('Error updating custom asset: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCustomAsset(int id) async {
+    final userId = GlobalStore().userId;
+    if (userId == null) return;
+
+    try {
+      final res = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {
+          'action': 'user-custom-assets',
+          'user_id': userId,
+          'type': 'asset',
+          'id': id.toString(),
+        },
+        method: HttpMethod.delete,
+      );
+
+      if (res.status == 200 && res.data['success'] == true) {
+        await (db.delete(db.customAssets)..where((t) => t.id.equals(id))).go();
+      }
+    } catch (e) {
+      print('Error deleting custom asset: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> addCustomAssetHistory(int assetId, DateTime recordDate, double value, double cost, String? note) async {
+    final userId = GlobalStore().userId;
+    if (userId == null) return;
+
+    try {
+      final res = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {
+          'action': 'user-custom-assets',
+          'user_id': userId,
+          'type': 'history'
+        },
+        body: {
+          'asset_id': assetId,
+          'record_date': recordDate.toIso8601String(),
+          'value': value,
+          'cost': cost,
+          'note': note,
+        },
+        method: HttpMethod.post,
+      );
+
+      if (res.status == 201 && res.data['success'] == true) {
+        final data = res.data['data'];
+        await db.into(db.customAssetHistory).insert(
+              CustomAssetHistoryCompanion(
+                id: Value(data['id']),
+                assetId: Value(data['asset_id']),
+                recordDate: Value(DateTime.parse(data['record_date'])),
+                value: Value((data['value'] as num).toDouble()),
+                cost: Value((data['cost'] as num?)?.toDouble() ?? 0.0),
+                note: Value(data['note']),
+                createdAt: Value(DateTime.parse(data['created_at'])),
+              ),
+              mode: InsertMode.insertOrReplace,
+            );
+      }
+    } catch (e) {
+      print('Error adding custom asset history: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateCustomAssetHistory(int id, DateTime recordDate, double value, double cost, String? note) async {
+    final userId = GlobalStore().userId;
+    if (userId == null) return;
+
+    try {
+      final res = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {
+          'action': 'user-custom-assets',
+          'user_id': userId,
+          'type': 'history'
+        },
+        body: {
+          'id': id,
+          'record_date': recordDate.toIso8601String(),
+          'value': value,
+          'cost': cost,
+          'note': note,
+        },
+        method: HttpMethod.put,
+      );
+
+      if (res.status == 200 && res.data['success'] == true) {
+        final data = res.data['data'];
+        await (db.update(db.customAssetHistory)..where((t) => t.id.equals(id)))
+            .write(CustomAssetHistoryCompanion(
+              recordDate: Value(DateTime.parse(data['record_date'])),
+              value: Value((data['value'] as num).toDouble()),
+              cost: Value((data['cost'] as num?)?.toDouble() ?? 0.0),
+              note: Value(data['note']),
+            ));
+      }
+    } catch (e) {
+      print('Error updating custom asset history: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCustomAssetHistory(int id) async {
+    final userId = GlobalStore().userId;
+    if (userId == null) return;
+
+    try {
+      final res = await supabaseApi.supabaseInvoke(
+        'money_grow_api',
+        queryParameters: {
+          'action': 'user-custom-assets',
+          'user_id': userId,
+          'type': 'history',
+          'id': id.toString(),
+        },
+        method: HttpMethod.delete,
+      );
+
+      if (res.status == 200 && res.data['success'] == true) {
+        await (db.delete(db.customAssetHistory)..where((t) => t.id.equals(id))).go();
+      }
+    } catch (e) {
+      print('Error deleting custom asset history: $e');
+      rethrow;
     }
   }
 }

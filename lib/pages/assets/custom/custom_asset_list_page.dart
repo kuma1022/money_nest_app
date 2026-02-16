@@ -5,6 +5,8 @@ import 'package:drift/drift.dart' as drift;
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:money_nest_app/pages/assets/custom/custom_asset_detail_page.dart';
 import 'package:money_nest_app/util/global_store.dart';
+import 'package:provider/provider.dart';
+import 'package:money_nest_app/services/data_sync_service.dart';
 
 class CustomAssetListPage extends StatefulWidget {
   final AppDatabase db;
@@ -29,19 +31,26 @@ class _CustomAssetListPageState extends State<CustomAssetListPage> {
   }
 
   Future<void> _addAsset(String name, String description, String currency) async {
-    final userId = GlobalStore().userId;
-    if (userId == null) return;
+    await Provider.of<DataSyncService>(context, listen: false).addCustomAsset(
+      widget.category.id,
+      name,
+      description,
+      currency,
+    );
+  }
 
-    await widget.db.into(widget.db.customAssets).insert(
-          CustomAssetsCompanion.insert(
-            userId: userId,
-            categoryId: widget.category.id,
-            name: name,
-            description: drift.Value(description),
-            currency: drift.Value(currency),
-            updatedAt: drift.Value(DateTime.now()),
-          ),
-        );
+  Future<void> _updateAsset(CustomAsset asset, String name, String description, String currency) async {
+    await Provider.of<DataSyncService>(context, listen: false).updateCustomAsset(
+      asset.id,
+      widget.category.id,
+      name,
+      description,
+      currency,
+    );
+  }
+
+  Future<void> _deleteAsset(int id) async {
+    await Provider.of<DataSyncService>(context, listen: false).deleteCustomAsset(id);
   }
 
   void _showAssetDialog(BuildContext context, {CustomAsset? asset}) {
@@ -51,68 +60,93 @@ class _CustomAssetListPageState extends State<CustomAssetListPage> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text(asset == null ? 'Add Asset to ${widget.category.name}' : 'Edit Asset', style: const TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Name', labelStyle: TextStyle(color: Colors.white70)),
-              style: const TextStyle(color: Colors.white),
-            ),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description', labelStyle: TextStyle(color: Colors.white70)),
-              style: const TextStyle(color: Colors.white),
-            ),
-            DropdownButton<String>(
-              value: currency,
-              dropdownColor: Colors.grey[800],
-              style: const TextStyle(color: Colors.white),
-              items: <String>['JPY', 'USD', 'EUR', 'GBP'].map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (newValue) {
-                // To update state inside Dialog, consider StatefulBuilder if needed, but here we capture value
-                // in variable. But UI won't update.
-                // For MVP, just assume selection updates variable and use it on Save.
-                // A better way is using StatefulBuilder.
-                currency = newValue!;
-                (context as Element).markNeedsBuild(); // Force rebuild
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty) {
-                if (asset == null) {
-                  _addAsset(nameController.text, descriptionController.text, currency);
-                } else {
-                  // Update logic
-                  (widget.db.update(widget.db.customAssets)
-                        ..where((t) => t.id.equals(asset.id)))
-                      .write(CustomAssetsCompanion(
-                    name: drift.Value(nameController.text),
-                    description: drift.Value(descriptionController.text),
-                    currency: drift.Value(currency),
-                    updatedAt: drift.Value(DateTime.now()),
-                  ));
-                }
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: Text(asset == null ? 'Add Asset to ${widget.category.name}' : 'Edit Asset', style: const TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Name', labelStyle: TextStyle(color: Colors.white70)),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(labelText: 'Description', labelStyle: TextStyle(color: Colors.white70)),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Text('Currency: ', style: TextStyle(color: Colors.white)),
+                      DropdownButton<String>(
+                        value: currency,
+                        dropdownColor: Colors.grey[800],
+                        style: const TextStyle(color: Colors.white),
+                        items: <String>['JPY', 'USD', 'EUR', 'GBP', 'CNY'].map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (newValue) {
+                          setState(() {
+                             currency = newValue!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                if (asset != null)
+                  TextButton(
+                    onPressed: () {
+                      // Confirm delete
+                      showDialog(
+                        context: context, 
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Delete Asset?'),
+                          content: const Text('This will delete the asset and its history.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                            TextButton(
+                                onPressed: () {
+                                  _deleteAsset(asset.id);
+                                  Navigator.pop(ctx); // Close confirm
+                                  Navigator.pop(context); // Close edit dialog
+                                }, 
+                                child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                          ],
+                        )
+                      );
+                    },
+                    child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                  ),
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: () {
+                    if (nameController.text.isNotEmpty) {
+                      if (asset == null) {
+                        _addAsset(nameController.text, descriptionController.text, currency);
+                      } else {
+                        _updateAsset(asset, nameController.text, descriptionController.text, currency);
+                      }
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          }
+        );
+      },
     );
   }
 

@@ -7,6 +7,8 @@ import 'package:money_nest_app/pages/assets/custom/custom_asset_list_page.dart';
 import 'package:money_nest_app/presentation/resources/app_colors.dart';
 import 'package:money_nest_app/util/global_store.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:provider/provider.dart';
+import 'package:money_nest_app/services/data_sync_service.dart';
 
 class CustomAssetsPage extends StatefulWidget {
   final AppDatabase db;
@@ -26,33 +28,22 @@ class _CustomAssetsPageState extends State<CustomAssetsPage> {
   }
 
   Future<void> _addCategory(String name, Color color) async {
-    final userId = GlobalStore().userId;
-    if (userId == null) return;
-
-    await widget.db.into(widget.db.customAssetCategories).insert(
-          CustomAssetCategoriesCompanion.insert(
-            userId: userId,
-            name: name,
-            colorHex: drift.Value(color.value.toRadixString(16).padLeft(8, '0')),
-            updatedAt: drift.Value(DateTime.now()),
-          ),
-        );
+      await Provider.of<DataSyncService>(context, listen: false).addCustomCategory(
+        name,
+        color.value.toRadixString(16).padLeft(8, '0'),
+      );
   }
 
   Future<void> _updateCategory(CustomAssetCategory category, String name, Color color) async {
-    await (widget.db.update(widget.db.customAssetCategories)
-          ..where((t) => t.id.equals(category.id)))
-        .write(CustomAssetCategoriesCompanion(
-      name: drift.Value(name),
-      colorHex: drift.Value(color.value.toRadixString(16).padLeft(8, '0')),
-      updatedAt: drift.Value(DateTime.now()),
-    ));
+      await Provider.of<DataSyncService>(context, listen: false).updateCustomCategory(
+        category.id,
+        name,
+        color.value.toRadixString(16).padLeft(8, '0'),
+      );
   }
 
   Future<void> _deleteCategory(int id) async {
-    await (widget.db.delete(widget.db.customAssetCategories)
-          ..where((t) => t.id.equals(id)))
-        .go();
+      await Provider.of<DataSyncService>(context, listen: false).deleteCustomCategory(id);
   }
   
   void _showCategoryDialog(BuildContext context, {CustomAssetCategory? category}) {

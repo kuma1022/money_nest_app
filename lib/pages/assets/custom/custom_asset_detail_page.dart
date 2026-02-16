@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:money_nest_app/db/app_database.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:money_nest_app/services/data_sync_service.dart';
 
 class CustomAssetDetailPage extends StatefulWidget {
   final AppDatabase db;
@@ -27,90 +29,111 @@ class _CustomAssetDetailPageState extends State<CustomAssetDetailPage> {
         .watch();
   }
 
-  Future<void> _addHistory(DateTime date, double value, String note) async {
-    await widget.db.into(widget.db.customAssetHistory).insert(
-          CustomAssetHistoryCompanion.insert(
-            assetId: widget.asset.id,
-            recordDate: date,
-            value: drift.Value(value),
-            note: drift.Value(note),
-            createdAt: drift.Value(DateTime.now()),
-          ),
-        );
+  Future<void> _addHistory(DateTime date, double value, double cost, String note) async {
+      await Provider.of<DataSyncService>(context, listen: false).addCustomAssetHistory(
+        widget.asset.id,
+        date,
+        value,
+        cost,
+        note,
+      );
+  }
+
+  Future<void> _updateHistory(CustomAssetHistoryData history, DateTime date, double value, double cost, String note) async {
+      await Provider.of<DataSyncService>(context, listen: false).updateCustomAssetHistory(
+        history.id,
+        widget.asset.id,
+        date,
+        value,
+        cost,
+        note,
+      );
+  }
+
+  Future<void> _deleteHistory(int id) async {
+      await Provider.of<DataSyncService>(context, listen: false).deleteCustomAssetHistory(id);
   }
   
   void _showHistoryDialog(BuildContext context, {CustomAssetHistoryData? history}) {
     final valueController = TextEditingController(text: history?.value.toString() ?? '');
+    final costController = TextEditingController(text: history?.cost.toString() ?? '0.0');
     final noteController = TextEditingController(text: history?.note ?? '');
     DateTime selectedDate = history?.recordDate ?? DateTime.now();
     
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text(history == null ? 'Add History Record' : 'Edit Record', style: const TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: valueController,
-              decoration: const InputDecoration(labelText: 'Value', labelStyle: TextStyle(color: Colors.white70)),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(color: Colors.white),
-            ),
-            TextField(
-              controller: noteController,
-              decoration: const InputDecoration(labelText: 'Note', labelStyle: TextStyle(color: Colors.white70)),
-              style: const TextStyle(color: Colors.white),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Text("Date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}", style: const TextStyle(color: Colors.white)),
-                IconButton(
-                  icon: const Icon(Icons.calendar_today, color: Colors.blue),
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) {
-                       // Update logic using stateful builder or just var
-                       selectedDate = picked;
-                       (context as Element).markNeedsBuild();
-                    }
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[900],
+              title: Text(history == null ? 'Add History Record' : 'Edit Record', style: const TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: valueController,
+                    decoration: const InputDecoration(labelText: 'Value (Current)', labelStyle: TextStyle(color: Colors.white70)),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  TextField(
+                    controller: costController,
+                    decoration: const InputDecoration(labelText: 'Cost (Original Value)', labelStyle: TextStyle(color: Colors.white70)),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  TextField(
+                    controller: noteController,
+                    decoration: const InputDecoration(labelText: 'Note', labelStyle: TextStyle(color: Colors.white70)),
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Text("Date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}", style: const TextStyle(color: Colors.white)),
+                      IconButton(
+                        icon: const Icon(Icons.calendar_today, color: Colors.blue),
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                             setState(() {
+                               selectedDate = picked;
+                             });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: () {
+                     final val = double.tryParse(valueController.text);
+                     final cost = double.tryParse(costController.text) ?? 0.0;
+                     if (val != null) {
+                       if (history == null) {
+                         _addHistory(selectedDate, val, cost, noteController.text);
+                       } else {
+                         _updateHistory(history, selectedDate, val, cost, noteController.text);
+                       }
+                       Navigator.pop(context);
+                     }
                   },
+                  child: const Text('Save'),
                 ),
               ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-               final val = double.tryParse(valueController.text);
-               if (val != null) {
-                 if (history == null) {
-                   _addHistory(selectedDate, val, noteController.text);
-                 } else {
-                   (widget.db.update(widget.db.customAssetHistory)
-                        ..where((t) => t.id.equals(history.id)))
-                      .write(CustomAssetHistoryCompanion(
-                        recordDate: drift.Value(selectedDate),
-                        value: drift.Value(val),
-                        note: drift.Value(noteController.text),
-                      ));
-                 }
-                 Navigator.pop(context);
-               }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
+            );
+          }
+        );
+      },
     );
   }
 
@@ -144,9 +167,19 @@ class _CustomAssetDetailPageState extends State<CustomAssetDetailPage> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
                   leading: const Icon(Icons.history, color: Colors.blue),
-                  title: Text(
-                    '${widget.asset.currency} ${NumberFormat('#,##0.00').format(rec.value)}',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${widget.asset.currency} ${NumberFormat('#,##0.00').format(rec.value)}',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      if (rec.cost > 0)
+                        Text(
+                          'Cost: ${widget.asset.currency} ${NumberFormat('#,##0.00').format(rec.cost)}',
+                          style: const TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                    ],
                   ),
                   subtitle: Text(
                     '${DateFormat('yyyy-MM-dd').format(rec.recordDate)}\n${rec.note ?? ''}',
@@ -166,7 +199,7 @@ class _CustomAssetDetailPageState extends State<CustomAssetDetailPage> {
                            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
                            TextButton(
                              onPressed: () {
-                               (widget.db.delete(widget.db.customAssetHistory)..where((t) => t.id.equals(rec.id))).go();
+                               _deleteHistory(rec.id);
                                Navigator.pop(context);
                              }, 
                              child: const Text('Delete', style: TextStyle(color: Colors.red))

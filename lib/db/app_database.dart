@@ -426,6 +426,7 @@ class CustomAssetHistory extends Table {
   IntColumn get assetId => integer().references(CustomAssets, #id, onDelete: KeyAction.cascade)();
   DateTimeColumn get recordDate => dateTime()();
   RealColumn get value => real().withDefault(const Constant(0.0))();
+  RealColumn get cost => real().withDefault(const Constant(0.0))(); // New cost field
   TextColumn get note => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   
