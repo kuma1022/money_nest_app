@@ -1396,9 +1396,9 @@ class DataSyncService {
            categoriesInsert.add(CustomAssetCategoriesCompanion(
              id: Value(cat['id']),
              userId: Value(cat['user_id']),
-             name: Value(cat['name']),
+             name: Value(cat['name']?.toString() ?? ''),
              // iconPoint: Value(cat['icon_point']), // Check JSON keys from Supabase
-             colorHex: Value(cat['color']),
+             colorHex: Value(cat['color'] as String?),
              createdAt: Value(DateTime.tryParse(cat['created_at'].toString()) ?? DateTime.now()),
              updatedAt: Value(DateTime.tryParse(cat['updated_at'].toString()) ?? DateTime.now()),
            ));
@@ -1485,14 +1485,15 @@ class DataSyncService {
 
       if (res.status == 201 && res.data['success'] == true) {
         final data = res.data['data'];
+        print('DEBUG: addCustomCategory response data = $data'); // debug log
         await db.into(db.customAssetCategories).insert(
               CustomAssetCategoriesCompanion(
                 id: Value(data['id']),
                 userId: Value(userId),
-                name: Value(data['name']),
-                colorHex: Value(data['color']), // map remote 'color' to local 'colorHex'
-                createdAt: Value(DateTime.parse(data['created_at'])),
-                updatedAt: Value(DateTime.parse(data['updated_at'])),
+                name: Value(data['name'] ?? ''), // Ensure non-null
+                colorHex: Value(data['color'] as String?), // Explicit cast
+                createdAt: Value(DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now()),
+                updatedAt: Value(DateTime.tryParse(data['updated_at'].toString()) ?? DateTime.now()),
               ),
               mode: InsertMode.insertOrReplace,
             );
@@ -1527,9 +1528,9 @@ class DataSyncService {
         final data = res.data['data'];
         await (db.update(db.customAssetCategories)..where((t) => t.id.equals(id)))
             .write(CustomAssetCategoriesCompanion(
-              name: Value(data['name']),
-              colorHex: Value(data['color']),
-              updatedAt: Value(DateTime.parse(data['updated_at'])),
+              name: Value(data['name'] ?? ''),
+              colorHex: Value(data['color'] as String?),
+              updatedAt: Value(DateTime.tryParse(data['updated_at'].toString()) ?? DateTime.now()),
             ));
       }
     } catch (e) {
@@ -1591,11 +1592,11 @@ class DataSyncService {
                 id: Value(data['id']),
                 userId: Value(userId),
                 categoryId: Value(data['category_id']),
-                name: Value(data['name']),
-                description: Value(data['note']),
-                currency: Value(data['currency']),
-                createdAt: Value(DateTime.parse(data['created_at'])),
-                updatedAt: Value(DateTime.parse(data['updated_at'])),
+                name: Value(data['name'] ?? ''),
+                description: Value(data['note'] as String?),
+                currency: Value(data['currency'] ?? 'JPY'),
+                createdAt: Value(DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now()),
+                updatedAt: Value(DateTime.tryParse(data['updated_at'].toString()) ?? DateTime.now()),
               ),
               mode: InsertMode.insertOrReplace,
             );
@@ -1631,10 +1632,10 @@ class DataSyncService {
         final data = res.data['data'];
         await (db.update(db.customAssets)..where((t) => t.id.equals(id)))
             .write(CustomAssetsCompanion(
-              name: Value(data['name']),
-              description: Value(data['note']),
-              currency: Value(data['currency']),
-              updatedAt: Value(DateTime.parse(data['updated_at'])),
+              name: Value(data['name'] ?? ''),
+              description: Value(data['note'] as String?),
+              currency: Value(data['currency'] ?? 'JPY'),
+              updatedAt: Value(DateTime.tryParse(data['updated_at'].toString()) ?? DateTime.now()),
             ));
       }
     } catch (e) {
@@ -1696,11 +1697,11 @@ class DataSyncService {
               CustomAssetHistoryCompanion(
                 id: Value(data['id']),
                 assetId: Value(data['asset_id']),
-                recordDate: Value(DateTime.parse(data['record_date'])),
-                value: Value((data['value'] as num).toDouble()),
+                recordDate: Value(DateTime.tryParse(data['record_date'].toString()) ?? DateTime.now()),
+                value: Value((data['value'] as num?)?.toDouble() ?? 0.0),
                 cost: Value((data['cost_basis'] as num?)?.toDouble() ?? 0.0),
-                note: Value(data['note']),
-                createdAt: Value(DateTime.parse(data['created_at'])),
+                note: Value(data['note'] as String?),
+                createdAt: Value(DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now()),
               ),
               mode: InsertMode.insertOrReplace,
             );
@@ -1737,10 +1738,10 @@ class DataSyncService {
         final data = res.data['data'];
         await (db.update(db.customAssetHistory)..where((t) => t.id.equals(id)))
             .write(CustomAssetHistoryCompanion(
-              recordDate: Value(DateTime.parse(data['record_date'])),
-              value: Value((data['value'] as num).toDouble()),
+              recordDate: Value(DateTime.tryParse(data['record_date'].toString()) ?? DateTime.now()),
+              value: Value((data['value'] as num?)?.toDouble() ?? 0.0),
               cost: Value((data['cost_basis'] as num?)?.toDouble() ?? 0.0),
-              note: Value(data['note']),
+              note: Value(data['note'] as String?),
             ));
       }
     } catch (e) {
