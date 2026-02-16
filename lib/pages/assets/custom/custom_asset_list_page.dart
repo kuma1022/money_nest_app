@@ -180,7 +180,39 @@ class _CustomAssetListPageState extends State<CustomAssetListPage> {
                 child: ListTile(
                   title: Text(asset.name, style: const TextStyle(color: Colors.white)),
                   subtitle: Text(asset.description ?? '', style: const TextStyle(color: Colors.white70)),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.grey),
+                        onPressed: () => _showAssetDialog(context, asset: asset),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () {
+                           showDialog(
+                             context: context,
+                             builder: (context) => AlertDialog(
+                               backgroundColor: Colors.grey[900],
+                               title: const Text('Delete Asset?', style: TextStyle(color: Colors.white)),
+                               content: const Text('This will delete the asset and its history.', style: TextStyle(color: Colors.white70)),
+                               actions: [
+                                 TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                 TextButton(
+                                   onPressed: () {
+                                     _deleteAsset(asset.id);
+                                     Navigator.pop(context);
+                                   }, 
+                                   child: const Text('Delete', style: TextStyle(color: Colors.red))
+                                 ),
+                               ],
+                             )
+                           );
+                        },
+                      ),
+                      const Icon(Icons.chevron_right, color: Colors.grey),
+                    ],
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,

@@ -184,29 +184,37 @@ class _CustomAssetDetailPageState extends State<CustomAssetDetailPage> {
                     '${DateFormat('yyyy-MM-dd').format(rec.recordDate)}\n${rec.note ?? ''}',
                     style: const TextStyle(color: Colors.white70),
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.grey),
-                    onPressed: () => _showHistoryDialog(context, history: rec),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.grey),
+                        onPressed: () => _showHistoryDialog(context, history: rec),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () {
+                           showDialog(
+                             context: context,
+                             builder: (context) => AlertDialog(
+                               backgroundColor: Colors.grey[900],
+                               title: const Text('Delete record?', style: TextStyle(color: Colors.white)),
+                               actions: [
+                                 TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                 TextButton(
+                                   onPressed: () {
+                                     _deleteHistory(rec.id);
+                                     Navigator.pop(context);
+                                   }, 
+                                   child: const Text('Delete', style: TextStyle(color: Colors.red))
+                                 ),
+                               ],
+                             )
+                           );
+                        },
+                      ),
+                    ],
                   ),
-                  onLongPress: () {
-                     // Delete?
-                     showDialog(
-                       context: context,
-                       builder: (context) => AlertDialog(
-                         title: const Text('Delete record?'),
-                         actions: [
-                           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                           TextButton(
-                             onPressed: () {
-                               _deleteHistory(rec.id);
-                               Navigator.pop(context);
-                             }, 
-                             child: const Text('Delete', style: TextStyle(color: Colors.red))
-                           ),
-                         ],
-                       )
-                     );
-                  },
                 ),
               );
             },

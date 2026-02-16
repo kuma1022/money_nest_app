@@ -1551,6 +1551,18 @@ class DataSyncService {
     if (userId == null) return;
 
     try {
+      // 1. Fetch all assets in this category
+      final assets = await (db.select(db.customAssets)
+            ..where((t) => t.categoryId.equals(id)))
+          .get();
+      
+      // 2. Delete each asset (which handles API call + Local DB + History Cascade if configured)
+      // We do this loop to ensure API consistency if Supabase doesn't cascade.
+      for (var asset in assets) {
+        await deleteCustomAsset(asset.id);
+      }
+
+      // 3. Delete the category itself
       final res = await supabaseApi.supabaseInvoke(
         'money_grow_api',
         queryParameters: {
@@ -1663,6 +1675,15 @@ class DataSyncService {
     if (userId == null) return;
 
     try {
+      // 1. Delete history first (Manual cascade for safety)
+      final history = await (db.select(db.customAssetHistory)
+            ..where((t) => t.assetId.equals(id)))
+          .get();
+      for (var h in history) {
+        await deleteCustomAssetHistory(h.id);
+      }
+
+      // 2. Delete asset from Supabase
       final res = await supabaseApi.supabaseInvoke(
         'money_grow_api',
         queryParameters: {

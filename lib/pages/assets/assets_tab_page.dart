@@ -516,8 +516,38 @@ class AssetsTabPageState extends State<AssetsTabPage> {
     double cashProfit = cashVal - cashCost;
 
     // 4. Custom
-    double customVal = 0.0;
-    double customProfit = 0.0;
+    final customData = otherData?['details']?['custom'];
+    double customVal = customData?['totalAssets']?.toDouble() ?? 0.0;
+    double customCosts = customData?['totalCosts']?.toDouble() ?? 0.0;
+    double customProfit = customVal - customCosts;
+    double customRate = customCosts == 0 ? 0.0 : (customProfit / customCosts) * 100;
+
+    List<Map<String, dynamic>> customList = [];
+    if (customData != null && customData['assetList'] is List) {
+      for (var item in customData['assetList']) {
+        double val = (item['value'] as num? ?? 0).toDouble();
+        double cst = (item['cost'] as num? ?? 0).toDouble();
+        double profit = val - cst;
+        double profitPercent = cst == 0 ? 0.0 : (profit / cst) * 100;
+        double portfolioPercent = customVal == 0 ? 0.0 : (val / customVal) * 100;
+       
+        customList.add({
+          'code': item['categoryName'] ?? '',
+          'name': item['assetName'] ?? '', // Asset Name
+          'logo': null,
+          'quantity': 1, // Placeholder
+          'currentPrice': val, // Value as price
+          'avgCost': cst, // Cost
+          'marketValue': val,
+          'profit': profit,
+          'profitPercent': profitPercent,
+          'portfolioPercent': portfolioPercent,
+          'currency': item['currency'] ?? currency,
+        });
+      }
+      // Sort by value
+      customList.sort((a, b) => (b['marketValue'] as double).compareTo(a['marketValue'] as double));
+    }
 
     return Column(
       children: [
@@ -581,13 +611,13 @@ class AssetsTabPageState extends State<AssetsTabPage> {
           },
         ),
         const SizedBox(height: 12),
-        _buildAssetCard(
+        _ExpandableAssetCard(
           title: 'その他資産',
           dotColor: Colors.purple,
           value: AppUtils().formatMoney(customVal, currency),
           profitText: AppUtils().formatMoney(customProfit, currency),
-          profitRateText: '-',
-          profitColor: Colors.grey,
+          profitRateText: '(${AppUtils().formatNumberByTwoDigits(customRate)}%)',
+          profitColor: customProfit >= 0 ? AppColors.appUpGreen : AppColors.appDownRed,
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -595,6 +625,8 @@ class AssetsTabPageState extends State<AssetsTabPage> {
               ),
             );
           },
+          stockList: customList,
+          displayCurrency: currency,
         ),
       ],
     );

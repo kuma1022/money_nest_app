@@ -746,6 +746,46 @@ class AppUtils {
       print('Error calculating cash total: $e');
     }
 
+    // --- Add Custom Assets Calculation ---
+    double customTotalAssets = 0.0;
+    double customTotalCosts = 0.0;
+    List<Map<String, dynamic>> customAssetList = [];
+
+    try {
+      final customCats = await dataSync.db.select(dataSync.db.customAssetCategories).get();
+      for (var cat in customCats) {
+        final assets = await (dataSync.db.select(dataSync.db.customAssets)
+              ..where((t) => t.categoryId.equals(cat.id)))
+            .get();
+
+        for (var asset in assets) {
+          final historyQuery = dataSync.db.select(dataSync.db.customAssetHistory)
+            ..where((t) => t.assetId.equals(asset.id))
+            ..orderBy([(t) => OrderingTerm.desc(t.recordDate)])
+            ..limit(1);
+          final latestWrap = await historyQuery.getSingleOrNull();
+          
+          if (latestWrap != null) {
+            double val = latestWrap.value;
+            double cst = latestWrap.cost;
+            customTotalAssets += val;
+            customTotalCosts += cst;
+
+            customAssetList.add({
+              'categoryName': cat.name,
+              'assetName': asset.name,
+              'value': val,
+              'cost': cst,
+              'currency': asset.currency,
+              'updatedAt': latestWrap.recordDate.toIso8601String(),
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print('Error calculating custom assets: $e');
+    }
+
     final result = {
       'stock': {
         'totalAssets': stockTotalAssets,
@@ -773,12 +813,17 @@ class AppUtils {
         },
       },
       'other_asset': {
-        'totalAssets': cashTotalAssets,
-        'totalCosts': cashTotalCosts,
+        'totalAssets': cashTotalAssets + customTotalAssets,
+        'totalCosts': cashTotalCosts + customTotalCosts,
         'details': {
           'cash': {
             'totalAssets': cashTotalAssets,
             'totalCosts': cashTotalCosts,
+          },
+          'custom': {
+             'totalAssets': customTotalAssets,
+             'totalCosts': customTotalCosts,
+             'assetList': customAssetList,
           },
         },
       },
