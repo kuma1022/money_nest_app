@@ -6980,6 +6980,16 @@ class $CustomAssetHistoryTable extends CustomAssetHistory
     requiredDuringInsert: false,
     defaultValue: const Constant(0.0),
   );
+  static const VerificationMeta _costMeta = const VerificationMeta('cost');
+  @override
+  late final GeneratedColumn<double> cost = GeneratedColumn<double>(
+    'cost',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
   static const VerificationMeta _noteMeta = const VerificationMeta('note');
   @override
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
@@ -7007,6 +7017,7 @@ class $CustomAssetHistoryTable extends CustomAssetHistory
     assetId,
     recordDate,
     value,
+    cost,
     note,
     createdAt,
   ];
@@ -7045,6 +7056,12 @@ class $CustomAssetHistoryTable extends CustomAssetHistory
       context.handle(
         _valueMeta,
         value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    }
+    if (data.containsKey('cost')) {
+      context.handle(
+        _costMeta,
+        cost.isAcceptableOrUnknown(data['cost']!, _costMeta),
       );
     }
     if (data.containsKey('note')) {
@@ -7088,6 +7105,10 @@ class $CustomAssetHistoryTable extends CustomAssetHistory
         DriftSqlType.double,
         data['${effectivePrefix}value'],
       )!,
+      cost: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}cost'],
+      )!,
       note: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}note'],
@@ -7111,6 +7132,7 @@ class CustomAssetHistoryData extends DataClass
   final int assetId;
   final DateTime recordDate;
   final double value;
+  final double cost;
   final String? note;
   final DateTime createdAt;
   const CustomAssetHistoryData({
@@ -7118,6 +7140,7 @@ class CustomAssetHistoryData extends DataClass
     required this.assetId,
     required this.recordDate,
     required this.value,
+    required this.cost,
     this.note,
     required this.createdAt,
   });
@@ -7128,6 +7151,7 @@ class CustomAssetHistoryData extends DataClass
     map['asset_id'] = Variable<int>(assetId);
     map['record_date'] = Variable<DateTime>(recordDate);
     map['value'] = Variable<double>(value);
+    map['cost'] = Variable<double>(cost);
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
@@ -7141,6 +7165,7 @@ class CustomAssetHistoryData extends DataClass
       assetId: Value(assetId),
       recordDate: Value(recordDate),
       value: Value(value),
+      cost: Value(cost),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       createdAt: Value(createdAt),
     );
@@ -7156,6 +7181,7 @@ class CustomAssetHistoryData extends DataClass
       assetId: serializer.fromJson<int>(json['assetId']),
       recordDate: serializer.fromJson<DateTime>(json['recordDate']),
       value: serializer.fromJson<double>(json['value']),
+      cost: serializer.fromJson<double>(json['cost']),
       note: serializer.fromJson<String?>(json['note']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -7168,6 +7194,7 @@ class CustomAssetHistoryData extends DataClass
       'assetId': serializer.toJson<int>(assetId),
       'recordDate': serializer.toJson<DateTime>(recordDate),
       'value': serializer.toJson<double>(value),
+      'cost': serializer.toJson<double>(cost),
       'note': serializer.toJson<String?>(note),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -7178,6 +7205,7 @@ class CustomAssetHistoryData extends DataClass
     int? assetId,
     DateTime? recordDate,
     double? value,
+    double? cost,
     Value<String?> note = const Value.absent(),
     DateTime? createdAt,
   }) => CustomAssetHistoryData(
@@ -7185,6 +7213,7 @@ class CustomAssetHistoryData extends DataClass
     assetId: assetId ?? this.assetId,
     recordDate: recordDate ?? this.recordDate,
     value: value ?? this.value,
+    cost: cost ?? this.cost,
     note: note.present ? note.value : this.note,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -7196,6 +7225,7 @@ class CustomAssetHistoryData extends DataClass
           ? data.recordDate.value
           : this.recordDate,
       value: data.value.present ? data.value.value : this.value,
+      cost: data.cost.present ? data.cost.value : this.cost,
       note: data.note.present ? data.note.value : this.note,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
@@ -7208,6 +7238,7 @@ class CustomAssetHistoryData extends DataClass
           ..write('assetId: $assetId, ')
           ..write('recordDate: $recordDate, ')
           ..write('value: $value, ')
+          ..write('cost: $cost, ')
           ..write('note: $note, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -7216,7 +7247,7 @@ class CustomAssetHistoryData extends DataClass
 
   @override
   int get hashCode =>
-      Object.hash(id, assetId, recordDate, value, note, createdAt);
+      Object.hash(id, assetId, recordDate, value, cost, note, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7225,6 +7256,7 @@ class CustomAssetHistoryData extends DataClass
           other.assetId == this.assetId &&
           other.recordDate == this.recordDate &&
           other.value == this.value &&
+          other.cost == this.cost &&
           other.note == this.note &&
           other.createdAt == this.createdAt);
 }
@@ -7235,6 +7267,7 @@ class CustomAssetHistoryCompanion
   final Value<int> assetId;
   final Value<DateTime> recordDate;
   final Value<double> value;
+  final Value<double> cost;
   final Value<String?> note;
   final Value<DateTime> createdAt;
   const CustomAssetHistoryCompanion({
@@ -7242,6 +7275,7 @@ class CustomAssetHistoryCompanion
     this.assetId = const Value.absent(),
     this.recordDate = const Value.absent(),
     this.value = const Value.absent(),
+    this.cost = const Value.absent(),
     this.note = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
@@ -7250,6 +7284,7 @@ class CustomAssetHistoryCompanion
     required int assetId,
     required DateTime recordDate,
     this.value = const Value.absent(),
+    this.cost = const Value.absent(),
     this.note = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : assetId = Value(assetId),
@@ -7259,6 +7294,7 @@ class CustomAssetHistoryCompanion
     Expression<int>? assetId,
     Expression<DateTime>? recordDate,
     Expression<double>? value,
+    Expression<double>? cost,
     Expression<String>? note,
     Expression<DateTime>? createdAt,
   }) {
@@ -7267,6 +7303,7 @@ class CustomAssetHistoryCompanion
       if (assetId != null) 'asset_id': assetId,
       if (recordDate != null) 'record_date': recordDate,
       if (value != null) 'value': value,
+      if (cost != null) 'cost': cost,
       if (note != null) 'note': note,
       if (createdAt != null) 'created_at': createdAt,
     });
@@ -7277,6 +7314,7 @@ class CustomAssetHistoryCompanion
     Value<int>? assetId,
     Value<DateTime>? recordDate,
     Value<double>? value,
+    Value<double>? cost,
     Value<String?>? note,
     Value<DateTime>? createdAt,
   }) {
@@ -7285,6 +7323,7 @@ class CustomAssetHistoryCompanion
       assetId: assetId ?? this.assetId,
       recordDate: recordDate ?? this.recordDate,
       value: value ?? this.value,
+      cost: cost ?? this.cost,
       note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -7305,6 +7344,9 @@ class CustomAssetHistoryCompanion
     if (value.present) {
       map['value'] = Variable<double>(value.value);
     }
+    if (cost.present) {
+      map['cost'] = Variable<double>(cost.value);
+    }
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
@@ -7321,6 +7363,7 @@ class CustomAssetHistoryCompanion
           ..write('assetId: $assetId, ')
           ..write('recordDate: $recordDate, ')
           ..write('value: $value, ')
+          ..write('cost: $cost, ')
           ..write('note: $note, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -11192,6 +11235,7 @@ typedef $$CustomAssetHistoryTableCreateCompanionBuilder =
       required int assetId,
       required DateTime recordDate,
       Value<double> value,
+      Value<double> cost,
       Value<String?> note,
       Value<DateTime> createdAt,
     });
@@ -11201,6 +11245,7 @@ typedef $$CustomAssetHistoryTableUpdateCompanionBuilder =
       Value<int> assetId,
       Value<DateTime> recordDate,
       Value<double> value,
+      Value<double> cost,
       Value<String?> note,
       Value<DateTime> createdAt,
     });
@@ -11262,6 +11307,11 @@ class $$CustomAssetHistoryTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<double> get cost => $composableBuilder(
+    column: $table.cost,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get note => $composableBuilder(
     column: $table.note,
     builder: (column) => ColumnFilters(column),
@@ -11320,6 +11370,11 @@ class $$CustomAssetHistoryTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get cost => $composableBuilder(
+    column: $table.cost,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get note => $composableBuilder(
     column: $table.note,
     builder: (column) => ColumnOrderings(column),
@@ -11373,6 +11428,9 @@ class $$CustomAssetHistoryTableAnnotationComposer
 
   GeneratedColumn<double> get value =>
       $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<double> get cost =>
+      $composableBuilder(column: $table.cost, builder: (column) => column);
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
@@ -11441,6 +11499,7 @@ class $$CustomAssetHistoryTableTableManager
                 Value<int> assetId = const Value.absent(),
                 Value<DateTime> recordDate = const Value.absent(),
                 Value<double> value = const Value.absent(),
+                Value<double> cost = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => CustomAssetHistoryCompanion(
@@ -11448,6 +11507,7 @@ class $$CustomAssetHistoryTableTableManager
                 assetId: assetId,
                 recordDate: recordDate,
                 value: value,
+                cost: cost,
                 note: note,
                 createdAt: createdAt,
               ),
@@ -11457,6 +11517,7 @@ class $$CustomAssetHistoryTableTableManager
                 required int assetId,
                 required DateTime recordDate,
                 Value<double> value = const Value.absent(),
+                Value<double> cost = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => CustomAssetHistoryCompanion.insert(
@@ -11464,6 +11525,7 @@ class $$CustomAssetHistoryTableTableManager
                 assetId: assetId,
                 recordDate: recordDate,
                 value: value,
+                cost: cost,
                 note: note,
                 createdAt: createdAt,
               ),
