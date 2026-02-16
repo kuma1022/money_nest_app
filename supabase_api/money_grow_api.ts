@@ -1299,13 +1299,15 @@ async function handleUpdateCustomAsset(userId, type, body) {
     return new Response(JSON.stringify({ error: 'Missing ID' }), { status: 400 });
   }
 
-  let query = supabase.from(table).update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id);
+  // Remove updated_at from update payload because tables don't have this column
+  // let query = supabase.from(table).update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id);
+  let query = supabase.from(table).update({ ...updates }).eq('id', id);
 
   if (type === 'category' || type === 'asset') {
     query = query.eq('user_id', userId);
   }
 
-  const { data, error } = await query.select();
+  const { data, error } = await query.select().single();
 
   if (error) {
      console.error(`Error updating custom ${type}:`, error);

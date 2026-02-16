@@ -1525,7 +1525,14 @@ class DataSyncService {
       );
 
       if (res.status == 200 && res.data['success'] == true) {
-        final data = res.data['data'];
+        dynamic data = res.data['data'];
+        if (data is List) {
+          if (data.isNotEmpty) {
+            data = data.first;
+          } else {
+            throw Exception('Empty data returned from updateCustomCategory');
+          }
+        }
         await (db.update(db.customAssetCategories)..where((t) => t.id.equals(id)))
             .write(CustomAssetCategoriesCompanion(
               name: Value(data['name'] ?? ''),
@@ -1629,7 +1636,14 @@ class DataSyncService {
       );
 
       if (res.status == 200 && res.data['success'] == true) {
-        final data = res.data['data'];
+        dynamic data = res.data['data'];
+         if (data is List) {
+          if (data.isNotEmpty) {
+            data = data.first;
+          } else {
+            throw Exception('Empty data returned from updateCustomAsset');
+          }
+        }
         await (db.update(db.customAssets)..where((t) => t.id.equals(id)))
             .write(CustomAssetsCompanion(
               name: Value(data['name'] ?? ''),
@@ -1735,7 +1749,14 @@ class DataSyncService {
       );
 
       if (res.status == 200 && res.data['success'] == true) {
-        final data = res.data['data'];
+        dynamic data = res.data['data'];
+         if (data is List) {
+          if (data.isNotEmpty) {
+            data = data.first;
+          } else {
+            throw Exception('Empty data returned from updateCustomAssetHistory');
+          }
+        }
         await (db.update(db.customAssetHistory)..where((t) => t.id.equals(id)))
             .write(CustomAssetHistoryCompanion(
               recordDate: Value(DateTime.tryParse(data['record_date'].toString()) ?? DateTime.now()),
