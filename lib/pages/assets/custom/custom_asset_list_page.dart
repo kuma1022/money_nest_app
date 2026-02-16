@@ -42,7 +42,6 @@ class _CustomAssetListPageState extends State<CustomAssetListPage> {
   Future<void> _updateAsset(CustomAsset asset, String name, String description, String currency) async {
     await Provider.of<DataSyncService>(context, listen: false).updateCustomAsset(
       asset.id,
-      widget.category.id,
       name,
       description,
       currency,

@@ -42,7 +42,6 @@ class _CustomAssetDetailPageState extends State<CustomAssetDetailPage> {
   Future<void> _updateHistory(CustomAssetHistoryData history, DateTime date, double value, double cost, String note) async {
       await Provider.of<DataSyncService>(context, listen: false).updateCustomAssetHistory(
         history.id,
-        widget.asset.id,
         date,
         value,
         cost,
