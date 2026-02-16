@@ -1444,7 +1444,7 @@ class DataSyncService {
              recordDate: Value(DateTime.tryParse(rec['record_date'].toString()) ?? DateTime.now()),
              value: Value((rec['value'] as num).toDouble()),
              cost: Value((rec['cost_basis'] as num?)?.toDouble() ?? 0.0),
-             note: Value(rec['note']),
+             note: Value(rec['remark']),
              createdAt: Value(DateTime.tryParse(rec['created_at'].toString()) ?? DateTime.now()),
            ));
         }
@@ -1700,7 +1700,7 @@ class DataSyncService {
           'record_date': recordDate.toIso8601String(),
           'value': value,
           'cost_basis': cost,
-          'note': note,
+          'remark': note, 
         },
         method: HttpMethod.post,
       );
@@ -1714,7 +1714,7 @@ class DataSyncService {
                 recordDate: Value(DateTime.tryParse(data['record_date'].toString()) ?? DateTime.now()),
                 value: Value((data['value'] as num?)?.toDouble() ?? 0.0),
                 cost: Value((data['cost_basis'] as num?)?.toDouble() ?? 0.0),
-                note: Value(data['note'] as String?),
+                note: Value(data['remark'] as String?),
                 createdAt: Value(DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now()),
               ),
               mode: InsertMode.insertOrReplace,
@@ -1743,7 +1743,7 @@ class DataSyncService {
           'record_date': recordDate.toIso8601String(),
           'value': value,
           'cost_basis': cost,
-          'note': note,
+          'remark': note,
         },
         method: HttpMethod.put,
       );
@@ -1762,7 +1762,7 @@ class DataSyncService {
               recordDate: Value(DateTime.tryParse(data['record_date'].toString()) ?? DateTime.now()),
               value: Value((data['value'] as num?)?.toDouble() ?? 0.0),
               cost: Value((data['cost_basis'] as num?)?.toDouble() ?? 0.0),
-              note: Value(data['note'] as String?),
+              note: Value(data['remark'] as String?),
             ));
       }
     } catch (e) {
