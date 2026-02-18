@@ -43,7 +43,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas yfinance requests supabase
+          pip install -r requirements.txt pandas_market_calendars yfinance supabase
 
       - name: Run sync script
         env:

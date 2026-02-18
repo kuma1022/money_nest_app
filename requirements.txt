@@ -1,5 +1,2 @@
 yfinance
 supabase
-pandas
-pandas_market_calendars
-
