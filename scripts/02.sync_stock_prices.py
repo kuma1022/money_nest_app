@@ -13,9 +13,13 @@ STORAGE_PATH = "historical_prices"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-def get_monitored_stocks(only_new=False):
+def get_monitored_stocks(only_new=False, market=None):
     """获取需要同步的股票"""
     query = supabase.table("stocks").select("ticker, last_synced_at").eq("is_monitored", True)
+    
+    if market:
+        query = query.eq("exchange", market)
+        
     if only_new:
         query = query.is_("last_synced_at", "null")
     res = query.execute()
@@ -106,14 +110,15 @@ def process_stock(stock, force_full=False):
 if __name__ == "__main__":
     import sys
     mode = sys.argv[1] if len(sys.argv) > 1 else "normal"
+    market = sys.argv[2] if len(sys.argv) > 2 else os.environ.get("MARKET")
     
     if mode == "initial":
-        stocks = get_monitored_stocks(only_new=False)
+        stocks = get_monitored_stocks(only_new=False, market=market)
         for s in stocks: process_stock(s, force_full=True)
     else:
         # 1. 处理新添加的股票
-        new_stocks = get_monitored_stocks(only_new=True)
+        new_stocks = get_monitored_stocks(only_new=True, market=market)
         for s in new_stocks: process_stock(s, force_full=True)
         # 2. 处理已有股票的增量更新
-        existing_stocks = [s for s in get_monitored_stocks() if s.get("last_synced_at")]
+        existing_stocks = [s for s in get_monitored_stocks(market=market) if s.get("last_synced_at")]
         for s in existing_stocks: process_stock(s, force_full=False)
