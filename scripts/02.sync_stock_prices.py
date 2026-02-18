@@ -64,7 +64,14 @@ def process_stock(stock, force_full=False):
             # --- 增量检查 ---
             # 1. 检查最近 5 天是否有分割
             check_df = yf.download(ticker, period="5d", actions=True, progress=False)
-            if check_df['Stock Splits'].any():
+
+            has_split = False
+            if not check_df.empty and 'Stock Splits' in check_df.columns:
+                splits = check_df['Stock Splits']
+                # use .values to handle both Series and DataFrame cases uniformly
+                has_split = (splits.values != 0).any()
+
+            if has_split:
                 print(f"⚠️ {ticker} 检测到分割，触发全量重刷")
                 df = yf.download(ticker, start="2010-01-01", auto_adjust=False, actions=True, progress=False)
                 new_df = df[['Adj Close']].copy()
